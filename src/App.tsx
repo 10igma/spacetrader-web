@@ -12,6 +12,7 @@ import EquipmentScreen from './ui/EquipmentScreen';
 import PersonnelScreen from './ui/PersonnelScreen';
 import BankScreen from './ui/BankScreen';
 import WarpScreen from './ui/WarpScreen';
+import ManualScreen from './ui/ManualScreen';
 import EncounterScreen from './ui/EncounterScreen';
 import { realDistance } from './utils/math';
 import { wormholeExists } from './engine/galaxy';
@@ -101,6 +102,7 @@ function App() {
       case 'personnel': return <PersonnelScreen />;
       case 'bank': return <BankScreen />;
       case 'warp': return <WarpScreen onWarp={handleWarp} onCancel={handleWarpCancel} />;
+      case 'manual': return <ManualScreen />;
       default: return <CommanderStatus />;
     }
   };
