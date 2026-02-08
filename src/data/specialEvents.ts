@@ -1,0 +1,45 @@
+import type { SpecialEvent } from '../models/types';
+import { COSTMOON } from './constants';
+
+// Ported from Global.c — SpecialEvent[MAXSPECIALEVENT]
+// Note: questStringID references Palm OS resource strings; we'll use inline descriptions later
+export const SPECIAL_EVENTS: SpecialEvent[] = [
+  { title: 'Dragonfly Destroyed',     questStringID:  0, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Weird Ship',              questStringID:  1, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Lightning Ship',          questStringID:  2, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Strange Ship',            questStringID:  3, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Monster Killed',          questStringID:  4, price: -15000, occurrence: 0, justAMessage: true },
+  { title: 'Medicine Delivery',       questStringID:  5, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Retirement',              questStringID:  6, price:      0, occurrence: 0, justAMessage: false },
+  // --- Fixed locations above, random below ---
+  { title: 'Moon For Sale',           questStringID:  7, price: COSTMOON, occurrence: 4, justAMessage: false },
+  { title: 'Skill Increase',          questStringID:  8, price:   3000, occurrence: 3, justAMessage: false },
+  { title: 'Merchant Prince',         questStringID:  9, price:   1000, occurrence: 1, justAMessage: false },
+  { title: 'Erase Record',            questStringID: 10, price:   5000, occurrence: 3, justAMessage: false },
+  { title: 'Tribble Buyer',           questStringID: 11, price:      0, occurrence: 3, justAMessage: false },
+  { title: 'Space Monster',           questStringID: 12, price:      0, occurrence: 1, justAMessage: true },
+  { title: 'Dragonfly',               questStringID: 13, price:      0, occurrence: 1, justAMessage: true },
+  { title: 'Cargo For Sale',          questStringID: 14, price:   1000, occurrence: 3, justAMessage: false },
+  { title: 'Lightning Shield',        questStringID: 15, price:      0, occurrence: 0, justAMessage: false },
+  { title: 'Japori Disease',          questStringID: 16, price:      0, occurrence: 1, justAMessage: false },
+  { title: 'Lottery Winner',          questStringID: 17, price:  -1000, occurrence: 0, justAMessage: true },
+  { title: 'Artifact Delivery',       questStringID: 18, price: -20000, occurrence: 0, justAMessage: true },
+  { title: 'Alien Artifact',          questStringID: 19, price:      0, occurrence: 1, justAMessage: false },
+  { title: 'Ambassador Jarek',        questStringID: 20, price:      0, occurrence: 1, justAMessage: false },
+  { title: 'Alien Invasion',          questStringID: 21, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Gemulon Invaded',         questStringID: 22, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Fuel Compactor',          questStringID: 23, price:      0, occurrence: 0, justAMessage: false },
+  { title: 'Dangerous Experiment',    questStringID: 24, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Jonathan Wild',           questStringID: 25, price:      0, occurrence: 1, justAMessage: false },
+  { title: "Morgan's Reactor",        questStringID: 26, price:      0, occurrence: 0, justAMessage: false },
+  { title: "Install Morgan's Laser",  questStringID: 27, price:      0, occurrence: 0, justAMessage: false },
+  { title: 'Scarab Stolen',           questStringID: 28, price:      0, occurrence: 1, justAMessage: true },
+  { title: 'Upgrade Hull',            questStringID: 29, price:      0, occurrence: 0, justAMessage: false },
+  { title: 'Scarab Destroyed',        questStringID: 30, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Reactor Delivered',       questStringID: 31, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Jarek Gets Out',          questStringID: 32, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Gemulon Rescued',         questStringID: 33, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Disaster Averted',        questStringID: 34, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Experiment Failed',       questStringID: 35, price:      0, occurrence: 0, justAMessage: true },
+  { title: 'Wild Gets Out',           questStringID: 36, price:      0, occurrence: 0, justAMessage: true },
+];
