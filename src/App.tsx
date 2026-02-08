@@ -76,6 +76,11 @@ function App() {
     setScreen('shortrange');
   }, []);
 
+  const handleRestart = useCallback(() => {
+    useGameStore.persist.clearStorage();
+    useGameStore.setState({ initialized: false } as Partial<ReturnType<typeof useGameStore.getState>>);
+  }, []);
+
   if (!initialized) {
     return <NewGameScreen />;
   }
@@ -108,7 +113,7 @@ function App() {
   };
 
   return (
-    <GameLayout currentScreen={screen} onNavigate={handleNavigate}>
+    <GameLayout currentScreen={screen} onNavigate={handleNavigate} onRestart={handleRestart}>
       {renderScreen()}
     </GameLayout>
   );

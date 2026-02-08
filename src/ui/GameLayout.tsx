@@ -1,4 +1,4 @@
-import { type ReactNode, memo } from 'react';
+import { type ReactNode, memo, useState } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { SHIP_TYPES } from '../data/shipTypes';
 import { systemName, formatCredits } from './helpers';
@@ -20,10 +20,12 @@ export type Screen =
 interface GameLayoutProps {
   currentScreen: Screen;
   onNavigate: (screen: Screen) => void;
+  onRestart: () => void;
   children: ReactNode;
 }
 
-export default memo(function GameLayout({ currentScreen, onNavigate, children }: GameLayoutProps) {
+export default memo(function GameLayout({ currentScreen, onNavigate, onRestart, children }: GameLayoutProps) {
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const {
     days, credits, debt, ship, mercenary, solarSystem, warpSystem,
     getFuelAmount, getFuelTanksSize, getFilledCargoBays, getTotalCargoBays,
@@ -92,18 +94,27 @@ export default memo(function GameLayout({ currentScreen, onNavigate, children }:
             {item.short}
           </button>
         ))}
-        {canWarp && (
+        <div className="flex items-center gap-0.5 ml-auto">
+          {canWarp && (
+            <button
+              onClick={() => onNavigate('warp')}
+              className={`px-3 py-1.5 font-mono text-xs rounded-t transition-colors ${
+                currentScreen === 'warp'
+                  ? 'bg-amber-900 text-amber-300 border-b-2 border-amber-500'
+                  : 'bg-amber-900/50 text-amber-400 hover:bg-amber-800'
+              }`}
+            >
+              ▶ WARP
+            </button>
+          )}
           <button
-            onClick={() => onNavigate('warp')}
-            className={`px-3 py-1.5 font-mono text-xs rounded-t ml-auto transition-colors ${
-              currentScreen === 'warp'
-                ? 'bg-amber-900 text-amber-300 border-b-2 border-amber-500'
-                : 'bg-amber-900/50 text-amber-400 hover:bg-amber-800'
-            }`}
+            onClick={() => setShowRestartConfirm(true)}
+            className="px-3 py-1.5 font-mono text-xs rounded-t transition-colors text-red-500 hover:text-red-300 hover:bg-red-900/50"
+            title="Start a new game"
           >
-            ▶ WARP
+            🔄 NEW
           </button>
-        )}
+        </div>
       </nav>
 
       <main className="flex-1 p-4 max-w-4xl mx-auto w-full overflow-y-auto">
@@ -116,6 +127,31 @@ export default memo(function GameLayout({ currentScreen, onNavigate, children }:
             ⚠ Outstanding debt: {formatCredits(debt)}
           </span>
         </footer>
+      )}
+
+      {showRestartConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-sm mx-4 text-center">
+            <h3 className="text-red-400 font-mono font-bold text-lg mb-3">⚠️ Start New Game?</h3>
+            <p className="text-gray-300 text-sm mb-5">
+              All current progress will be lost. This cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowRestartConfirm(false)}
+                className="px-4 py-2 font-mono text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={() => { setShowRestartConfirm(false); onRestart(); }}
+                className="px-4 py-2 font-mono text-xs bg-red-800 text-red-200 rounded hover:bg-red-700 transition-colors"
+              >
+                🔄 NEW GAME
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
