@@ -1,21 +1,36 @@
+import { memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { systemName, techName, govName, formatCredits } from './helpers';
 import { realDistance } from '../utils/math';
 import { wormholeExists } from '../engine/galaxy';
+import { useShallow } from 'zustand/shallow';
 
 interface WarpScreenProps {
   onWarp: () => void;
   onCancel: () => void;
 }
 
-export default function WarpScreen({ onWarp, onCancel }: WarpScreenProps) {
-  const s = useGameStore();
-  const curSystem = s.mercenary[0].curSystem;
-  const curSys = s.solarSystem[curSystem];
-  const destSys = s.solarSystem[s.warpSystem];
+export default memo(function WarpScreen({ onWarp, onCancel }: WarpScreenProps) {
+  const {
+    mercenary, solarSystem, warpSystem, wormhole,
+    getFuelAmount, getFuelTanksSize, getMercenaryMoney, getInsuranceMoney,
+  } = useGameStore(useShallow((s) => ({
+    mercenary: s.mercenary,
+    solarSystem: s.solarSystem,
+    warpSystem: s.warpSystem,
+    wormhole: s.wormhole,
+    getFuelAmount: s.getFuelAmount,
+    getFuelTanksSize: s.getFuelTanksSize,
+    getMercenaryMoney: s.getMercenaryMoney,
+    getInsuranceMoney: s.getInsuranceMoney,
+  })));
+
+  const curSystem = mercenary[0].curSystem;
+  const curSys = solarSystem[curSystem];
+  const destSys = solarSystem[warpSystem];
   const dist = realDistance(curSys, destSys);
-  const fuel = s.getFuelAmount();
-  const isWormhole = wormholeExists(s.wormhole, curSystem, s.warpSystem);
+  const fuel = getFuelAmount();
+  const isWormhole = wormholeExists(wormhole, curSystem, warpSystem);
   const fuelCost = isWormhole ? 0 : Math.min(dist, fuel);
   const canWarp = isWormhole || dist <= fuel;
 
@@ -25,14 +40,12 @@ export default function WarpScreen({ onWarp, onCancel }: WarpScreenProps) {
 
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <div className="grid grid-cols-2 gap-4">
-          {/* From */}
           <div>
             <span className="text-gray-500 text-xs font-mono block mb-1">FROM</span>
             <span className="text-cyan-400 font-mono font-bold">
               {systemName(curSys.nameIndex)}
             </span>
           </div>
-          {/* To */}
           <div>
             <span className="text-gray-500 text-xs font-mono block mb-1">TO</span>
             <span className="text-amber-400 font-mono font-bold">
@@ -55,7 +68,7 @@ export default function WarpScreen({ onWarp, onCancel }: WarpScreenProps) {
         </div>
         <div className="flex justify-between text-sm font-mono">
           <span className="text-gray-400">Fuel After</span>
-          <span className="text-green-400">{fuel - fuelCost}/{s.getFuelTanksSize()}</span>
+          <span className="text-green-400">{fuel - fuelCost}/{getFuelTanksSize()}</span>
         </div>
         <div className="flex justify-between text-sm font-mono">
           <span className="text-gray-400">Tech Level</span>
@@ -67,11 +80,11 @@ export default function WarpScreen({ onWarp, onCancel }: WarpScreenProps) {
         </div>
         <div className="flex justify-between text-sm font-mono">
           <span className="text-gray-400">Mercenary Cost</span>
-          <span className="text-amber-400">{formatCredits(s.getMercenaryMoney())}/day</span>
+          <span className="text-amber-400">{formatCredits(getMercenaryMoney())}/day</span>
         </div>
         <div className="flex justify-between text-sm font-mono">
           <span className="text-gray-400">Insurance Cost</span>
-          <span className="text-amber-400">{formatCredits(s.getInsuranceMoney())}/day</span>
+          <span className="text-amber-400">{formatCredits(getInsuranceMoney())}/day</span>
         </div>
       </div>
 
@@ -102,4 +115,4 @@ export default function WarpScreen({ onWarp, onCancel }: WarpScreenProps) {
       </div>
     </div>
   );
-}
+});

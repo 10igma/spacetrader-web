@@ -1,22 +1,40 @@
+import { memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { SHIP_TYPES } from '../data/shipTypes';
 import { MAXSHIPTYPE } from '../data/constants';
 import { formatCredits, systemName } from './helpers';
+import { useShallow } from 'zustand/shallow';
 
-export default function ShipyardScreen() {
-  const s = useGameStore();
-  const curSystemId = s.mercenary[0].curSystem;
-  const curSystem = s.solarSystem[curSystemId];
-  const shipType = SHIP_TYPES[s.ship.type];
-  const maxFuel = s.getFuelTanksSize() - s.getFuelAmount();
-  const maxRepair = shipType.hullStrength - s.ship.hull;
+export default memo(function ShipyardScreen() {
+  const {
+    ship, mercenary, solarSystem, credits, escapePod,
+    getFuelAmount, getFuelTanksSize,
+    doBuyFuel, doBuyRepairs, doBuyEscapePod,
+  } = useGameStore(useShallow((s) => ({
+    ship: s.ship,
+    mercenary: s.mercenary,
+    solarSystem: s.solarSystem,
+    credits: s.credits,
+    escapePod: s.escapePod,
+    getFuelAmount: s.getFuelAmount,
+    getFuelTanksSize: s.getFuelTanksSize,
+    doBuyFuel: s.doBuyFuel,
+    doBuyRepairs: s.doBuyRepairs,
+    doBuyEscapePod: s.doBuyEscapePod,
+  })));
+
+  const curSystemId = mercenary[0].curSystem;
+  const curSystem = solarSystem[curSystemId];
+  const shipType = SHIP_TYPES[ship.type];
+  const maxFuel = getFuelTanksSize() - getFuelAmount();
+  const maxRepair = shipType.hullStrength - ship.hull;
 
   const handleFillTank = () => {
-    s.doBuyFuel(maxFuel * shipType.costOfFuel);
+    doBuyFuel(maxFuel * shipType.costOfFuel);
   };
 
   const handleFullRepair = () => {
-    s.doBuyRepairs(maxRepair * shipType.repairCosts);
+    doBuyRepairs(maxRepair * shipType.repairCosts);
   };
 
   return (
@@ -26,15 +44,14 @@ export default function ShipyardScreen() {
       </h2>
 
       <div className="text-sm font-mono bg-gray-900 border border-gray-700 rounded p-3">
-        <span className="text-amber-400">Credits: {formatCredits(s.credits)}</span>
+        <span className="text-amber-400">Credits: {formatCredits(credits)}</span>
       </div>
 
-      {/* Current ship */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-2">Current Ship: {shipType.name}</h3>
         <div className="grid grid-cols-2 gap-2 text-sm font-mono">
-          <div className="text-gray-400">Hull: <span className="text-green-400">{s.ship.hull}/{shipType.hullStrength}</span></div>
-          <div className="text-gray-400">Fuel: <span className="text-green-400">{s.getFuelAmount()}/{s.getFuelTanksSize()}</span></div>
+          <div className="text-gray-400">Hull: <span className="text-green-400">{ship.hull}/{shipType.hullStrength}</span></div>
+          <div className="text-gray-400">Fuel: <span className="text-green-400">{getFuelAmount()}/{getFuelTanksSize()}</span></div>
           <div className="text-gray-400">Cargo: <span className="text-green-400">{shipType.cargoBays} bays</span></div>
           <div className="text-gray-400">Weapons: <span className="text-green-400">{shipType.weaponSlots} slots</span></div>
           <div className="text-gray-400">Shields: <span className="text-green-400">{shipType.shieldSlots} slots</span></div>
@@ -43,12 +60,11 @@ export default function ShipyardScreen() {
         </div>
       </div>
 
-      {/* Buy fuel */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-2">Buy Fuel</h3>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-gray-400 text-sm font-mono">
-            {s.getFuelAmount()}/{s.getFuelTanksSize()} parsecs
+            {getFuelAmount()}/{getFuelTanksSize()} parsecs
             ({shipType.costOfFuel} cr/parsec)
           </span>
         </div>
@@ -66,18 +82,17 @@ export default function ShipyardScreen() {
         )}
       </div>
 
-      {/* Repair hull */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-2">Repair Hull</h3>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-gray-400 text-sm font-mono">
-            {s.ship.hull}/{shipType.hullStrength} HP
+            {ship.hull}/{shipType.hullStrength} HP
             ({shipType.repairCosts} cr/point)
           </span>
           <div className="flex-1 bg-gray-800 rounded-full h-2">
             <div
-              className={`h-2 rounded-full ${s.ship.hull / shipType.hullStrength > 0.5 ? 'bg-green-500' : s.ship.hull / shipType.hullStrength > 0.25 ? 'bg-amber-500' : 'bg-red-500'}`}
-              style={{ width: `${(s.ship.hull / shipType.hullStrength) * 100}%` }}
+              className={`h-2 rounded-full ${ship.hull / shipType.hullStrength > 0.5 ? 'bg-green-500' : ship.hull / shipType.hullStrength > 0.25 ? 'bg-amber-500' : 'bg-red-500'}`}
+              style={{ width: `${(ship.hull / shipType.hullStrength) * 100}%` }}
             />
           </div>
         </div>
@@ -95,16 +110,15 @@ export default function ShipyardScreen() {
         )}
       </div>
 
-      {/* Buy escape pod */}
-      {!s.escapePod && (
+      {!escapePod && (
         <div className="bg-gray-900 border border-gray-700 rounded p-4">
           <h3 className="text-cyan-300 font-mono text-sm mb-2">Escape Pod</h3>
           <p className="text-gray-400 text-sm mb-2">An escape pod will save your life if your ship is destroyed.</p>
           <button
-            onClick={() => s.doBuyEscapePod()}
-            disabled={s.credits < 2000}
+            onClick={() => doBuyEscapePod()}
+            disabled={credits < 2000}
             className={`w-full py-2 font-mono text-sm rounded ${
-              s.credits >= 2000
+              credits >= 2000
                 ? 'bg-purple-800 hover:bg-purple-700 text-purple-200'
                 : 'bg-gray-700 text-gray-500 cursor-not-allowed'
             }`}
@@ -114,7 +128,6 @@ export default function ShipyardScreen() {
         </div>
       )}
 
-      {/* Available ships for purchase */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-3">Ships For Sale</h3>
         <div className="space-y-2">
@@ -122,7 +135,7 @@ export default function ShipyardScreen() {
             const st = SHIP_TYPES[i];
             if (st.minTechLevel > curSystem.techLevel) return null;
             if (st.occurrence <= 0) return null;
-            const isCurrent = i === s.ship.type;
+            const isCurrent = i === ship.type;
 
             return (
               <div
@@ -153,4 +166,4 @@ export default function ShipyardScreen() {
       </div>
     </div>
   );
-}
+});

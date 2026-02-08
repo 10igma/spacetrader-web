@@ -1,26 +1,37 @@
+import { memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { MAXWORMHOLE } from '../data/constants';
 import { systemName } from './helpers';
 import { realDistance } from '../utils/math';
 import { wormholeExists } from '../engine/galaxy';
+import { useShallow } from 'zustand/shallow';
 
 const VIEW_RANGE = 20;
 const CANVAS = 400;
 const SCALE = CANVAS / (VIEW_RANGE * 2);
 
-export default function ShortRangeChart() {
-  const s = useGameStore();
-  const curSystem = s.mercenary[0].curSystem;
-  const curSys = s.solarSystem[curSystem];
-  const fuel = s.getFuelAmount();
-  const warpSystem = s.warpSystem;
+export default memo(function ShortRangeChart() {
+  const {
+    solarSystem, mercenary, warpSystem, wormhole,
+    getFuelAmount, setWarpSystem,
+  } = useGameStore(useShallow((s) => ({
+    solarSystem: s.solarSystem,
+    mercenary: s.mercenary,
+    warpSystem: s.warpSystem,
+    wormhole: s.wormhole,
+    getFuelAmount: s.getFuelAmount,
+    setWarpSystem: s.setWarpSystem,
+  })));
+
+  const curSystem = mercenary[0].curSystem;
+  const curSys = solarSystem[curSystem];
+  const fuel = getFuelAmount();
 
   const handleClick = (systemId: number) => {
-    s.setWarpSystem(systemId);
+    setWarpSystem(systemId);
   };
 
-  // Filter systems within range for display
-  const nearbySystems = s.solarSystem
+  const nearbySystems = solarSystem
     .map((sys, i) => ({ sys, i }))
     .filter(({ sys }) => {
       const dx = Math.abs(sys.x - curSys.x);
@@ -36,7 +47,6 @@ export default function ShortRangeChart() {
       <h2 className="text-xl font-bold text-cyan-400 font-mono">Short Range Chart</h2>
       <div className="bg-gray-950 border border-gray-700 rounded overflow-hidden">
         <svg viewBox={`0 0 ${CANVAS} ${CANVAS}`} className="w-full" style={{ maxHeight: '70vh' }}>
-          {/* Fuel range circle */}
           <circle
             cx={CANVAS / 2}
             cy={CANVAS / 2}
@@ -47,13 +57,12 @@ export default function ShortRangeChart() {
             strokeDasharray="6 3"
           />
 
-          {/* Wormhole lines for nearby systems */}
           {Array.from({ length: MAXWORMHOLE }).map((_, i) => {
             const nextI = (i + 1) % MAXWORMHOLE;
-            const a = s.wormhole[i];
-            const b = s.wormhole[nextI];
-            const sa = s.solarSystem[a];
-            const sb = s.solarSystem[b];
+            const a = wormhole[i];
+            const b = wormhole[nextI];
+            const sa = solarSystem[a];
+            const sb = solarSystem[b];
             if (!sa || !sb) return null;
             const aInView = Math.abs(sa.x - curSys.x) <= VIEW_RANGE && Math.abs(sa.y - curSys.y) <= VIEW_RANGE;
             const bInView = Math.abs(sb.x - curSys.x) <= VIEW_RANGE && Math.abs(sb.y - curSys.y) <= VIEW_RANGE;
@@ -72,12 +81,11 @@ export default function ShortRangeChart() {
             );
           })}
 
-          {/* Systems */}
           {nearbySystems.map(({ sys, i }) => {
             const isCurrentSys = i === curSystem;
             const isWarp = i === warpSystem;
             const dist = realDistance(curSys, sys);
-            const inRange = dist <= fuel || wormholeExists(s.wormhole, curSystem, i);
+            const inRange = dist <= fuel || wormholeExists(wormhole, curSystem, i);
 
             let fill = 'rgb(107,114,128)';
             if (sys.visited) fill = 'rgb(34,197,94)';
@@ -131,19 +139,19 @@ export default function ShortRangeChart() {
 
       {warpSystem !== curSystem && (
         <div className="bg-gray-900 border border-gray-700 rounded p-3 text-sm font-mono flex flex-wrap gap-x-4">
-          <span className="text-amber-400">{systemName(s.solarSystem[warpSystem].nameIndex)}</span>
+          <span className="text-amber-400">{systemName(solarSystem[warpSystem].nameIndex)}</span>
           <span className="text-gray-400">
-            Distance: {realDistance(curSys, s.solarSystem[warpSystem])} parsecs
+            Distance: {realDistance(curSys, solarSystem[warpSystem])} parsecs
           </span>
-          {wormholeExists(s.wormhole, curSystem, warpSystem) && (
+          {wormholeExists(wormhole, curSystem, warpSystem) && (
             <span className="text-purple-400">Wormhole available!</span>
           )}
-          {realDistance(curSys, s.solarSystem[warpSystem]) > fuel &&
-            !wormholeExists(s.wormhole, curSystem, warpSystem) && (
+          {realDistance(curSys, solarSystem[warpSystem]) > fuel &&
+            !wormholeExists(wormhole, curSystem, warpSystem) && (
               <span className="text-red-400">Out of fuel range!</span>
             )}
         </div>
       )}
     </div>
   );
-}
+});

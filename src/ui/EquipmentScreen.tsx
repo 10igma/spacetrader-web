@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { SHIP_TYPES } from '../data/shipTypes';
 import { WEAPONS } from '../data/weapons';
@@ -6,13 +7,21 @@ import { GADGETS } from '../data/gadgets';
 import { MAXWEAPONTYPE, MAXSHIELDTYPE, MAXGADGETTYPE } from '../data/constants';
 import { formatCredits, systemName } from './helpers';
 import { basePrice, weaponSellPrice, shieldSellPrice, gadgetSellPrice } from '../engine/ship';
+import { useShallow } from 'zustand/shallow';
 
-export default function EquipmentScreen() {
-  const s = useGameStore();
-  const curSystemId = s.mercenary[0].curSystem;
-  const curSystem = s.solarSystem[curSystemId];
-  const shipType = SHIP_TYPES[s.ship.type];
-  const traderSkill = s.getTraderSkill();
+export default memo(function EquipmentScreen() {
+  const { ship, mercenary, solarSystem, credits, getTraderSkill } = useGameStore(useShallow((s) => ({
+    ship: s.ship,
+    mercenary: s.mercenary,
+    solarSystem: s.solarSystem,
+    credits: s.credits,
+    getTraderSkill: s.getTraderSkill,
+  })));
+
+  const curSystemId = mercenary[0].curSystem;
+  const curSystem = solarSystem[curSystemId];
+  const shipType = SHIP_TYPES[ship.type];
+  const traderSkill = getTraderSkill();
 
   return (
     <div className="space-y-4">
@@ -21,17 +30,16 @@ export default function EquipmentScreen() {
       </h2>
 
       <div className="text-sm font-mono bg-gray-900 border border-gray-700 rounded p-3">
-        <span className="text-amber-400">Credits: {formatCredits(s.credits)}</span>
+        <span className="text-amber-400">Credits: {formatCredits(credits)}</span>
       </div>
 
-      {/* Current equipment */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-2">Installed Equipment</h3>
 
         <div className="mb-3">
           <span className="text-gray-500 text-xs font-mono">WEAPONS ({shipType.weaponSlots} slots)</span>
           {Array.from({ length: shipType.weaponSlots }).map((_, i) => {
-            const wpn = s.ship.weapon[i];
+            const wpn = ship.weapon[i];
             return (
               <div key={`w-${i}`} className="flex justify-between items-center py-1 border-b border-gray-800">
                 <span className={`font-mono text-sm ${wpn >= 0 ? 'text-red-400' : 'text-gray-600'}`}>
@@ -39,7 +47,7 @@ export default function EquipmentScreen() {
                 </span>
                 {wpn >= 0 && (
                   <span className="text-gray-500 text-xs font-mono">
-                    Sell: {formatCredits(weaponSellPrice(s.ship, i))}
+                    Sell: {formatCredits(weaponSellPrice(ship, i))}
                   </span>
                 )}
               </div>
@@ -50,15 +58,15 @@ export default function EquipmentScreen() {
         <div className="mb-3">
           <span className="text-gray-500 text-xs font-mono">SHIELDS ({shipType.shieldSlots} slots)</span>
           {Array.from({ length: shipType.shieldSlots }).map((_, i) => {
-            const shd = s.ship.shield[i];
+            const shd = ship.shield[i];
             return (
               <div key={`s-${i}`} className="flex justify-between items-center py-1 border-b border-gray-800">
                 <span className={`font-mono text-sm ${shd >= 0 ? 'text-blue-400' : 'text-gray-600'}`}>
-                  {shd >= 0 ? `${SHIELDS[shd].name} (${s.ship.shieldStrength[i]}/${SHIELDS[shd].power})` : '(empty)'}
+                  {shd >= 0 ? `${SHIELDS[shd].name} (${ship.shieldStrength[i]}/${SHIELDS[shd].power})` : '(empty)'}
                 </span>
                 {shd >= 0 && (
                   <span className="text-gray-500 text-xs font-mono">
-                    Sell: {formatCredits(shieldSellPrice(s.ship, i))}
+                    Sell: {formatCredits(shieldSellPrice(ship, i))}
                   </span>
                 )}
               </div>
@@ -69,7 +77,7 @@ export default function EquipmentScreen() {
         <div>
           <span className="text-gray-500 text-xs font-mono">GADGETS ({shipType.gadgetSlots} slots)</span>
           {Array.from({ length: shipType.gadgetSlots }).map((_, i) => {
-            const gdg = s.ship.gadget[i];
+            const gdg = ship.gadget[i];
             return (
               <div key={`g-${i}`} className="flex justify-between items-center py-1 border-b border-gray-800">
                 <span className={`font-mono text-sm ${gdg >= 0 ? 'text-purple-400' : 'text-gray-600'}`}>
@@ -77,7 +85,7 @@ export default function EquipmentScreen() {
                 </span>
                 {gdg >= 0 && (
                   <span className="text-gray-500 text-xs font-mono">
-                    Sell: {formatCredits(gadgetSellPrice(s.ship, i))}
+                    Sell: {formatCredits(gadgetSellPrice(ship, i))}
                   </span>
                 )}
               </div>
@@ -86,7 +94,6 @@ export default function EquipmentScreen() {
         </div>
       </div>
 
-      {/* Available weapons */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-2">Available Weapons</h3>
         {Array.from({ length: MAXWEAPONTYPE }).map((_, i) => {
@@ -105,7 +112,6 @@ export default function EquipmentScreen() {
         })}
       </div>
 
-      {/* Available shields */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-2">Available Shields</h3>
         {Array.from({ length: MAXSHIELDTYPE }).map((_, i) => {
@@ -124,7 +130,6 @@ export default function EquipmentScreen() {
         })}
       </div>
 
-      {/* Available gadgets */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-2">Available Gadgets</h3>
         {Array.from({ length: MAXGADGETTYPE }).map((_, i) => {
@@ -141,4 +146,4 @@ export default function EquipmentScreen() {
       </div>
     </div>
   );
-}
+});
