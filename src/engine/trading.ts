@@ -94,7 +94,7 @@ export function initializeTradeItems(
     system.qty[i] =
       (9 + getRandom(5) -
         abs(TRADE_ITEMS[i].techTopProduction - system.techLevel)) *
-      (1 + solarSystems[i].size);
+      (1 + system.size);
 
     // Robots and narcotics: reduced availability
     if (i === ROBOTS || i === NARCOTICS) {
