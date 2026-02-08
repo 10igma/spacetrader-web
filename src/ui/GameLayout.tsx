@@ -14,7 +14,8 @@ export type Screen =
   | 'equipment'
   | 'personnel'
   | 'bank'
-  | 'warp';
+  | 'warp'
+  | 'manual';
 
 interface GameLayoutProps {
   currentScreen: Screen;
@@ -56,6 +57,7 @@ export default memo(function GameLayout({ currentScreen, onNavigate, children }:
     { id: 'equipment', label: 'Equipment', short: 'EQUIP' },
     { id: 'personnel', label: 'Personnel', short: 'CREW' },
     { id: 'bank', label: 'Bank', short: 'BANK' },
+    { id: 'manual', label: 'Manual', short: '📖' },
   ];
 
   return (
