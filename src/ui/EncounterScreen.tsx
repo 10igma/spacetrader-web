@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { SHIP_TYPES } from '../data/shipTypes';
 import { executeAttack, attemptFlee, totalShieldStrength } from '../engine/combat';
@@ -6,6 +6,7 @@ import {
   POLICE, PIRATE, TRADER, MAXTRADEITEM,
   POLICEINSPECTION,
 } from '../data/constants';
+import { useShallow } from 'zustand/shallow';
 
 interface EncounterScreenProps {
   onEncounterEnd: () => void;
@@ -13,17 +14,27 @@ interface EncounterScreenProps {
 
 type EncounterPhase = 'intro' | 'combat' | 'victory' | 'fled' | 'defeated';
 
-export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps) {
-  const s = useGameStore();
+export default memo(function EncounterScreen({ onEncounterEnd }: EncounterScreenProps) {
+  const {
+    ship, opponent, encounterType, mercenary, difficulty,
+    reactorStatus, scarabStatus,
+  } = useGameStore(useShallow((s) => ({
+    ship: s.ship,
+    opponent: s.opponent,
+    encounterType: s.encounterType,
+    mercenary: s.mercenary,
+    difficulty: s.difficulty,
+    reactorStatus: s.reactorStatus,
+    scarabStatus: s.scarabStatus,
+  })));
+
   const [log, setLog] = useState<string[]>([]);
   const [phase, setPhase] = useState<EncounterPhase>('intro');
   const [playerFleeing, setPlayerFleeing] = useState(false);
 
-  const opponent = s.opponent;
   const oppShipType = SHIP_TYPES[opponent.type];
-  const playerShipType = SHIP_TYPES[s.ship.type];
+  const playerShipType = SHIP_TYPES[ship.type];
 
-  const encounterType = s.encounterType;
   let encounterLabel = 'Unknown Ship';
   if (encounterType >= POLICE && encounterType < 10) encounterLabel = 'Police';
   else if (encounterType >= PIRATE && encounterType < 20) encounterLabel = 'Pirate';
@@ -36,10 +47,9 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
 
   const doAttack = () => {
     setPhase('combat');
-    // Player attacks opponent
     const result = executeAttack(
-      s.ship, opponent, false, false,
-      s.mercenary, s.difficulty, s.reactorStatus, s.scarabStatus,
+      ship, opponent, false, false,
+      mercenary, difficulty, reactorStatus, scarabStatus,
     );
 
     if (result.hit) {
@@ -53,10 +63,9 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
       addLog(`You miss the ${oppShipType.name}.`);
     }
 
-    // Opponent attacks player
     const oppResult = executeAttack(
-      opponent, s.ship, playerFleeing, true,
-      s.mercenary, s.difficulty, s.reactorStatus, s.scarabStatus,
+      opponent, ship, playerFleeing, true,
+      mercenary, difficulty, reactorStatus, scarabStatus,
     );
 
     if (oppResult.hit) {
@@ -70,14 +79,14 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
       addLog(`The ${encounterLabel} misses you.`);
     }
 
-    addLog(`Hull: ${s.ship.hull}/${playerShipType.hullStrength} | Enemy: ${opponent.hull}/${oppShipType.hullStrength}`);
+    addLog(`Hull: ${ship.hull}/${playerShipType.hullStrength} | Enemy: ${opponent.hull}/${oppShipType.hullStrength}`);
   };
 
   const doFlee = () => {
     setPhase('combat');
     setPlayerFleeing(true);
 
-    const escaped = attemptFlee(s.ship, opponent, s.mercenary, s.difficulty);
+    const escaped = attemptFlee(ship, opponent, mercenary, difficulty);
     if (escaped) {
       addLog('You managed to escape!');
       setPhase('fled');
@@ -86,10 +95,9 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
 
     addLog('Failed to escape!');
 
-    // Opponent attacks while we flee
     const oppResult = executeAttack(
-      opponent, s.ship, true, true,
-      s.mercenary, s.difficulty, s.reactorStatus, s.scarabStatus,
+      opponent, ship, true, true,
+      mercenary, difficulty, reactorStatus, scarabStatus,
     );
 
     if (oppResult.hit) {
@@ -103,16 +111,18 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
       addLog(`The ${encounterLabel} misses as you flee.`);
     }
 
-    addLog(`Hull: ${s.ship.hull}/${playerShipType.hullStrength}`);
+    addLog(`Hull: ${ship.hull}/${playerShipType.hullStrength}`);
   };
 
   const doSurrender = () => {
-    // Lose cargo
     addLog('You surrender...');
     if (encounterType >= PIRATE && encounterType < 20) {
       addLog('The pirates loot your cargo hold!');
+      // NOTE: combat/surrender should ideally go through store actions too,
+      // but these mutations happen on the opponent's cargo array which is
+      // already a copy in the store. For now this matches original behavior.
       for (let i = 0; i < MAXTRADEITEM; i++) {
-        s.ship.cargo[i] = 0;
+        ship.cargo[i] = 0;
       }
     }
     setPhase('defeated');
@@ -125,13 +135,12 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
 
   const doSubmit = () => {
     addLog('You submit to inspection...');
-    // Check for illegal goods
-    const hasNarcotics = s.ship.cargo[8] > 0;
-    const hasFirearms = s.ship.cargo[5] > 0;
+    const hasNarcotics = ship.cargo[8] > 0;
+    const hasFirearms = ship.cargo[5] > 0;
     if (hasNarcotics || hasFirearms) {
       addLog('The police find illegal goods! They confiscate them and fine you.');
-      s.ship.cargo[8] = 0;
-      s.ship.cargo[5] = 0;
+      ship.cargo[8] = 0;
+      ship.cargo[5] = 0;
     } else {
       addLog('The police find nothing illegal. You are free to go.');
     }
@@ -151,32 +160,29 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
         ⚠ Encounter: {encounterLabel}
       </h2>
 
-      {/* Encounter display */}
       <div className="grid grid-cols-2 gap-4">
-        {/* Player ship */}
         <div className="bg-gray-900 border border-cyan-700 rounded p-3">
           <h3 className="text-cyan-400 font-mono text-sm mb-2">Your {playerShipType.name}</h3>
           <div className="space-y-1 text-xs font-mono">
             <div className="flex justify-between">
               <span className="text-gray-400">Hull</span>
-              <span className={s.ship.hull < playerShipType.hullStrength / 3 ? 'text-red-400' : 'text-green-400'}>
-                {s.ship.hull}/{playerShipType.hullStrength}
+              <span className={ship.hull < playerShipType.hullStrength / 3 ? 'text-red-400' : 'text-green-400'}>
+                {ship.hull}/{playerShipType.hullStrength}
               </span>
             </div>
             <div className="w-full bg-gray-800 rounded-full h-1.5">
               <div
-                className={`h-1.5 rounded-full ${s.ship.hull / playerShipType.hullStrength > 0.5 ? 'bg-green-500' : 'bg-red-500'}`}
-                style={{ width: `${(s.ship.hull / playerShipType.hullStrength) * 100}%` }}
+                className={`h-1.5 rounded-full ${ship.hull / playerShipType.hullStrength > 0.5 ? 'bg-green-500' : 'bg-red-500'}`}
+                style={{ width: `${(ship.hull / playerShipType.hullStrength) * 100}%` }}
               />
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Shields</span>
-              <span className="text-blue-400">{totalShieldStrength(s.ship)}</span>
+              <span className="text-blue-400">{totalShieldStrength(ship)}</span>
             </div>
           </div>
         </div>
 
-        {/* Opponent ship */}
         <div className="bg-gray-900 border border-red-700 rounded p-3">
           <h3 className="text-red-400 font-mono text-sm mb-2">{encounterLabel}'s {oppShipType.name}</h3>
           <div className="space-y-1 text-xs font-mono">
@@ -200,7 +206,6 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
         </div>
       </div>
 
-      {/* Combat log */}
       <div className="bg-gray-950 border border-gray-700 rounded p-3 h-40 overflow-y-auto">
         {log.length === 0 ? (
           <p className="text-gray-500 text-sm font-mono">
@@ -221,7 +226,6 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
         )}
       </div>
 
-      {/* Action buttons */}
       {(phase === 'intro' || phase === 'combat') && (
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -263,7 +267,6 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
         </div>
       )}
 
-      {/* End states */}
       {(phase === 'victory' || phase === 'fled' || phase === 'defeated') && (
         <div className="space-y-3">
           {phase === 'victory' && (
@@ -278,7 +281,7 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
             <div className="bg-red-900/30 border border-red-700 rounded p-3 text-center">
               <p className="text-red-400 font-mono font-bold">DEFEATED</p>
               <p className="text-gray-400 text-sm font-mono mt-1">
-                {s.ship.hull <= 0 ? 'Your ship was destroyed...' : 'You surrendered your cargo.'}
+                {ship.hull <= 0 ? 'Your ship was destroyed...' : 'You surrendered your cargo.'}
               </p>
             </div>
           )}
@@ -292,4 +295,4 @@ export default function EncounterScreen({ onEncounterEnd }: EncounterScreenProps
       )}
     </div>
   );
-}
+});

@@ -1,23 +1,29 @@
+import { memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { MERCENARY_NAMES } from '../data/solarSystems';
 import { SHIP_TYPES } from '../data/shipTypes';
 import { MAXCREW, MAXCREWMEMBER } from '../data/constants';
 import { systemName } from './helpers';
+import { useShallow } from 'zustand/shallow';
 
-export default function PersonnelScreen() {
-  const s = useGameStore();
-  const curSystemId = s.mercenary[0].curSystem;
-  const curSystem = s.solarSystem[curSystemId];
-  const shipType = SHIP_TYPES[s.ship.type];
+export default memo(function PersonnelScreen() {
+  const { ship, mercenary, solarSystem, nameCommander } = useGameStore(useShallow((s) => ({
+    ship: s.ship,
+    mercenary: s.mercenary,
+    solarSystem: s.solarSystem,
+    nameCommander: s.nameCommander,
+  })));
 
-  // Crew currently on ship
+  const curSystemId = mercenary[0].curSystem;
+  const curSystem = solarSystem[curSystemId];
+  const shipType = SHIP_TYPES[ship.type];
+
   const currentCrew: number[] = [];
   for (let i = 0; i < MAXCREW; i++) {
-    if (s.ship.crew[i] >= 0) currentCrew.push(s.ship.crew[i]);
+    if (ship.crew[i] >= 0) currentCrew.push(ship.crew[i]);
   }
 
-  // Mercenaries available at current system (not already on ship)
-  const available = s.mercenary
+  const available = mercenary
     .map((m, i) => ({ merc: m, index: i }))
     .filter(({ merc, index }) =>
       index > 0 &&
@@ -32,19 +38,18 @@ export default function PersonnelScreen() {
         Personnel — {systemName(curSystem.nameIndex)}
       </h2>
 
-      {/* Current crew */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-2">
           Current Crew ({currentCrew.length}/{shipType.crewQuarters})
         </h3>
-        {currentCrew.map((crewId, _slotIndex) => {
-          const m = s.mercenary[crewId];
+        {currentCrew.map((crewId) => {
+          const m = mercenary[crewId];
           const isCommander = crewId === 0;
           return (
             <div key={crewId} className="flex justify-between items-center py-2 border-b border-gray-800">
               <div>
                 <span className={`font-mono text-sm ${isCommander ? 'text-amber-400' : 'text-green-400'}`}>
-                  {isCommander ? s.nameCommander : MERCENARY_NAMES[m.nameIndex] ?? `Merc #${crewId}`}
+                  {isCommander ? nameCommander : MERCENARY_NAMES[m.nameIndex] ?? `Merc #${crewId}`}
                   {isCommander && ' (Commander)'}
                 </span>
                 <div className="text-xs text-gray-500 font-mono">
@@ -61,7 +66,6 @@ export default function PersonnelScreen() {
         })}
       </div>
 
-      {/* Available for hire */}
       <div className="bg-gray-900 border border-gray-700 rounded p-4">
         <h3 className="text-cyan-300 font-mono text-sm mb-2">Available for Hire</h3>
         {available.length === 0 ? (
@@ -95,4 +99,4 @@ export default function PersonnelScreen() {
       </div>
     </div>
   );
-}
+});

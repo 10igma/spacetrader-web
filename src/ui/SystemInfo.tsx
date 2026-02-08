@@ -1,15 +1,23 @@
+import { memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import {
   systemName, govName, techName, sizeName, statusName, resourceName,
 } from './helpers';
 import { realDistance } from '../utils/math';
+import { useShallow } from 'zustand/shallow';
 
-export default function SystemInfo() {
-  const s = useGameStore();
-  const curSystem = s.mercenary[0].curSystem;
-  const curSys = s.solarSystem[curSystem];
-  const selectedId = s.warpSystem;
-  const selectedSys = s.solarSystem[selectedId];
+export default memo(function SystemInfo() {
+  const { solarSystem, mercenary, warpSystem, getFuelAmount } = useGameStore(useShallow((s) => ({
+    solarSystem: s.solarSystem,
+    mercenary: s.mercenary,
+    warpSystem: s.warpSystem,
+    getFuelAmount: s.getFuelAmount,
+  })));
+
+  const curSystem = mercenary[0].curSystem;
+  const curSys = solarSystem[curSystem];
+  const selectedId = warpSystem;
+  const selectedSys = solarSystem[selectedId];
   const isCurrent = selectedId === curSystem;
   const dist = realDistance(curSys, selectedSys);
 
@@ -32,7 +40,7 @@ export default function SystemInfo() {
         <Row label="Resources" value={resourceName(selectedSys.specialResources)} />
         <Row label="Status" value={statusName(selectedSys.status)} color={selectedSys.status > 0 ? 'text-amber-400' : 'text-green-400'} />
         {!isCurrent && (
-          <Row label="Distance" value={`${dist} parsecs`} color={dist <= s.getFuelAmount() ? 'text-green-400' : 'text-red-400'} />
+          <Row label="Distance" value={`${dist} parsecs`} color={dist <= getFuelAmount() ? 'text-green-400' : 'text-red-400'} />
         )}
         {isCurrent && (
           <Row label="Location" value="Current system" color="text-cyan-400" />
@@ -58,4 +66,4 @@ export default function SystemInfo() {
       )}
     </div>
   );
-}
+});

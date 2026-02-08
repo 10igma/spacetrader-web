@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { createEmptyShip } from '../models/types';
 import { MAXTRADEITEM, MAXWORMHOLE, MAXSHIPTYPE } from '../data/constants';
 import { startNewGame, type NewGameParams, type GameState } from '../engine/newGame';
@@ -12,8 +13,14 @@ import { currentWorth, getLoan, payBack, payInterest, insuranceMoney, mercenaryM
 import { buyFuel, buyRepairs, getFuel, getFuelTanks, getHullStrength, totalCargoBays, filledCargoBays } from '../engine/ship';
 import { traderSkill, fighterSkill, pilotSkill, engineerSkill } from '../engine/skills';
 import { wormholeExists } from '../engine/galaxy';
-import { realDistance } from '../utils/math';
+import { realDistance, getRandom } from '../utils/math';
 import { incDays, shuffleStatus, changeQuantities, getScore } from '../engine/events';
+import { generateOpponent } from '../engine/encounters';
+import { POLITICS_DATA } from '../data/politics';
+import {
+  POLICE, PIRATE, TRADER,
+  PIRATEATTACK, POLICEATTACK, POLICEINSPECTION, TRADERIGNORE,
+} from '../data/constants';
 
 interface GameStore extends GameState {
   // ── Computed ────────────────────────────────────────────────────────────
@@ -33,6 +40,11 @@ interface GameStore extends GameState {
   doBuyInsurance: () => void;
   doStopInsurance: () => void;
   doBuyEscapePod: () => void;
+  /** Try to generate an encounter for the current warp destination.
+   *  Returns true if an encounter was generated (sets opponent + encounterType). */
+  tryEncounter: () => boolean;
+  /** Mark the warp destination as visited (immutably). */
+  markDestVisited: () => void;
 
   // ── Getters ─────────────────────────────────────────────────────────────
   getCurrentWorth: () => number;
@@ -118,284 +130,342 @@ const defaultState: GameState = {
   arrivedViaWormhole: false,
 };
 
-export const useGameStore = create<GameStore>((set, get) => ({
-  ...defaultState,
-  initialized: false,
+export const useGameStore = create<GameStore>()(
+  persist(
+    (set, get) => ({
+      ...defaultState,
+      initialized: false,
 
-  // ── New Game ──────────────────────────────────────────────────────────
-  newGame: (params: NewGameParams) => {
-    const state = startNewGame(params);
-    // Determine initial prices
-    const { buyPrice, sellPrice } = determinePrices(
-      state.mercenary[0].curSystem,
-      state.solarSystem,
-      state.ship,
-      state.mercenary,
-      state.difficulty,
-      state.policeRecordScore,
-      state.jarekStatus,
-    );
-    set({
-      ...state,
-      buyPrice,
-      sellPrice,
-      initialized: true,
-    });
-  },
+      // ── New Game ──────────────────────────────────────────────────────────
+      newGame: (params: NewGameParams) => {
+        const state = startNewGame(params);
+        const { buyPrice, sellPrice } = determinePrices(
+          state.mercenary[0].curSystem,
+          state.solarSystem,
+          state.ship,
+          state.mercenary,
+          state.difficulty,
+          state.policeRecordScore,
+          state.jarekStatus,
+        );
+        set({
+          ...state,
+          buyPrice,
+          sellPrice,
+          initialized: true,
+        });
+      },
 
-  // ── Warp ──────────────────────────────────────────────────────────────
-  setWarpSystem: (systemId: number) => set({ warpSystem: systemId }),
+      // ── Warp ──────────────────────────────────────────────────────────────
+      setWarpSystem: (systemId: number) => set({ warpSystem: systemId }),
 
-  doWarp: () => {
-    const s = get();
-    const curSystem = s.mercenary[0].curSystem;
+      doWarp: () => {
+        const s = get();
+        const curSystem = s.mercenary[0].curSystem;
 
-    // Pay costs
-    const wormTax = wormholeExists(s.wormhole, curSystem, s.warpSystem)
-      ? SHIP_TYPES_REF[s.ship.type].costOfFuel * 25
-      : 0;
-    let credits = s.credits - wormTax;
-    credits -= get().getMercenaryMoney();
-    credits -= get().getInsuranceMoney();
+        const wormTax = wormholeExists(s.wormhole, curSystem, s.warpSystem)
+          ? SHIP_TYPES_REF[s.ship.type].costOfFuel * 25
+          : 0;
+        let credits = s.credits - wormTax;
+        credits -= get().getMercenaryMoney();
+        credits -= get().getInsuranceMoney();
 
-    // Refill shields
-    const ship = { ...s.ship };
-    for (let i = 0; i < 3; ++i) {
-      if (ship.shield[i] < 0) break;
-      ship.shieldStrength[i] = SHIELDS_REF[ship.shield[i]].power;
-    }
+        const ship = { ...s.ship };
+        for (let i = 0; i < 3; ++i) {
+          if (ship.shield[i] < 0) break;
+          ship.shieldStrength = [...ship.shieldStrength];
+          ship.shieldStrength[i] = SHIELDS_REF[ship.shield[i]].power;
+        }
 
-    // Set countdown for current system
-    const solarSystem = [...s.solarSystem];
-    solarSystem[curSystem] = { ...solarSystem[curSystem], countDown: 3 + s.difficulty };
+        const solarSystem = s.solarSystem.map((sys, idx) =>
+          idx === curSystem ? { ...sys, countDown: 3 + s.difficulty } : sys
+        );
 
-    // Calculate distance & consume fuel
-    let distance: number;
-    let arrivedViaWormhole: boolean;
-    if (wormholeExists(s.wormhole, curSystem, s.warpSystem)) {
-      distance = 0;
-      arrivedViaWormhole = true;
-    } else {
-      distance = realDistance(solarSystem[curSystem], solarSystem[s.warpSystem]);
-      ship.fuel -= Math.min(distance, getFuel(ship));
-      arrivedViaWormhole = false;
-    }
+        let distance: number;
+        let arrivedViaWormhole: boolean;
+        if (wormholeExists(s.wormhole, curSystem, s.warpSystem)) {
+          distance = 0;
+          arrivedViaWormhole = true;
+        } else {
+          distance = realDistance(solarSystem[curSystem], solarSystem[s.warpSystem]);
+          ship.fuel = ship.fuel - Math.min(distance, getFuel(ship));
+          arrivedViaWormhole = false;
+        }
 
-    // Pay interest
-    const interest = payInterest(credits, s.debt);
-    credits = interest.credits;
-    let debt = interest.debt;
+        const interest = payInterest(credits, s.debt);
+        credits = interest.credits;
+        const debt = interest.debt;
 
-    // Inc days
-    const daysResult = incDays(
-      1, s.days, s.invasionStatus, s.reactorStatus,
-      s.experimentStatus, s.fabricRipProbability, solarSystem,
-    );
+        const daysResult = incDays(
+          1, s.days, s.invasionStatus, s.reactorStatus,
+          s.experimentStatus, s.fabricRipProbability, solarSystem,
+        );
 
-    let noClaim = s.noClaim;
-    if (s.insurance) ++noClaim;
+        let noClaim = s.noClaim;
+        if (s.insurance) ++noClaim;
 
-    // Monster hull regeneration
-    let monsterHull = Math.floor((s.monsterHull * 105) / 100);
-    const monsterMaxHull = 500; // Space monster hull strength
-    if (monsterHull > monsterMaxHull) monsterHull = monsterMaxHull;
+        let monsterHull = Math.floor((s.monsterHull * 105) / 100);
+        const monsterMaxHull = 500;
+        if (monsterHull > monsterMaxHull) monsterHull = monsterMaxHull;
 
-    // Police record decay
-    let policeRecordScore = s.policeRecordScore;
-    if (daysResult.days % 3 === 0) {
-      if (policeRecordScore > 0) --policeRecordScore;
-    }
-    if (policeRecordScore < -5) {
-      if (s.difficulty <= 2) ++policeRecordScore;
-      else if (daysResult.days % s.difficulty === 0) ++policeRecordScore;
-    }
+        let policeRecordScore = s.policeRecordScore;
+        if (daysResult.days % 3 === 0) {
+          if (policeRecordScore > 0) --policeRecordScore;
+        }
+        if (policeRecordScore < -5) {
+          if (s.difficulty <= 2) ++policeRecordScore;
+          else if (daysResult.days % s.difficulty === 0) ++policeRecordScore;
+        }
 
-    // Arrival: update commander position
-    const mercenary = [...s.mercenary];
-    mercenary[0] = { ...mercenary[0], curSystem: s.warpSystem };
+        const mercenary = [...s.mercenary];
+        mercenary[0] = { ...mercenary[0], curSystem: s.warpSystem };
 
-    // Shuffle statuses and change quantities
-    shuffleStatus(solarSystem);
-    changeQuantities(solarSystem, s.difficulty);
+        shuffleStatus(solarSystem);
+        changeQuantities(solarSystem, s.difficulty);
 
-    // Determine new prices
-    const { buyPrice, sellPrice } = determinePrices(
-      s.warpSystem, solarSystem, ship, mercenary,
-      s.difficulty, policeRecordScore, s.jarekStatus,
-    );
+        const { buyPrice, sellPrice } = determinePrices(
+          s.warpSystem, solarSystem, ship, mercenary,
+          s.difficulty, policeRecordScore, s.jarekStatus,
+        );
 
-    set({
-      ship,
-      credits,
-      debt,
-      days: daysResult.days,
-      invasionStatus: daysResult.invasionStatus,
-      reactorStatus: daysResult.reactorStatus,
-      experimentStatus: daysResult.experimentStatus,
-      fabricRipProbability: daysResult.fabricRipProbability,
-      noClaim,
-      monsterHull,
-      policeRecordScore,
-      mercenary,
-      solarSystem,
-      buyPrice,
-      sellPrice,
-      raided: false,
-      inspected: false,
-      litterWarning: false,
-      alreadyPaidForNewspaper: false,
-      arrivedViaWormhole,
-      clicks: 21,
-      possibleToGoThroughRip: true,
-    });
-  },
+        set({
+          ship,
+          credits,
+          debt,
+          days: daysResult.days,
+          invasionStatus: daysResult.invasionStatus,
+          reactorStatus: daysResult.reactorStatus,
+          experimentStatus: daysResult.experimentStatus,
+          fabricRipProbability: daysResult.fabricRipProbability,
+          noClaim,
+          monsterHull,
+          policeRecordScore,
+          mercenary,
+          solarSystem,
+          buyPrice,
+          sellPrice,
+          raided: false,
+          inspected: false,
+          litterWarning: false,
+          alreadyPaidForNewspaper: false,
+          arrivedViaWormhole,
+          clicks: 21,
+          possibleToGoThroughRip: true,
+        });
+      },
 
-  // ── Trade ─────────────────────────────────────────────────────────────
-  doBuyCargo: (itemIndex: number, amount: number) => {
-    const s = get();
-    const curSystem = s.solarSystem[s.mercenary[0].curSystem];
-    const result = buyCargo(
-      itemIndex, amount, s.ship, curSystem,
-      s.buyPrice, s.buyingPrice, s.credits,
-      s.japoriDiseaseStatus, s.reactorStatus,
-      s.leaveEmpty, s.reserveMoney,
-      get().getMercenaryMoney(),
-      get().getInsuranceMoney(),
-      s.debt,
-    );
-    set({ credits: result.credits });
-  },
+      // ── Encounter logic (moved from App.tsx) ──────────────────────────────
+      tryEncounter: () => {
+        const s = get();
+        const destSystem = s.warpSystem;
+        const destSys = s.solarSystem[destSystem];
+        const pol = POLITICS_DATA[destSys.politics];
 
-  doSellCargo: (itemIndex: number, amount: number) => {
-    const s = get();
-    const result = sellCargo(
-      itemIndex, amount, 1, s.ship, s.sellPrice, s.buyingPrice,
-      s.credits, s.difficulty, s.policeRecordScore,
-      s.reserveMoney, get().getMercenaryMoney(), get().getInsuranceMoney(),
-    );
-    set({ credits: result.credits, policeRecordScore: result.policeRecordScore });
-  },
+        const encounterRoll = getRandom(44 - 2 * s.difficulty);
+        if (encounterRoll >= pol.strengthPirates + pol.strengthPolice + pol.strengthTraders) {
+          return false;
+        }
 
-  doDumpCargo: (itemIndex: number, amount: number) => {
-    const s = get();
-    const result = sellCargo(
-      itemIndex, amount, 2, s.ship, s.sellPrice, s.buyingPrice,
-      s.credits, s.difficulty, s.policeRecordScore,
-      s.reserveMoney, get().getMercenaryMoney(), get().getInsuranceMoney(),
-    );
-    set({ credits: result.credits, policeRecordScore: result.policeRecordScore });
-  },
+        let encounterType: number;
+        const roll = getRandom(pol.strengthPirates + pol.strengthPolice + pol.strengthTraders);
 
-  // ── Ship maintenance ──────────────────────────────────────────────────
-  doBuyFuel: (amount: number) => {
-    const s = get();
-    const result = buyFuel(s.ship, amount, s.credits);
-    set({ credits: result.credits });
-  },
+        if (roll < pol.strengthPolice) {
+          encounterType = POLICEINSPECTION;
+          if (s.policeRecordScore < -5) encounterType = POLICEATTACK;
+        } else if (roll < pol.strengthPolice + pol.strengthPirates) {
+          encounterType = PIRATEATTACK;
+        } else {
+          encounterType = TRADERIGNORE;
+        }
 
-  doBuyRepairs: (amount: number) => {
-    const s = get();
-    const result = buyRepairs(s.ship, amount, s.credits, s.scarabStatus);
-    set({ credits: result.credits });
-  },
+        let oppType = POLICE;
+        if (encounterType >= PIRATE && encounterType < 20) oppType = PIRATE;
+        else if (encounterType >= TRADER && encounterType < 30) oppType = TRADER;
 
-  // ── Bank ──────────────────────────────────────────────────────────────
-  doGetLoan: (amount: number) => {
-    const s = get();
-    const worth = get().getCurrentWorth();
-    const result = getLoan(amount, s.credits, s.debt, s.policeRecordScore, worth);
-    set({ credits: result.credits, debt: result.debt });
-  },
+        const opponent = generateOpponent(
+          oppType, destSystem, s.solarSystem, [...s.mercenary],
+          s.difficulty, s.policeRecordScore, s.reputationScore,
+          s.ship, s.credits, s.debt, s.moonBought, s.scarabStatus,
+          s.wildStatus, s.buyingPrice,
+        );
 
-  doPayBack: (amount: number) => {
-    const s = get();
-    const result = payBack(amount, s.credits, s.debt);
-    set({ credits: result.credits, debt: result.debt });
-  },
+        set({ opponent, encounterType });
+        return true;
+      },
 
-  doBuyInsurance: () => {
-    const s = get();
-    if (s.escapePod) set({ insurance: true });
-  },
+      markDestVisited: () => {
+        const s = get();
+        const destSystem = s.warpSystem;
+        const solarSystem = s.solarSystem.map((sys, idx) =>
+          idx === destSystem ? { ...sys, visited: true } : sys
+        );
+        set({ solarSystem });
+      },
 
-  doStopInsurance: () => {
-    set({ insurance: false, noClaim: 0 });
-  },
+      // ── Trade ─────────────────────────────────────────────────────────────
+      doBuyCargo: (itemIndex: number, amount: number) => {
+        const s = get();
+        const curSystem = s.solarSystem[s.mercenary[0].curSystem];
+        const result = buyCargo(
+          itemIndex, amount, s.ship, curSystem,
+          s.buyPrice, s.buyingPrice, s.credits,
+          s.japoriDiseaseStatus, s.reactorStatus,
+          s.leaveEmpty, s.reserveMoney,
+          get().getMercenaryMoney(),
+          get().getInsuranceMoney(),
+          s.debt,
+        );
+        set({ credits: result.credits });
+      },
 
-  doBuyEscapePod: () => {
-    const s = get();
-    if (s.credits >= 2000 && !s.escapePod) {
-      set({ credits: s.credits - 2000, escapePod: true });
-    }
-  },
+      doSellCargo: (itemIndex: number, amount: number) => {
+        const s = get();
+        const result = sellCargo(
+          itemIndex, amount, 1, s.ship, s.sellPrice, s.buyingPrice,
+          s.credits, s.difficulty, s.policeRecordScore,
+          s.reserveMoney, get().getMercenaryMoney(), get().getInsuranceMoney(),
+        );
+        set({ credits: result.credits, policeRecordScore: result.policeRecordScore });
+      },
 
-  // ── Getters ───────────────────────────────────────────────────────────
-  getCurrentWorth: () => {
-    const s = get();
-    return currentWorth(s.ship, s.credits, s.debt, s.moonBought, s.scarabStatus, s.buyingPrice);
-  },
+      doDumpCargo: (itemIndex: number, amount: number) => {
+        const s = get();
+        const result = sellCargo(
+          itemIndex, amount, 2, s.ship, s.sellPrice, s.buyingPrice,
+          s.credits, s.difficulty, s.policeRecordScore,
+          s.reserveMoney, get().getMercenaryMoney(), get().getInsuranceMoney(),
+        );
+        set({ credits: result.credits, policeRecordScore: result.policeRecordScore });
+      },
 
-  getTraderSkill: () => {
-    const s = get();
-    return traderSkill(s.ship, s.mercenary, s.difficulty, s.jarekStatus);
-  },
+      // ── Ship maintenance ──────────────────────────────────────────────────
+      doBuyFuel: (amount: number) => {
+        const s = get();
+        const result = buyFuel(s.ship, amount, s.credits);
+        set({ credits: result.credits });
+      },
 
-  getFighterSkill: () => {
-    const s = get();
-    return fighterSkill(s.ship, s.mercenary, s.difficulty);
-  },
+      doBuyRepairs: (amount: number) => {
+        const s = get();
+        const result = buyRepairs(s.ship, amount, s.credits, s.scarabStatus);
+        set({ credits: result.credits });
+      },
 
-  getPilotSkill: () => {
-    const s = get();
-    return pilotSkill(s.ship, s.mercenary, s.difficulty);
-  },
+      // ── Bank ──────────────────────────────────────────────────────────────
+      doGetLoan: (amount: number) => {
+        const s = get();
+        const worth = get().getCurrentWorth();
+        const result = getLoan(amount, s.credits, s.debt, s.policeRecordScore, worth);
+        set({ credits: result.credits, debt: result.debt });
+      },
 
-  getEngineerSkill: () => {
-    const s = get();
-    return engineerSkill(s.ship, s.mercenary, s.difficulty);
-  },
+      doPayBack: (amount: number) => {
+        const s = get();
+        const result = payBack(amount, s.credits, s.debt);
+        set({ credits: result.credits, debt: result.debt });
+      },
 
-  getInsuranceMoney: () => {
-    const s = get();
-    return insuranceMoney(s.insurance, s.ship, s.scarabStatus, s.noClaim);
-  },
+      doBuyInsurance: () => {
+        const s = get();
+        if (s.escapePod) set({ insurance: true });
+      },
 
-  getMercenaryMoney: () => {
-    const s = get();
-    return mercenaryMoney(s.ship, s.mercenary, s.wildStatus);
-  },
+      doStopInsurance: () => {
+        set({ insurance: false, noClaim: 0 });
+      },
 
-  getTotalCargoBays: () => {
-    const s = get();
-    return totalCargoBays(s.ship, s.japoriDiseaseStatus, s.reactorStatus);
-  },
+      doBuyEscapePod: () => {
+        const s = get();
+        if (s.credits >= 2000 && !s.escapePod) {
+          set({ credits: s.credits - 2000, escapePod: true });
+        }
+      },
 
-  getFilledCargoBays: () => {
-    const s = get();
-    return filledCargoBays(s.ship);
-  },
+      // ── Getters ───────────────────────────────────────────────────────────
+      getCurrentWorth: () => {
+        const s = get();
+        return currentWorth(s.ship, s.credits, s.debt, s.moonBought, s.scarabStatus, s.buyingPrice);
+      },
 
-  getFuelAmount: () => {
-    const s = get();
-    return getFuel(s.ship);
-  },
+      getTraderSkill: () => {
+        const s = get();
+        return traderSkill(s.ship, s.mercenary, s.difficulty, s.jarekStatus);
+      },
 
-  getFuelTanksSize: () => {
-    const s = get();
-    return getFuelTanks(s.ship);
-  },
+      getFighterSkill: () => {
+        const s = get();
+        return fighterSkill(s.ship, s.mercenary, s.difficulty);
+      },
 
-  getHullStrengthVal: () => {
-    const s = get();
-    return getHullStrength(s.ship, s.scarabStatus);
-  },
+      getPilotSkill: () => {
+        const s = get();
+        return pilotSkill(s.ship, s.mercenary, s.difficulty);
+      },
 
-  getScore: (endStatus: number) => {
-    const s = get();
-    const worth = get().getCurrentWorth();
-    return getScore(endStatus, s.days, worth, s.difficulty);
-  },
-}));
+      getEngineerSkill: () => {
+        const s = get();
+        return engineerSkill(s.ship, s.mercenary, s.difficulty);
+      },
+
+      getInsuranceMoney: () => {
+        const s = get();
+        return insuranceMoney(s.insurance, s.ship, s.scarabStatus, s.noClaim);
+      },
+
+      getMercenaryMoney: () => {
+        const s = get();
+        return mercenaryMoney(s.ship, s.mercenary, s.wildStatus);
+      },
+
+      getTotalCargoBays: () => {
+        const s = get();
+        return totalCargoBays(s.ship, s.japoriDiseaseStatus, s.reactorStatus);
+      },
+
+      getFilledCargoBays: () => {
+        const s = get();
+        return filledCargoBays(s.ship);
+      },
+
+      getFuelAmount: () => {
+        const s = get();
+        return getFuel(s.ship);
+      },
+
+      getFuelTanksSize: () => {
+        const s = get();
+        return getFuelTanks(s.ship);
+      },
+
+      getHullStrengthVal: () => {
+        const s = get();
+        return getHullStrength(s.ship, s.scarabStatus);
+      },
+
+      getScore: (endStatus: number) => {
+        const s = get();
+        const worth = get().getCurrentWorth();
+        return getScore(endStatus, s.days, worth, s.difficulty);
+      },
+    }),
+    {
+      name: 'spacetrader-game-state',
+      partialize: (state) => {
+        // Persist everything except computed getters/actions
+        const { initialized, ...rest } = state;
+        // Only persist if initialized
+        if (!initialized) return {};
+        const persisted: Record<string, unknown> = { initialized };
+        for (const key of Object.keys(rest)) {
+          if (typeof (rest as Record<string, unknown>)[key] !== 'function') {
+            persisted[key] = (rest as Record<string, unknown>)[key];
+          }
+        }
+        return persisted;
+      },
+    },
+  ),
+);
 
 // Lazy imports to avoid circular dependency issues in the store
 import { SHIP_TYPES as SHIP_TYPES_REF } from '../data/shipTypes';

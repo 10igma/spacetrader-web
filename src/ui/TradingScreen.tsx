@@ -1,13 +1,29 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { TRADE_ITEMS } from '../data/tradeItems';
 import { MAXTRADEITEM } from '../data/constants';
 import { formatCredits, systemName } from './helpers';
+import { useShallow } from 'zustand/shallow';
 
-export default function TradingScreen() {
-  const s = useGameStore();
-  const curSystemId = s.mercenary[0].curSystem;
-  const curSystem = s.solarSystem[curSystemId];
+export default memo(function TradingScreen() {
+  const {
+    ship, mercenary, solarSystem, credits, buyPrice, sellPrice,
+    doBuyCargo, doSellCargo, getTotalCargoBays, getFilledCargoBays,
+  } = useGameStore(useShallow((s) => ({
+    ship: s.ship,
+    mercenary: s.mercenary,
+    solarSystem: s.solarSystem,
+    credits: s.credits,
+    buyPrice: s.buyPrice,
+    sellPrice: s.sellPrice,
+    doBuyCargo: s.doBuyCargo,
+    doSellCargo: s.doSellCargo,
+    getTotalCargoBays: s.getTotalCargoBays,
+    getFilledCargoBays: s.getFilledCargoBays,
+  })));
+
+  const curSystemId = mercenary[0].curSystem;
+  const curSystem = solarSystem[curSystemId];
   const [quantities, setQuantities] = useState<number[]>(new Array(MAXTRADEITEM).fill(1));
   const [tab, setTab] = useState<'buy' | 'sell'>('buy');
 
@@ -18,14 +34,14 @@ export default function TradingScreen() {
   };
 
   const handleBuy = (index: number) => {
-    s.doBuyCargo(index, quantities[index]);
+    doBuyCargo(index, quantities[index]);
   };
 
   const handleSell = (index: number) => {
-    s.doSellCargo(index, quantities[index]);
+    doSellCargo(index, quantities[index]);
   };
 
-  const freeBays = s.getTotalCargoBays() - s.getFilledCargoBays();
+  const freeBays = getTotalCargoBays() - getFilledCargoBays();
 
   return (
     <div className="space-y-4">
@@ -33,14 +49,12 @@ export default function TradingScreen() {
         Trading — {systemName(curSystem.nameIndex)}
       </h2>
 
-      {/* Stats bar */}
       <div className="flex flex-wrap gap-4 text-sm font-mono bg-gray-900 border border-gray-700 rounded p-3">
-        <span className="text-amber-400">Credits: {formatCredits(s.credits)}</span>
-        <span className="text-gray-400">Cargo: {s.getFilledCargoBays()}/{s.getTotalCargoBays()}</span>
+        <span className="text-amber-400">Credits: {formatCredits(credits)}</span>
+        <span className="text-gray-400">Cargo: {getFilledCargoBays()}/{getTotalCargoBays()}</span>
         <span className="text-gray-400">Free: {freeBays} bays</span>
       </div>
 
-      {/* Tab toggle */}
       <div className="flex gap-1">
         <button
           onClick={() => setTab('buy')}
@@ -60,7 +74,6 @@ export default function TradingScreen() {
         </button>
       </div>
 
-      {/* Trade table */}
       <div className="bg-gray-900 border border-gray-700 rounded overflow-hidden">
         <table className="w-full text-sm font-mono">
           <thead>
@@ -75,9 +88,9 @@ export default function TradingScreen() {
           </thead>
           <tbody>
             {Array.from({ length: MAXTRADEITEM }).map((_, i) => {
-              const buyP = s.buyPrice[i];
-              const sellP = s.sellPrice[i];
-              const onShip = s.ship.cargo[i];
+              const buyP = buyPrice[i];
+              const sellP = sellPrice[i];
+              const onShip = ship.cargo[i];
               const avail = curSystem.qty[i];
               const price = tab === 'buy' ? buyP : sellP;
 
@@ -146,13 +159,12 @@ export default function TradingScreen() {
         </table>
       </div>
 
-      {/* Quick sell all / buy max buttons */}
-      {tab === 'sell' && s.getFilledCargoBays() > 0 && (
+      {tab === 'sell' && getFilledCargoBays() > 0 && (
         <button
           onClick={() => {
             for (let i = 0; i < MAXTRADEITEM; i++) {
-              if (s.ship.cargo[i] > 0 && s.sellPrice[i] > 0) {
-                s.doSellCargo(i, s.ship.cargo[i]);
+              if (ship.cargo[i] > 0 && sellPrice[i] > 0) {
+                doSellCargo(i, ship.cargo[i]);
               }
             }
           }}
@@ -163,4 +175,4 @@ export default function TradingScreen() {
       )}
     </div>
   );
-}
+});

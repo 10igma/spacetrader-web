@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { DifficultyNames } from '../data/constants';
 
-export default function NewGameScreen() {
+export default memo(function NewGameScreen() {
   const newGame = useGameStore((s) => s.newGame);
   const [name, setName] = useState('Shelby');
   const [difficulty, setDifficulty] = useState(2);
@@ -79,7 +79,6 @@ export default function NewGameScreen() {
         <p className="text-gray-500 text-center text-sm mb-6">New Commander Registration</p>
 
         <div className="space-y-5">
-          {/* Name */}
           <div>
             <label className="block text-cyan-300 text-sm font-mono mb-1">Commander Name</label>
             <input
@@ -91,7 +90,6 @@ export default function NewGameScreen() {
             />
           </div>
 
-          {/* Difficulty */}
           <div>
             <label className="block text-cyan-300 text-sm font-mono mb-1">Difficulty</label>
             <div className="flex gap-1">
@@ -111,7 +109,6 @@ export default function NewGameScreen() {
             </div>
           </div>
 
-          {/* Skills */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-cyan-300 text-sm font-mono">Skill Points</label>
@@ -129,7 +126,6 @@ export default function NewGameScreen() {
             </div>
           </div>
 
-          {/* Start button */}
           <button
             onClick={handleStart}
             disabled={remaining !== 0 || !name.trim()}
@@ -145,4 +141,4 @@ export default function NewGameScreen() {
       </div>
     </div>
   );
-}
+});

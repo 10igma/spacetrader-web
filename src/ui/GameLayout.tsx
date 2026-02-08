@@ -1,7 +1,8 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, memo } from 'react';
 import { useGameStore } from '../state/gameStore';
 import { SHIP_TYPES } from '../data/shipTypes';
 import { systemName, formatCredits } from './helpers';
+import { useShallow } from 'zustand/shallow';
 
 export type Screen =
   | 'commander'
@@ -21,13 +22,29 @@ interface GameLayoutProps {
   children: ReactNode;
 }
 
-export default function GameLayout({ currentScreen, onNavigate, children }: GameLayoutProps) {
-  const s = useGameStore();
-  const curSystemId = s.mercenary[0].curSystem;
-  const curSys = s.solarSystem[curSystemId];
-  const shipType = SHIP_TYPES[s.ship.type];
+export default memo(function GameLayout({ currentScreen, onNavigate, children }: GameLayoutProps) {
+  const {
+    days, credits, debt, ship, mercenary, solarSystem, warpSystem,
+    getFuelAmount, getFuelTanksSize, getFilledCargoBays, getTotalCargoBays,
+  } = useGameStore(useShallow((s) => ({
+    days: s.days,
+    credits: s.credits,
+    debt: s.debt,
+    ship: s.ship,
+    mercenary: s.mercenary,
+    solarSystem: s.solarSystem,
+    warpSystem: s.warpSystem,
+    getFuelAmount: s.getFuelAmount,
+    getFuelTanksSize: s.getFuelTanksSize,
+    getFilledCargoBays: s.getFilledCargoBays,
+    getTotalCargoBays: s.getTotalCargoBays,
+  })));
 
-  const canWarp = s.warpSystem !== curSystemId;
+  const curSystemId = mercenary[0].curSystem;
+  const curSys = solarSystem[curSystemId];
+  const shipType = SHIP_TYPES[ship.type];
+
+  const canWarp = warpSystem !== curSystemId;
 
   const navItems: { id: Screen; label: string; short: string }[] = [
     { id: 'commander', label: 'Commander', short: 'CMDR' },
@@ -43,24 +60,22 @@ export default function GameLayout({ currentScreen, onNavigate, children }: Game
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* Header bar */}
       <header className="bg-gray-900 border-b border-gray-700 px-4 py-2 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-4">
           <span className="text-cyan-400 font-mono font-bold text-sm tracking-wider">SPACE TRADER</span>
-          <span className="text-gray-500 font-mono text-xs">Day {s.days}</span>
+          <span className="text-gray-500 font-mono text-xs">Day {days}</span>
         </div>
         <div className="flex items-center gap-4 text-xs font-mono flex-wrap">
-          <span className="text-amber-400">💰 {formatCredits(s.credits)}</span>
-          <span className={s.ship.hull < shipType.hullStrength / 3 ? 'text-red-400' : 'text-green-400'}>
-            🛡 {s.ship.hull}/{shipType.hullStrength}
+          <span className="text-amber-400">💰 {formatCredits(credits)}</span>
+          <span className={ship.hull < shipType.hullStrength / 3 ? 'text-red-400' : 'text-green-400'}>
+            🛡 {ship.hull}/{shipType.hullStrength}
           </span>
-          <span className="text-cyan-400">⛽ {s.getFuelAmount()}/{s.getFuelTanksSize()}</span>
-          <span className="text-gray-400">📦 {s.getFilledCargoBays()}/{s.getTotalCargoBays()}</span>
+          <span className="text-cyan-400">⛽ {getFuelAmount()}/{getFuelTanksSize()}</span>
+          <span className="text-gray-400">📦 {getFilledCargoBays()}/{getTotalCargoBays()}</span>
           <span className="text-gray-400">📍 {systemName(curSys.nameIndex)}</span>
         </div>
       </header>
 
-      {/* Navigation tabs */}
       <nav className="bg-gray-900 border-b border-gray-700 px-2 py-1 flex flex-wrap gap-0.5">
         {navItems.map((item) => (
           <button
@@ -89,19 +104,17 @@ export default function GameLayout({ currentScreen, onNavigate, children }: Game
         )}
       </nav>
 
-      {/* Main content */}
       <main className="flex-1 p-4 max-w-4xl mx-auto w-full overflow-y-auto">
         {children}
       </main>
 
-      {/* Debt warning */}
-      {s.debt > 0 && (
+      {debt > 0 && (
         <footer className="bg-red-900/30 border-t border-red-800 px-4 py-1.5 text-center">
           <span className="text-red-400 text-xs font-mono">
-            ⚠ Outstanding debt: {formatCredits(s.debt)}
+            ⚠ Outstanding debt: {formatCredits(debt)}
           </span>
         </footer>
       )}
     </div>
   );
-}
+});
