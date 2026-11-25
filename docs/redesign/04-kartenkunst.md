@@ -6,6 +6,17 @@ Stand: 25.11.2026. Versuch mit KI-generierten Porträts statt der prozeduralen H
 
 Eine Karte (Vesper Nakai, `c21`) hat ein generiertes Porträt bekommen. Vergleich in `preview/40-painted-card.jpg` und `preview/41-painted-vs-procedural.jpg`. Der Unterschied zum prozeduralen Avatar ist gross: Die Karte wirkt wie ein Sammelobjekt.
 
+## Zweiter Versuch: Gemini
+
+Dieselbe Karte, erzeugt in Gemini mit demselben Prompt. Dieses Bild ist jetzt als `c21` eingebaut. Es ist malerischer und weniger fotorealistisch als das erste aus Figma, was besser zu einem Kartenspiel passt und über viele Karten leichter einheitlich bleibt.
+
+Zwei Dinge für die nächsten Bilder:
+
+- **Im selben Gemini-Chat bleiben** und beim nächsten Prompt anfügen: `Same art style, brushwork and lighting as the previous portrait.` Das hält den Stil zusammen.
+- **Hochformat 4:5 verlangen**, Figur leicht rechts der Mitte, oben links dunkel. Das Bild von Vesper Nakai erfüllt das.
+
+Die Holo-Folie spart bei gemalten Karten das Gesicht aus, damit die Hautfarbe nicht verfärbt wird.
+
 ## So funktioniert es technisch
 
 - Datei nach `packages/client/src/assets/cards/<Karten-ID>.webp` legen, zum Beispiel `c21.webp`. Mehr braucht es nicht.

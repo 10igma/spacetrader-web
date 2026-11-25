@@ -622,6 +622,11 @@ button.tile:active { transform: scale(0.96); }
 .holo.is-locked { --rar: #3a4760; --foil: 0; }
 .holo.is-locked .holo__art { filter: grayscale(1) brightness(0.5); }
 .holo.is-locked .avatar { filter: brightness(0.12); }
+/* On a painted portrait the foil plays around the figure and spares the face, so skin keeps its colour. */
+.holo--painted .holo__foil {
+  -webkit-mask-image: radial-gradient(58% 42% at 58% 36%, transparent 35%, #000 100%);
+  mask-image: radial-gradient(58% 42% at 58% 36%, transparent 35%, #000 100%);
+}
 .holo.is-locked .holo__img { filter: brightness(0.1) contrast(1.4); }
 .holo.is-locked .holo__head, .holo.is-locked .holo__plate { opacity: 0.4; }
 .holo.is-locked .holo__glare { display: none; }

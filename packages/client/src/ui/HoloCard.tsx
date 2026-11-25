@@ -74,7 +74,7 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
   return (
     <div
       ref={ref}
-      className={`holo holo--${size} holo--${card.rarity}${locked ? ' is-locked' : ''}`}
+      className={`holo holo--${size} holo--${card.rarity}${locked ? ' is-locked' : ''}${CARD_ART.has(card.id) ? ' holo--painted' : ''}`}
       style={{ ['--faction' as string]: FACTION_COLOR[card.faction] }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
