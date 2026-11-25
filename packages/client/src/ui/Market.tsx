@@ -1,6 +1,7 @@
 import { CATEGORY_NAME, GOOD_BY_ID, GOODS, quote, STATION_BY_ID, type GoodDef, type GoodId, type MarketRow } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
+import { Auction } from './Auction.tsx';
 import { useApp } from '../store.ts';
 import { num, pct } from './format.ts';
 import { Credits } from './icons.tsx';
@@ -149,6 +150,7 @@ export function Market() {
   const view = useApp((s) => s.view)!;
   const [open, setOpen] = useState<GoodId | null>(null);
   const [hold, setHold] = useState(false);
+  const [mode, setMode] = useState<'goods' | 'auction'>(() => (view.badges.market > 0 ? 'auction' : 'goods'));
   const station = STATION_BY_ID.get(view.location)!;
   const byId = new Map(view.market.map((m) => [m.goodId, m]));
   const aboard = GOODS.filter((g) => view.cargo.items[g.id]);
@@ -161,26 +163,35 @@ export function Market() {
   return (
     <section className="market">
       <header className="screenhead">
-        <span className="eyebrow">Markt · {station.name}</span>
-        <h2>Handel</h2>
-        <button className="pill pill--btn" onClick={() => { audio.tap(); setHold(true); }}>
-          Laderaum {view.cargo.used} / {view.cargo.cap}{view.holdUpgrade ? <i className="plus">+</i> : null}
-        </button>
-      </header>
-      <div className="deck__bar"><i style={{ width: `${(view.cargo.used / view.cargo.cap) * 100}%` }} /></div>
-      <div className="market__list">
-        {aboard.length > 0 && <h4 className="market__section">An Bord</h4>}
-        {list(aboard)}
-        <h4 className="market__section">Offener Markt</h4>
-        {list(open_)}
-        {fence.length > 0 && (
-          <h4 className="market__section market__section--fence">
-            Schwarzmarkt
-            <span>{view.fence.closed ? 'Hehler hat dichtgemacht' : `Hehler nimmt noch ${view.fence.left} von ${view.fence.cap}`}</span>
-          </h4>
+        <span className="eyebrow">{mode === 'goods' ? `Markt · ${station.name}` : 'Auktionshaus · überall erreichbar'}</span>
+        <h2>{mode === 'goods' ? 'Handel' : 'Auktionen'}</h2>
+        {mode === 'goods' && (
+          <button className="pill pill--btn" onClick={() => { audio.tap(); setHold(true); }}>
+            Laderaum {view.cargo.used} / {view.cargo.cap}{view.holdUpgrade ? <i className="plus">+</i> : null}
+          </button>
         )}
-        {list(fence)}
+      </header>
+      <div className="segment" role="tablist">
+        <button role="tab" aria-selected={mode === 'goods'} className={mode === 'goods' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('goods'); }}>Waren</button>
+        <button role="tab" aria-selected={mode === 'auction'} className={mode === 'auction' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('auction'); }}>
+          Auktionen{view.badges.market > 0 && <i className="dot" />}
+        </button>
       </div>
+      {mode === 'auction' ? <Auction /> : (
+        <div className="market__list">
+          {aboard.length > 0 && <h4 className="market__section">An Bord</h4>}
+          {list(aboard)}
+          <h4 className="market__section">Offener Markt</h4>
+          {list(open_)}
+          {fence.length > 0 && (
+            <h4 className="market__section market__section--fence">
+              Schwarzmarkt
+              <span>{view.fence.closed ? 'Hehler hat dichtgemacht' : `Hehler nimmt noch ${view.fence.left} von ${view.fence.cap}`}</span>
+            </h4>
+          )}
+          {list(fence)}
+        </div>
+      )}
       {open && <TradeSheet goodId={open} onClose={() => setOpen(null)} />}
       {hold && <HoldSheet onClose={() => setHold(false)} />}
     </section>

@@ -44,6 +44,11 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   not_enough_shards: 'Nicht genug Splitter',
   not_claimable: 'Noch nicht abholbar',
   daily_limit: 'Für heute ausverkauft',
+  no_such_lot: 'Diese Auktion ist vorbei',
+  bid_too_low: 'Gebot zu niedrig: Der Preis ist inzwischen gestiegen',
+  too_many_bids: 'Zu viele offene Gebote',
+  too_many_listings: 'Alle Angebotsplätze sind belegt',
+  no_spare_copy: 'Davon hast du kein Duplikat',
   already_owned: 'Diese Karte hast du schon',
 };
 
@@ -125,6 +130,9 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'PostsCollected') { audio.coins(ev.amount); set({ sale: { id: ++saleId, profit: ev.amount, revenue: ev.amount } }); }
         if (ev.type === 'OfferBought') { audio.coins(300); get().showToast('Gekauft', 'good'); }
         if (ev.type === 'ManifestDone') get().showToast('Manifest erfüllt', 'good');
+        if (ev.type === 'BidPlaced') get().showToast('Gebot steht', 'good');
+        if (ev.type === 'AuctionBought') { audio.reveal(2); get().showToast('Gekauft: Karte ist in deiner Sammlung', 'good'); }
+        if (ev.type === 'CardListed') get().showToast('Angebot läuft', 'good');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls });
         if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0 }, routesOpen: false });
         if (ev.type === 'Arrived') {

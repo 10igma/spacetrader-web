@@ -3,6 +3,7 @@
  * through commands, exactly like a real client. That also makes every run
  * an end-to-end test of rules and view.
  */
+import { cardValue } from '../auction.ts';
 import { CONFIG } from '../config.ts';
 import { CARD_BY_ID, CARDS_BY_FACTION, FACTIONS, rarityRank, type FactionId } from '../content.ts';
 import { applyCommand, createInitialState, quote, toClientView, type ClientView, type Command, type GameState } from '../game.ts';
@@ -127,11 +128,30 @@ function housekeeping(ctx: Ctx, view: ClientView): ClientView {
   for (const f of FACTION_LIST) while (view.albums[f].claimable) view = act(ctx, { type: 'ClaimAlbum', faction: f });
   if (view.daily.wheel.available) view = act(ctx, { type: 'SpinWheel' });
   if (view.posts.stored > 0) view = act(ctx, { type: 'CollectPosts' });
-  view.daily.manifests.forEach((m, index) => { if (!m.done && m.have >= m.need) view = act(ctx, { type: 'SubmitManifest', index }); });
+  // Read each manifest from the current view: handing one in can use up the copies another one needs.
+  for (let index = 0; index < view.daily.manifests.length; index++) {
+    const m = view.daily.manifests[index]!;
+    if (!m.done && m.have >= m.need) view = act(ctx, { type: 'SubmitManifest', index });
+  }
   // Shop: missing cards when the price barely dents the trading capital.
   view.daily.offers.forEach((o, index) => {
     if (!o.bought && o.kind === 'card' && !view.collection[o.cardId!] && view.wallet.credits > o.price * 5) view = act(ctx, { type: 'BuyOffer', index });
   });
+  // Auction house: look at results, bid on cards we lack at a little under the estimate, sell surplus copies.
+  if (view.auction.results.length > 0) view = act(ctx, { type: 'AckAuctions' });
+  for (const lot of view.auction.lots) {
+    if (lot.gone || lot.yourMax !== null || view.collection[lot.cardId] || view.auction.openBids >= view.auction.maxBids) continue;
+    const max = Math.max(lot.minBid, Math.round((lot.estimate * 0.9) / 50) * 50);
+    if (max <= lot.estimate && view.wallet.credits > max * 4) view = act(ctx, { type: 'PlaceBid', lot: lot.key, max });
+  }
+  for (const id of Object.keys(view.collection)) {
+    const copies = view.collection[id] ?? 0;
+    if (view.auction.listings.length >= view.auction.maxListings) break;
+    const card = CARD_BY_ID.get(id)!;
+    // Keep one spare for manifests. Commons are not worth a listing slot.
+    if (copies < 3 || rarityRank(card.rarity) < rarityRank('rare')) continue;
+    view = act(ctx, { type: 'ListCard', cardId: id, min: Math.round((cardValue(card) * 0.6) / 50) * 50, duration: 2 });
+  }
   let opened = false;
   while (view.crates.free.stock > 0) { view = act(ctx, { type: 'ClaimFreeCrate' }); opened = true; }
   for (let i = view.slots.length - 1; i >= 0; i--) if (view.slots[i]!.state === 'ready') { view = act(ctx, { type: 'OpenSlot', slot: i }); opened = true; }

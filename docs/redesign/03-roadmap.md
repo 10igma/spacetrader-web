@@ -4,11 +4,11 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 
 ## Stand (25.11.2026)
 
-**Phase 0 bis 2 sind umgesetzt, Phase 3 bis auf das Auktionshaus.** Aus Phase 3 spielbar: grosses Kartenset mit Aufwertung und Schmieden, Container-Stufen mit Slots und Timern, Sammelalben, Tagesaufträge, Login-Kalender, Handelsserie, Handelsposten mit Offline-Ertrag, Glücksrad, Tages-Shop, Manifeste und Bergungs-Auktion.
+**Phase 0 bis 3 sind umgesetzt, bis auf Konvoi-Missionen.** Aus Phase 3 spielbar: grosses Kartenset mit Aufwertung und Schmieden, Container-Stufen mit Slots und Timern, Sammelalben, Tagesaufträge, Login-Kalender, Handelsserie, Handelsposten mit Offline-Ertrag, Glücksrad, Tages-Shop, Manifeste, Bergungs-Auktion und das Auktionshaus.
 
 | Baustein | Stand | Geprüft durch |
 |---|---|---|
-| Kern: Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 83 Unit-Tests |
+| Kern: Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 99 Unit-Tests |
 | Handel, Schmuggel, Sprünge, Begegnungen, Crew-Deck, Laderaum (Phase 1 und 2) | fertig | Tests und Browser-Durchläufe |
 | Kartenset: 130 Karten, je Fraktion und Rolle gleich tief | fertig | Test zur Verteilung |
 | Kartenstufen (Aufwerten mit Splittern) und Schmieden fehlender Karten | fertig | Tests zu Kosten, Wirkung, Obergrenze |
@@ -23,47 +23,51 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Tages-Shop: fünf Angebote, eines reduziert, je einmal kaufbar | fertig | Tests |
 | Manifeste: Duplikate abgeben, die letzte Kopie bleibt immer | fertig | Tests |
 | Bergungs-Auktion: versiegelter Container, Quoten vor dem Kauf sichtbar | fertig | Test über 4'000 Käufe gegen die angezeigten Quoten |
-| Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, 1 Beispielkarte | Screenshot, siehe Dokument 04 |
+| Auktionshaus: acht laufende Auktionen, Bieten mit Limit und hinterlegtem Betrag, Sofortkauf, eigene Duplikate anbieten | fertig | 16 Tests: Limit des Gegenbieters erreicht den Client nie, Gewinner zahlt nie mehr als sein Limit, Angebot hängt nicht vom Mindestpreis ab |
+| Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
 | Bot-Simulation | fertig | Zwei Spielertypen, je 20 Spieler über 30 Tage, dazu Leitplanken-Test |
-| Autoritativer Server (Skelett) | fertig | Zwanzig Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen |
-| Bühne, UI, Musik und Effekte | fertig | Fünf automatische Durchläufe ohne Konsolenfehler |
+| Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen |
+| Bühne, UI, Musik und Effekte | fertig | Sechs automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
-Median von je 20 simulierten Spielern, drei Sessions pro Tag, 30 Tage:
+Median von je 16 simulierten Spielern, drei Sessions pro Tag, 30 Tage:
 
 | | Tag 1 | Tag 7 | Tag 14 | Tag 30 |
 |---|---|---|---|---|
-| Sprünge kumuliert | 26 | 130 | 243 | 495 |
+| Sprünge kumuliert | 27 | 132 | 246 | 499 |
 | Stufe | 5 | 10 | 13 | 17 |
-| Gewinn pro Sprung legal | 2'200 | 4'600 | 5'700 | 6'600 |
-| Gewinn pro Sprung Schmuggel | 2'800 | 5'800 | 7'400 | 8'800 |
-| Vermögen legal | 23'000 | 165'000 | 175'000 | 451'000 |
-| Karten von 130 | 9 | 82 | 119 | 127 |
-| Legenden von 10 (Durchschnitt) | 0.1 | 1.5 | 3.4 | 6.3 |
-| Container geöffnet | 3 | 39 | 88 | 201 |
-| Beschlagnahmungen Schmuggel | 0.6 | 5.5 | 9.7 | 20.4 |
+| Gewinn pro Sprung legal | 1'800 | 4'200 | 5'600 | 6'200 |
+| Gewinn pro Sprung Schmuggel | 1'900 | 5'600 | 7'100 | 8'500 |
+| Vermögen legal | 20'000 | 133'000 | 237'000 | 640'000 |
+| Karten von 130 | 14 | 101 | 122 | 126 |
+| Legenden von 10 (Durchschnitt) | 0.0 | 1.0 | 2.9 | 5.8 |
+| Container geöffnet | 3 | 40 | 88 | 208 |
+| Beschlagnahmungen Schmuggel | 0.7 | 4.9 | 9.2 | 20.2 |
 
-- **Erste Legende:** Median Tag 5 bis 6, schnellstes Zehntel Tag 2, langsamstes Tag 10. Ziel war Tag 5 bis 10.
-- **Erstes volles Album:** Median Tag 19 bis 20. Ziel war um Tag 30. Shop, Manifeste und Bergung haben es gegenüber der Fassung davor (Tag 26) beschleunigt.
-- **Energie:** erster Tag grosszügig (26 Sprünge), danach rund 16 bis 17 pro Tag.
-- **Handelsposten:** nach 30 Tagen im Median 21 Ausbaustufen über alle Stationen. Sie binden Credits: Das Vermögen stagniert zwischen Tag 7 und 14, weil investiert wird.
+- **Erste Legende:** Median Tag 7 bis 8, schnellstes Zehntel Tag 3, langsamstes Tag 10 bis 11. Ziel war Tag 5 bis 10.
+- **Erstes volles Album:** Median Tag 24 bis 28. Ziel war um Tag 30.
+- **Energie:** erster Tag grosszügig (27 Sprünge), danach rund 16 bis 17 pro Tag.
+- **Auktionshaus:** rund 2 Gebote und 4 eigene Angebote pro Spieler und Tag. Gewöhnliche Karten kommen damit schneller zusammen (101 statt 82 Karten an Tag 7), der Verkauf von Duplikaten hebt das Vermögen an Tag 30 von 450'000 auf 640'000.
 
 Was die Simulation unterwegs aufgedeckt hat:
 
 1. **Erste Fassung der Wirtschaft:** Stufe 22 und 400'000 Credits an Tag 1. Behoben durch Preiswirkung grosser Mengen, engere Preisspannen und eine steilere Stufenkurve.
 2. **Erste Fassung von Phase 3:** erste Legende an Tag 3 bis 4, 120 von 130 Karten nach zwei Wochen. Ein Tageslimit allein half nicht, weil reiche Spieler einfach täglich das Maximum kauften. Jetzt steigt der Standard-Preis pro Tag mit jedem Kauf auf das Vierfache, Premium kostet Quanten, Gratis-Container kommen alle 12 statt 4 Stunden, und Legenden sind seltener.
 3. **Nebeneffekt:** Die steigenden Container-Preise binden überschüssige Credits. Das Vermögen an Tag 30 fiel von 1.7 Millionen auf rund 530'000.
+4. **Mit Shop, Manifesten und Auktionshaus** kam das erste Album wieder zu früh (Tag 15 bis 20). Höhere Schmiedekosten änderten nichts. Der Treiber war die schiere Menge an Containern (rund 7 pro Tag). Gelöst über die Legenden-Quote: 0.5 statt 0.8 Prozent pro Karte im Standard-Container, weniger Legenden in Auktionen und im Shop.
+5. **Der Leitplanken-Test** hat einen Fehler in den Bots gefunden: Sie gaben ein zweites Manifest ab, nachdem das erste dieselben Duplikate verbraucht hatte. Die Regeln haben es korrekt abgelehnt.
 
 Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lassen Tage aus und kommen langsamer voran, finden dafür bessere Routen. Die Zahlen sind eine Planungsgrundlage und kein Ersatz für Messung an Menschen.
 
 **Nicht geprüft, weil hier nicht prüfbar:** wie Musik und Effekte klingen, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
 
 **Offen:**
-- **Rest von Phase 3:** Auktionshaus mit Bieten gegen simulierte Händler, Konvoi-Missionen.
-- **Album-Tempo.** Tag 19 bis 20 statt 30. Manifeste werden von fleissigen Spielern fast täglich erfüllt und bringen Container. Vor der Beta nachziehen.
-- **Kartenkunst.** Eine Beispielkarte mit generiertem Porträt, Vorgehen und offene Fragen in Dokument 04.
+- **Rest von Phase 3:** Konvoi-Missionen (Reserve-Crew auf Zeit losschicken).
+- **Auktionshaus ist simuliert.** Gegenbieter und Käufer sind Zufallsgrössen mit festen Grenzen, keine echten Spieler. Ein Markt zwischen Spielern braucht Konten, Datenbank und Schutz gegen Absprachen (Phase 4).
+- **Zu viel Geld im Spätspiel.** 640'000 Credits an Tag 30, und der Verkauf von Duplikaten verstärkt das. Schiffe und Module als nächste Senke.
+- **Kartenkunst.** Die 10 höchsten Karten sind gemalt, 120 zeigen Helme. Vorgehen in Dokument 04.
 - **Legenden-Tempo.** 6.5 von 10 nach 30 Tagen passt zu Saisons von sechs Wochen mit neuen Karten (Phase 4). Ohne Saisons wäre es zu schnell.
 - **Tagesgrenze.** Mitternacht nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
 - **Push-Nachrichten fehlen.** Serie in Gefahr und volle Lager wirken erst mit Erinnerung richtig (Phase 5).
@@ -219,4 +223,4 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-Auktionshaus (Bieten und Verkaufen gegen simulierte Händler) als letzter grosser Baustein von Phase 3, dazu die Porträts der zehn Legenden und Singularitäten, sobald der Weg dafür entschieden ist. Danach Phase 4 mit Saisons, Ligen und Events.
+Phase 4 (Saisons und Wettbewerb): Saison-Charter, Ligen mit Auf- und Abstieg, Wochenend-Event, Sonderkarten. Vorher fällt der Entscheid aus der Roadmap: simulierter Wettbewerb oder ein Backend mit echten Mitspielern. Davor lohnt sich ein Test der ganzen Phase 3 auf dem Handy.

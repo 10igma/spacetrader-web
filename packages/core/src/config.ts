@@ -26,7 +26,7 @@ export const CONFIG = {
         /** At least one card of this rarity or better. */
         floor: 'rare' as Rarity,
         /** Base odds per card, before the upgrade moment. */
-        odds: { standard: 0.72, rare: 0.215, elite: 0.056, legend: 0.008, singularity: 0.001 } satisfies Record<Rarity, number>,
+        odds: { standard: 0.722, rare: 0.216, elite: 0.056, legend: 0.005, singularity: 0.001 } satisfies Record<Rarity, number>,
         unlockMs: 30 * MINUTE,
       },
       premium: {
@@ -36,7 +36,7 @@ export const CONFIG = {
         priceGrowth: 1,
         dailyLimit: 1,
         floor: 'elite' as Rarity,
-        odds: { standard: 0.50, rare: 0.34, elite: 0.135, legend: 0.022, singularity: 0.003 } satisfies Record<Rarity, number>,
+        odds: { standard: 0.50, rare: 0.345, elite: 0.135, legend: 0.017, singularity: 0.003 } satisfies Record<Rarity, number>,
         unlockMs: 3 * HOUR,
       },
     },
@@ -61,7 +61,7 @@ export const CONFIG = {
     /** Cost multiplier for level 2, 3, 4 and 5. */
     upgradeMult: [1, 2, 3, 5],
     /** Shards to forge a card you do not own yet: the planned way to finish an album. */
-    forge: { standard: 60, rare: 200, elite: 800, legend: 4_000, singularity: 20_000 } satisfies Record<Rarity, number>,
+    forge: { standard: 60, rare: 250, elite: 1_200, legend: 8_000, singularity: 40_000 } satisfies Record<Rarity, number>,
   },
   daily: {
     /** Days roll over at midnight Central European Time (no daylight saving). */
@@ -120,10 +120,35 @@ export const CONFIG = {
   /** Daily offers. One of them is marked down. */
   shop: {
     cardPrice: { standard: 2_000, rare: 9_000, elite: 45_000, legend: 350_000, singularity: 2_000_000 } satisfies Record<Rarity, number>,
-    legendChance: 0.08,
+    legendChance: 0.05,
     shards: { amount: 150, price: 12_000 },
     quanta: { amount: 20, price: 30_000 },
     dealDiscount: 0.4,
+  },
+  /**
+   * Card auctions against simulated traders. Every lot has a rival whose highest bid is fixed when the lot
+   * appears and never reacts to the player: an honest second-price auction with a hidden competitor.
+   */
+  auction: {
+    /** One lot per slot, running back to back. Minutes per lot. */
+    slotMinutes: [10, 10, 30, 30, 120, 120, 360, 360],
+    rarityWeights: { standard: 36, rare: 41, elite: 20.3, legend: 2.5, singularity: 0.2 } satisfies Record<Rarity, number>,
+    /** Estimated value of a card at the low end of its rarity. Rating adds up to half on top. */
+    value: { standard: 1_200, rare: 6_000, elite: 30_000, legend: 250_000, singularity: 1_500_000 } satisfies Record<Rarity, number>,
+    startShare: 0.3,
+    /** The rival's highest bid as a share of the estimate: between rivalMin and rivalMin + rivalRange. */
+    rivalMin: 0.55,
+    rivalRange: 0.7,
+    buyNowShare: 1.35,
+    maxBids: 4,
+    maxListings: 3,
+    /** Share of the sale price the house keeps. */
+    fee: 0.05,
+    listMinutes: [30, 120, 360],
+    /** Longer listings reach more buyers. */
+    listFactor: [0.9, 1, 1.08],
+    offerMin: 0.6,
+    offerRange: 0.55,
   },
   /** Sealed wreck containers: a gamble with credits, inside the fiction. Odds are shown before buying. */
   salvage: {

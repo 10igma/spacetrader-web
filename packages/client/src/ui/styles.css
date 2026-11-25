@@ -1435,6 +1435,71 @@ button.tile:active { transform: scale(0.96); }
 .offer--deal .price svg { color: #fff; }
 .offer.is-bought { opacity: 0.45; }
 
+/* ---------------------------------------------------------------------------
+   Auction house
+   --------------------------------------------------------------------------- */
+.segment { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 8px 0 6px; padding: 4px; border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--stroke); }
+.segment button { position: relative; padding: 8px 0; border-radius: 10px; font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); transition: background 0.2s, color 0.2s; }
+.segment button.is-active { color: #021018; background: var(--cyan); box-shadow: 0 0 16px -4px var(--cyan); }
+.segment .dot { top: 6px; right: 14px; }
+.market .deck__bar { display: none; }
+
+.lot {
+  --rar: var(--r-standard);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px 7px 7px;
+  border-radius: var(--radius-m);
+  text-align: left;
+  background: var(--glass-strong);
+  border: 1px solid color-mix(in srgb, var(--rar) 35%, var(--stroke));
+  transition: transform 0.14s var(--out);
+}
+button.lot:active { transform: scale(0.98); }
+.lot--rare { --rar: var(--r-rare); }
+.lot--elite { --rar: var(--r-elite); }
+.lot--legend { --rar: var(--r-legend); box-shadow: 0 0 22px -10px var(--r-legend); }
+.lot--singularity { --rar: var(--r-singularity); box-shadow: 0 0 22px -8px var(--r-singularity); }
+.lot__thumb { width: 44px; flex: none; pointer-events: none; }
+.lot__main { flex: 1; min-width: 0; }
+.lot__main b { display: block; font-family: var(--font-display); font-size: 15px; color: var(--rar); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lot--standard .lot__main b { color: var(--ink); }
+.lot__main small { display: block; font-size: 11px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lot__price { flex: none; text-align: right; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+.lot__price b { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 16px; }
+.lot__price b svg { color: var(--amber); }
+.lot__price small { font-size: 12px; color: var(--ink-dim); }
+.lot--lead { border-color: var(--ok); box-shadow: inset 0 0 18px -10px var(--ok); }
+.lot--outbid { border-color: var(--danger); box-shadow: inset 0 0 18px -8px var(--danger); animation: risk 1.6s ease-in-out infinite; }
+.lot--gone { opacity: 0.4; }
+.lot--own { padding-left: 14px; }
+.market__list > .cta--ghost { flex: none; margin-top: 2px; }
+
+.results { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--radius-m); background: linear-gradient(100deg, rgba(59, 227, 255, 0.16), var(--glass-strong) 60%); border: 1px solid rgba(59, 227, 255, 0.45); }
+.results p { font-size: 12px; color: var(--ink-dim); }
+.results .mission__btn { align-self: flex-end; margin-top: 4px; }
+
+.bid__head { display: flex; gap: 14px; align-items: center; }
+.bid__card { width: 92px; flex: none; }
+.bid__info { flex: 1; min-width: 0; }
+.bid__info h3 { font-size: 20px; margin: 2px 0 8px; }
+.bid__info dl { margin: 0; display: grid; gap: 3px; }
+.bid__info dl div { display: flex; justify-content: space-between; font-size: 12px; }
+.bid__info dt { color: var(--ink-dim); }
+.bid__info dd { margin: 0; font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; }
+.bid__status { margin: 10px 0 0; font-size: 12px; font-weight: 600; }
+.bid__amount { display: grid; grid-template-columns: 56px 1fr 56px; gap: 8px; align-items: center; margin: 12px 0 2px; }
+.bid__amount button { height: 50px; border-radius: 14px; font-family: var(--font-display); font-size: 22px; font-weight: 700; background: rgba(255, 255, 255, 0.07); border: 1px solid var(--stroke); }
+.bid__amount button:active { background: rgba(59, 227, 255, 0.2); }
+.bid__amount output { text-align: center; font-family: var(--font-display); font-weight: 800; font-size: 32px; font-variant-numeric: tabular-nums; }
+.bid .trade__actions .cta span { font-size: 14px; letter-spacing: 0.08em; white-space: nowrap; }
+.bid .trade__actions .cta small { font-size: 10px; padding: 0 6px; text-align: center; line-height: 1.2; }
+.chips--pick { justify-content: center; margin: 4px 0 12px; }
+.chips--pick .chip { cursor: pointer; height: 32px; padding: 0 16px; }
+.chips--pick .chip::before { display: none; }
+.chips--pick .chip.is-active { color: #021018; background: var(--cyan); border-color: transparent; }
+
 .toast {
   position: fixed;
   z-index: 60;

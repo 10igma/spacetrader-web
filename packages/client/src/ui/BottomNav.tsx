@@ -15,7 +15,7 @@ export function BottomNav() {
   const tab = useApp((s) => s.tab);
   const setTab = useApp((s) => s.setTab);
   const badges = useApp((s) => s.view!.badges);
-  const count: Partial<Record<Tab, number>> = { station: badges.station, hangar: badges.hangar, daily: badges.daily, deck: badges.deck };
+  const count: Partial<Record<Tab, number>> = { station: badges.station, market: badges.market, hangar: badges.hangar, daily: badges.daily, deck: badges.deck };
 
   return (
     <nav className="nav" aria-label="Hauptnavigation">

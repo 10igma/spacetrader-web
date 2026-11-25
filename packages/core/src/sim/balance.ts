@@ -38,6 +38,7 @@ for (const policy of ['legal', 'smuggler'] as Policy[]) {
   console.log(`Erstes volles Album: Median ${dayText(q(album, 0.5), days)}, frühestes Zehntel ${dayText(q(album, 0.1), days)}`);
   const collected = log.PostsCollected ?? 0;
   console.log(`Handelsposten: Stufen gesamt Tag ${days}: Median ${q(runs.map((r) => r[days - 1]!.posts), 0.5)}, Abholungen ${collected}. Bergung: ${log.SalvageOpened ?? 0} gekauft. Manifeste: ${log.ManifestDone ?? 0}. Shop-Käufe: ${log.OfferBought ?? 0}`);
+  console.log(`Auktionen: ${log.BidPlaced ?? 0} Gebote, ${log.CardListed ?? 0} eigene Angebote`);
   console.log(`Verlorene Container (Hangar voll): ${log.CrateLost ?? 0} bei ${log.CrateEarned ?? 0} verdienten`);
   const broke = runs.filter((r) => r[days - 1]!.worth < 500).length;
   console.log(`Pleite am Ende (unter 500): ${broke} von ${seeds}`);

@@ -1,3 +1,7 @@
+import {
+  bidStep, cardValue, lotAt, lotByKey, offerNow, rivalNow, winningPrice,
+  type AuctionResult, type Listing,
+} from './auction.ts';
 import { CONFIG } from './config.ts';
 import {
   CARD_BY_ID, CARDS_BY_RARITY, RARITIES, rarityRank,
@@ -19,7 +23,7 @@ import {
 // State
 // ---------------------------------------------------------------------------
 
-export const STATE_VERSION = 6;
+export const STATE_VERSION = 7;
 
 export type EncounterKind = 'pirates' | 'customs';
 export type EncounterChoice = 'fight' | 'flee' | 'pay' | 'submit' | 'bribe' | 'breakThrough';
@@ -34,7 +38,7 @@ export interface MarketEvent { stationId: StationId; category: Category; mult: n
 export interface GameState {
   version: typeof STATE_VERSION;
   createdAt: number;
-  rng: { crate: RngState; market: RngState; travel: RngState; daily: RngState };
+  rng: { crate: RngState; market: RngState; travel: RngState; daily: RngState; auction: RngState };
   profile: { level: number; xp: number };
   wallet: { credits: number; quanta: number; shards: number };
   fuel: { amount: number; updatedAt: number };
@@ -50,6 +54,8 @@ export interface GameState {
     day: number; missions: Mission[]; chestClaimed: boolean; bought: Record<CrateTier, number>;
     offers: Offer[]; manifests: Manifest[]; wheelSpun: boolean;
   };
+  /** Auction house: the secret seed behind all lots, open bids (lot key to limit, held in escrow), and own listings. */
+  auction: { seed: string; bids: Record<string, number>; bought: string[]; listings: Listing[]; results: AuctionResult[] };
   /** Trading posts by station. */
   posts: Partial<Record<StationId, Post>>;
   /** A sealed wreck container on offer at the current station, if any. */
@@ -133,6 +139,20 @@ export interface PostView {
   speedUpCost: number;
 }
 
+export interface LotView {
+  key: string; cardId: string; endsAt: number; estimate: number;
+  /** Highest bid right now. */
+  price: number;
+  /** Smallest bid that would be accepted. */
+  minBid: number;
+  buyNow: number;
+  /** Your limit on this lot, if you bid. */
+  yourMax: number | null;
+  leading: boolean;
+  /** Already bought out by you: gone until the next lot. */
+  gone: boolean;
+}
+
 export interface SlotView { tier: CrateTier; state: 'sealed' | 'unlocking' | 'ready'; readyAt: number | null; unlockMs: number; speedUpCost: number }
 
 /** What the client is allowed to see. No RNG state, no prices of places you are not at. */
@@ -164,6 +184,17 @@ export interface ClientView {
     next: { level: number; cost: number; buildMs: number; perHour: number } | null;
     stored: number;
   };
+  auction: {
+    lots: LotView[];
+    listings: { cardId: string; min: number; endsAt: number; offer: number | null }[];
+    /** Finished auctions the player has not looked at yet. */
+    results: AuctionResult[];
+    openBids: number;
+    maxBids: number;
+    maxListings: number;
+    fee: number;
+    listMinutes: readonly number[];
+  };
   salvage: (SalvageLot & { outcomes: { kind: SalvageKind; weight: number; credits: number; shards: number }[] }) | null;
   calendar: { step: number; claimable: boolean; rewards: readonly Reward[] };
   streak: { count: number; best: number; bonus: number; status: StreakStatus; freezes: number; maxFreezes: number; freezePrice: number; endsAt: number };
@@ -171,7 +202,7 @@ export interface ClientView {
   /** Permanent and streak bonuses on every sale, already included in market prices. */
   saleBonus: { streak: number; album: number };
   /** Things waiting to be collected, per tab. Drives the red dots. */
-  badges: { station: number; hangar: number; daily: number; deck: number };
+  badges: { station: number; market: number; hangar: number; daily: number; deck: number };
   deck: { seats: Record<RoleId, SeatView | null>; chem: number };
   crew: CrewBonus;
   location: StationId;
@@ -213,6 +244,10 @@ export type Command =
   | { type: 'BuyOffer'; index: number }
   | { type: 'SubmitManifest'; index: number }
   | { type: 'BuySalvage' }
+  | { type: 'PlaceBid'; lot: string; max: number }
+  | { type: 'BuyNow'; lot: string }
+  | { type: 'ListCard'; cardId: string; min: number; duration: number }
+  | { type: 'AckAuctions' }
   | { type: 'Buy'; goodId: GoodId; qty: number }
   | { type: 'Sell'; goodId: GoodId; qty: number }
   | { type: 'Jump'; to: StationId }
@@ -237,7 +272,8 @@ export type RejectReason =
   | 'encounter_pending' | 'no_encounter' | 'invalid_choice'
   | 'fence_limit' | 'fence_closed' | 'card_not_owned' | 'not_wanted' | 'max_level'
   | 'no_such_slot' | 'slot_busy' | 'slot_not_ready' | 'not_enough_quanta' | 'not_enough_shards' | 'not_claimable'
-  | 'daily_limit' | 'already_owned';
+  | 'daily_limit' | 'already_owned'
+  | 'no_such_lot' | 'bid_too_low' | 'too_many_bids' | 'too_many_listings' | 'no_spare_copy';
 
 export type GameEvent =
   | { type: 'CrateOpened'; source: 'free' | 'bought' | 'slot'; tier: CrateTier; pulls: Pull[] }
@@ -252,6 +288,9 @@ export type GameEvent =
   | { type: 'OfferBought'; index: number }
   | { type: 'ManifestDone'; index: number; cardIds: string[] }
   | { type: 'SalvageOpened'; kind: SalvageKind; credits: number; shards: number }
+  | { type: 'BidPlaced'; lot: string; max: number }
+  | { type: 'AuctionBought'; cardId: string; price: number }
+  | { type: 'CardListed'; cardId: string }
   | { type: 'StreakChanged'; count: number; kind: 'started' | 'extended' | 'saved' | 'lost'; previous: number }
   | { type: 'Bought'; goodId: GoodId; qty: number; cost: number }
   | { type: 'Sold'; goodId: GoodId; qty: number; revenue: number; profit: number }
@@ -285,7 +324,7 @@ export function createInitialState(seed: string, now: number): GameState {
   const state: GameState = {
     version: STATE_VERSION,
     createdAt: now,
-    rng: { crate: seedRng(`${seed}:crate`), market: seedRng(`${seed}:market`), travel: seedRng(`${seed}:travel`), daily: seedRng(`${seed}:daily`) },
+    rng: { crate: seedRng(`${seed}:crate`), market: seedRng(`${seed}:market`), travel: seedRng(`${seed}:travel`), daily: seedRng(`${seed}:daily`), auction: seedRng(`${seed}:auction`) },
     profile: { level: 1, xp: 0 },
     wallet: { credits: CONFIG.startCredits, quanta: CONFIG.startQuanta, shards: 0 },
     fuel: { amount: CONFIG.fuel.max, updatedAt: now },
@@ -296,6 +335,7 @@ export function createInitialState(seed: string, now: number): GameState {
     cardLevels: {},
     deck: { pilot: null, trader: null, tech: null, gunner: null, smuggler: null },
     daily: { day: -1, missions: [], chestClaimed: false, bought: { standard: 0, premium: 0 }, offers: [], manifests: [], wheelSpun: false },
+    auction: { seed: `${seed}:house`, bids: {}, bought: [], listings: [], results: [] },
     posts: {},
     salvage: null,
     calendar: { lastDay: -1, step: 0 },
@@ -386,6 +426,46 @@ function settleDaily(state: GameState, now: number): void {
     manifests: rollManifests(state.rng.daily),
     wheelSpun: false,
   };
+}
+
+/** Close every auction whose time is up: pay out, hand over cards, return escrow. */
+function settleAuctions(state: GameState, now: number): void {
+  const a = state.auction;
+  const push = (r: AuctionResult): void => { a.results.push(r); if (a.results.length > 20) a.results.shift(); };
+  for (const [key, max] of Object.entries(a.bids)) {
+    const lot = lotByKey(a.seed, state.createdAt, key);
+    if (!lot) { state.wallet.credits += max; delete a.bids[key]; continue; }
+    if (now < lot.endsAt) continue;
+    delete a.bids[key];
+    if (max > lot.rivalMax) {
+      const price = winningPrice(lot, max);
+      state.wallet.credits += max - price;
+      addCard(state, lot.cardId);
+      push({ kind: 'won', cardId: lot.cardId, price });
+    } else {
+      state.wallet.credits += max;
+      push({ kind: 'lost', cardId: lot.cardId, price: lot.rivalMax });
+    }
+  }
+  a.listings = a.listings.filter((l) => {
+    if (now < l.endsAt) return true;
+    if (l.offer >= l.min) {
+      const net = Math.round(l.offer * (1 - CONFIG.auction.fee));
+      state.wallet.credits += net;
+      push({ kind: 'sold', cardId: l.cardId, price: net });
+    } else {
+      // No buyer: the card comes back as it left, without a second shard payout.
+      state.collection[l.cardId] = (state.collection[l.cardId] ?? 0) + 1;
+      push({ kind: 'unsold', cardId: l.cardId, price: 0 });
+    }
+    return false;
+  });
+  // Forget buy-outs of lots that are over.
+  a.bought = a.bought.filter((key) => { const lot = lotByKey(a.seed, state.createdAt, key); return !!lot && now < lot.endsAt; });
+}
+
+function activeLots(state: GameState, now: number): ReturnType<typeof lotAt>[] {
+  return CONFIG.auction.slotMinutes.map((_, slot) => lotAt(state.auction.seed, state.createdAt, slot, now));
 }
 
 function settlePosts(state: GameState, now: number): void {
@@ -869,6 +949,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
   settleFree(state, now);
   settleDaily(state, now);
   settlePosts(state, now);
+  settleAuctions(state, now);
 
   if (state.pending && cmd.type !== 'Encounter') return reject('encounter_pending');
 
@@ -1054,6 +1135,51 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       if (outcome.kind === 'premium') grantCrate(state, 'premium', events);
       break;
     }
+    case 'PlaceBid': {
+      const lot = activeLots(state, now).find((l) => l.key === cmd.lot);
+      if (!lot || state.auction.bought.includes(lot.key)) return reject('no_such_lot');
+      if (!Number.isInteger(cmd.max) || cmd.max > 100_000_000) return reject('unknown_command');
+      const existing = state.auction.bids[lot.key] ?? 0;
+      const price = Math.max(lot.start, rivalNow(lot, now));
+      if (cmd.max < Math.max(price, existing) + bidStep(price)) return reject('bid_too_low');
+      if (existing === 0 && Object.keys(state.auction.bids).length >= CONFIG.auction.maxBids) return reject('too_many_bids');
+      // The whole limit is held in escrow. What is not needed comes back when the auction ends.
+      if (state.wallet.credits < cmd.max - existing) return reject('not_enough_credits');
+      state.wallet.credits -= cmd.max - existing;
+      state.auction.bids[lot.key] = cmd.max;
+      events.push({ type: 'BidPlaced', lot: lot.key, max: cmd.max });
+      break;
+    }
+    case 'BuyNow': {
+      const lot = activeLots(state, now).find((l) => l.key === cmd.lot);
+      if (!lot || state.auction.bought.includes(lot.key)) return reject('no_such_lot');
+      const existing = state.auction.bids[lot.key] ?? 0;
+      if (state.wallet.credits + existing < lot.buyNow) return reject('not_enough_credits');
+      state.wallet.credits += existing - lot.buyNow;
+      delete state.auction.bids[lot.key];
+      state.auction.bought.push(lot.key);
+      addCard(state, lot.cardId);
+      events.push({ type: 'AuctionBought', cardId: lot.cardId, price: lot.buyNow });
+      break;
+    }
+    case 'ListCard': {
+      const card = CARD_BY_ID.get(cmd.cardId);
+      if (!card || (state.collection[cmd.cardId] ?? 0) < 2) return reject('no_spare_copy');
+      const minutes = CONFIG.auction.listMinutes[cmd.duration];
+      if (minutes === undefined || !Number.isInteger(cmd.min) || cmd.min < 50 || cmd.min > 100_000_000) return reject('unknown_command');
+      if (state.auction.listings.length >= CONFIG.auction.maxListings) return reject('too_many_listings');
+      state.collection[cmd.cardId]! -= 1;
+      const a = CONFIG.auction;
+      // The best offer this listing will get is drawn now and does not depend on the asking price.
+      const offer = Math.max(50, Math.round((cardValue(card) * (a.offerMin + a.offerRange * nextFloat(state.rng.auction)) * a.listFactor[cmd.duration]!) / 50) * 50);
+      state.auction.listings.push({ cardId: cmd.cardId, min: cmd.min, startAt: now, endsAt: now + minutes * 60_000, offer });
+      events.push({ type: 'CardListed', cardId: cmd.cardId });
+      break;
+    }
+    case 'AckAuctions': {
+      state.auction.results = [];
+      break;
+    }
     case 'ClaimAlbum': {
       if (!FACTION_IDS.includes(cmd.faction)) return reject('unknown_command');
       const album = albumInfo(state.collection, state.albums[cmd.faction], cmd.faction);
@@ -1180,6 +1306,7 @@ export function toClientView(state: GameState, now: number): ClientView {
   settleFree(s, now);
   settleDaily(s, now);
   settlePosts(s, now);
+  settleAuctions(s, now);
   const { max, regenMs } = CONFIG.fuel;
   const here = s.location;
   const hereFaction = factionOf(here);
@@ -1213,6 +1340,21 @@ export function toClientView(state: GameState, now: number): ClientView {
     };
   });
   const hereLevel = s.posts[here]?.level ?? 0;
+  const lots: LotView[] = activeLots(s, now).map((lot) => {
+    const yourMax = s.auction.bids[lot.key] ?? null;
+    const rival = rivalNow(lot, now);
+    const price = Math.max(lot.start, rival);
+    const leading = yourMax !== null && yourMax > rival;
+    return {
+      key: lot.key, cardId: lot.cardId, endsAt: lot.endsAt, estimate: lot.estimate,
+      price,
+      minBid: Math.max(price, yourMax ?? 0) + bidStep(price),
+      buyNow: lot.buyNow,
+      yourMax,
+      leading,
+      gone: s.auction.bought.includes(lot.key),
+    };
+  });
 
   const market: MarketRow[] = GOODS.map((g) => marketRow(s, here, g.id, s.cargo[g.id]?.heat ?? 0));
   const lot = CONFIG.market.hintLot;
@@ -1281,6 +1423,16 @@ export function toClientView(state: GameState, now: number): ClientView {
         : null,
       stored: postList.reduce((sum, p) => sum + p.stored, 0),
     },
+    auction: {
+      lots,
+      listings: s.auction.listings.map((l) => ({ cardId: l.cardId, min: l.min, endsAt: l.endsAt, offer: offerNow(l, now) })),
+      results: s.auction.results,
+      openBids: Object.keys(s.auction.bids).length,
+      maxBids: CONFIG.auction.maxBids,
+      maxListings: CONFIG.auction.maxListings,
+      fee: CONFIG.auction.fee,
+      listMinutes: CONFIG.auction.listMinutes,
+    },
     salvage: s.salvage
       ? { ...s.salvage, outcomes: CONFIG.salvage.outcomes.map((o) => ({ kind: o.kind, weight: o.weight, ...salvagePrize(o.kind, s.salvage!.price) })) }
       : null,
@@ -1300,6 +1452,7 @@ export function toClientView(state: GameState, now: number): ClientView {
     badges: {
       hangar: s.crates.freeStock + slots.filter((x) => x.state === 'ready').length,
       station: postList.filter((p) => p.readyAt === null && p.stored >= p.cap * 0.9).length,
+      market: s.auction.results.length + lots.filter((l) => l.yourMax !== null && !l.leading).length,
       daily: s.daily.missions.filter((m) => !m.claimed && m.progress >= m.target).length + (chestClaimable ? 1 : 0) + (calendarClaimable ? 1 : 0)
         + (s.daily.wheelSpun ? 0 : 1) + manifests.filter((m) => !m.done && m.have >= m.need).length,
       deck: FACTION_IDS.filter((f) => albums[f].claimable).length,
@@ -1345,7 +1498,16 @@ export function parseCommand(input: unknown): Command | null {
     case 'CollectPosts':
     case 'SpinWheel':
     case 'BuySalvage':
+    case 'AckAuctions':
       return { type: c.type };
+    case 'PlaceBid':
+      return typeof c.lot === 'string' && /^\d:-?\d{1,9}$/.test(c.lot) && typeof c.max === 'number' ? { type: 'PlaceBid', lot: c.lot, max: c.max } : null;
+    case 'BuyNow':
+      return typeof c.lot === 'string' && /^\d:-?\d{1,9}$/.test(c.lot) ? { type: 'BuyNow', lot: c.lot } : null;
+    case 'ListCard':
+      return typeof c.cardId === 'string' && c.cardId.length < 16 && typeof c.min === 'number' && typeof c.duration === 'number'
+        ? { type: 'ListCard', cardId: c.cardId, min: c.min, duration: c.duration }
+        : null;
     case 'SpeedUpPost':
       return typeof c.stationId === 'string' && STATION_BY_ID.has(c.stationId as StationId) ? { type: 'SpeedUpPost', stationId: c.stationId as StationId } : null;
     case 'BuyOffer':
