@@ -4,7 +4,7 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 
 ## Stand (25.11.2026)
 
-**Phase 0 bis 3 sind umgesetzt, bis auf Konvoi-Missionen.** Aus Phase 3 spielbar: grosses Kartenset mit Aufwertung und Schmieden, Container-Stufen mit Slots und Timern, Sammelalben, Tagesaufträge, Login-Kalender, Handelsserie, Handelsposten mit Offline-Ertrag, Glücksrad, Tages-Shop, Manifeste, Bergungs-Auktion und das Auktionshaus.
+**Phase 0 bis 3 sind umgesetzt, bis auf Konvoi-Missionen. Aus Phase 4 steht der simulierte Teil:** Saison-Charter mit Gratis- und Premium-Spur, Wochenliga mit Auf- und Abstieg gegen simulierte Rivalen, das Wochenend-Event Blockade-Lauf und der Rückkehr-Bonus. Aus Phase 3 spielbar: grosses Kartenset mit Aufwertung und Schmieden, Container-Stufen mit Slots und Timern, Sammelalben, Tagesaufträge, Login-Kalender, Handelsserie, Handelsposten mit Offline-Ertrag, Glücksrad, Tages-Shop, Manifeste, Bergungs-Auktion und das Auktionshaus.
 
 | Baustein | Stand | Geprüft durch |
 |---|---|---|
@@ -24,11 +24,15 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Manifeste: Duplikate abgeben, die letzte Kopie bleibt immer | fertig | Tests |
 | Bergungs-Auktion: versiegelter Container, Quoten vor dem Kauf sichtbar | fertig | Test über 4'000 Käufe gegen die angezeigten Quoten |
 | Auktionshaus: acht laufende Auktionen, Bieten mit Limit und hinterlegtem Betrag, Sofortkauf, eigene Duplikate anbieten | fertig | 16 Tests: Limit des Gegenbieters erreicht den Client nie, Gewinner zahlt nie mehr als sein Limit, Angebot hängt nicht vom Mindestpreis ab |
+| Saison (6 Wochen) mit Charter: 40 Stufen, Gratis-Spur und Premium-Spur für 500 erspielte Quanten, schon Erspieltes wird beim Kauf nachgezahlt | fertig | Tests: Reihenfolge, Nachzahlung, kein doppeltes Abholen, Saisonwechsel setzt zurück |
+| Wochenliga: 30er-Tabelle, 5 Ligen von Bronze bis Diamant, Platz 1 bis 7 steigt auf, 26 bis 30 steigt ab. Wertung ist der Handelsgewinn der Woche | fertig | Tests: Rivalen hängen nie vom Spieler ab, Punkte fallen nie, Endstand ist reproduzierbar, ungespielte Wochen zählen nicht |
+| Wochenend-Event Blockade-Lauf (Samstag und Sonntag): mehr Zoll, bessere Hehlerpreise, Meilensteine mit Belohnungen | fertig | Tests: wirkt nur am Wochenende, Meilensteine der Reihe nach, neue Woche setzt zurück |
+| Rückkehr-Bonus nach 3 Tagen Pause: Credits nach Stufe, Quanten, Container, voller Tank | fertig | Tests |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
-| Bot-Simulation | fertig | Zwei Spielertypen, je 20 Spieler über 30 Tage, dazu Leitplanken-Test |
-| Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen |
-| Bühne, UI, Musik und Effekte | fertig | Sechs automatische Durchläufe ohne Konsolenfehler |
+| Bot-Simulation | fertig | Zwei Spielertypen, je 16 Spieler über 42 Tage, dazu Leitplanken-Test |
+| Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus |
+| Bühne, UI, Musik und Effekte | fertig | Sieben automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
@@ -38,18 +42,20 @@ Median von je 16 simulierten Spielern, drei Sessions pro Tag, 30 Tage:
 |---|---|---|---|---|
 | Sprünge kumuliert | 27 | 132 | 246 | 499 |
 | Stufe | 5 | 10 | 13 | 17 |
-| Gewinn pro Sprung legal | 1'800 | 4'200 | 5'600 | 6'200 |
-| Gewinn pro Sprung Schmuggel | 1'900 | 5'600 | 7'100 | 8'500 |
-| Vermögen legal | 20'000 | 133'000 | 237'000 | 640'000 |
-| Karten von 130 | 14 | 101 | 122 | 126 |
-| Legenden von 10 (Durchschnitt) | 0.0 | 1.0 | 2.9 | 5.8 |
-| Container geöffnet | 3 | 40 | 88 | 208 |
-| Beschlagnahmungen Schmuggel | 0.7 | 4.9 | 9.2 | 20.2 |
+| Gewinn pro Sprung legal | 1'800 | 4'100 | 5'300 | 6'400 |
+| Gewinn pro Sprung Schmuggel | 1'900 | 5'800 | 7'400 | 8'900 |
+| Vermögen legal | 21'000 | 136'000 | 303'000 | 702'000 |
+| Karten von 130 | 14 | 98 | 123 | 127 |
+| Legenden von 10 (Durchschnitt) | 0.0 | 1.1 | 3.3 | 6.9 |
+| Container geöffnet | 3 | 40 | 93 | 225 |
+| Beschlagnahmungen Schmuggel | 0.7 | 5.9 | 11.3 | 23.4 |
 
-- **Erste Legende:** Median Tag 7 bis 8, schnellstes Zehntel Tag 3, langsamstes Tag 10 bis 11. Ziel war Tag 5 bis 10.
-- **Erstes volles Album:** Median Tag 24 bis 28. Ziel war um Tag 30.
+- **Erste Legende:** Median Tag 6 bis 7, schnellstes Zehntel Tag 3, langsamstes Tag 10. Ziel war Tag 5 bis 10.
+- **Erstes volles Album:** Median Tag 20 bis 21 (vor Phase 4: Tag 24 bis 28). Charter, Liga und Event bringen rund 17 zusätzliche Container in 30 Tagen. Ziel war um Tag 30, siehe Offen.
 - **Energie:** erster Tag grosszügig (27 Sprünge), danach rund 16 bis 17 pro Tag.
-- **Auktionshaus:** rund 2 Gebote und 4 eigene Angebote pro Spieler und Tag. Gewöhnliche Karten kommen damit schneller zusammen (101 statt 82 Karten an Tag 7), der Verkauf von Duplikaten hebt das Vermögen an Tag 30 von 450'000 auf 640'000.
+- **Auktionshaus:** rund 2 Gebote und 5 eigene Angebote pro Spieler und Tag.
+- **Charter:** Wer dreimal täglich spielt, steht an Tag 7 auf Stufe 9, an Tag 14 auf Stufe 19 und schliesst die 40 Stufen um Tag 30 von 42 ab. Die Premium-Spur leisten sich die Bots im Median an Tag 9 aus erspielten Quanten.
+- **Liga:** Aufstieg bis Gold in zwei Wochen, danach wird es eng: Platin im Median nach vier Wochen.
 
 Was die Simulation unterwegs aufgedeckt hat:
 
@@ -65,11 +71,14 @@ Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lasse
 
 **Offen:**
 - **Rest von Phase 3:** Konvoi-Missionen (Reserve-Crew auf Zeit losschicken).
-- **Auktionshaus ist simuliert.** Gegenbieter und Käufer sind Zufallsgrössen mit festen Grenzen, keine echten Spieler. Ein Markt zwischen Spielern braucht Konten, Datenbank und Schutz gegen Absprachen (Phase 4).
-- **Zu viel Geld im Spätspiel.** 640'000 Credits an Tag 30, und der Verkauf von Duplikaten verstärkt das. Schiffe und Module als nächste Senke.
+- **Auktionshaus und Liga sind simuliert.** Gegenbieter, Käufer und Liga-Rivalen sind Zufallsgrössen mit festen Grenzen, keine echten Spieler. Die Liga sagt das auf dem Bildschirm. Echte Mitspieler brauchen Konten, Datenbank und Schutz gegen Absprachen (zweiter Teil von Phase 4).
+- **Rest von Phase 4:** Sonderkarten der Saison, Ticker, Schaukasten und Kosmetik, Prestige, Telemetrie. Die Saison wechselt bisher nur Name und Charter, noch keine Karten-Edition.
+- **Premium-Charter ist für fleissige Spieler gratis.** 500 Quanten sind nach gut einer Woche erspielt. Das ist gewollt, solange es kein Echtgeld gibt, muss aber vor Phase 6 neu gerechnet werden.
+- **Sammeltempo.** Das erste Album kommt mit Phase 4 rund eine Woche früher als geplant. Sobald Saison-Karten das Set vergrössern, verschiebt sich das wieder. Bis dahin lasse ich die Quoten stehen.
+- **Zu viel Geld im Spätspiel.** 700'000 Credits an Tag 30, und der Verkauf von Duplikaten verstärkt das. Schiffe und Module als nächste Senke.
 - **Kartenkunst.** Die 10 höchsten Karten sind gemalt, 120 zeigen Helme. Vorgehen in Dokument 04.
-- **Legenden-Tempo.** 6.5 von 10 nach 30 Tagen passt zu Saisons von sechs Wochen mit neuen Karten (Phase 4). Ohne Saisons wäre es zu schnell.
-- **Tagesgrenze.** Mitternacht nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
+- **Legenden-Tempo.** 7 von 10 nach 30 Tagen passt nur zu Saisons von sechs Wochen mit neuen Karten. Die Saison-Edition fehlt noch.
+- **Tages- und Wochengrenze.** Mitternacht und Montag nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
 - **Push-Nachrichten fehlen.** Serie in Gefahr und volle Lager wirken erst mit Erinnerung richtig (Phase 5).
 - **Aus Phase 2:** Lizenzen, Verstecke, gefälschte Papiere, Veredelung, Versicherung.
 - **Speicherstand.** Im Offline-Modus lokal, bei Regeländerungen wird er verworfen. Der Server hält Sitzungen nur im Arbeitsspeicher.
@@ -218,9 +227,15 @@ Hier kommt der grösste Teil des Katalogs.
 | 2 | Altes Spiel | Erledigt: liegt unverändert in `legacy/classic`, `main` ist unberührt | nichts |
 | 3 | Name des Spiels | Arbeitstitel behalten, Namensfindung nach Phase 1 | nichts |
 | 4 | Crew-Porträts: prozedural, KI-generiert oder illustriert? | Prozedurale Hologramm-Avatare für den Start | Phase 3 |
-| 5 | Backend und echte Mitspieler? | Entscheid nach Phase 3 | Phase 4 |
+| 5 | Backend und echte Mitspieler? | Entschieden: zuerst simuliert, Backend später | Rest von Phase 4 |
 | 6 | Echtgeld? | Entscheid nach der Beta | Phase 6 |
 
 ## Nächster Schritt
 
-Phase 4 (Saisons und Wettbewerb): Saison-Charter, Ligen mit Auf- und Abstieg, Wochenend-Event, Sonderkarten. Vorher fällt der Entscheid aus der Roadmap: simulierter Wettbewerb oder ein Backend mit echten Mitspielern. Davor lohnt sich ein Test der ganzen Phase 3 auf dem Handy.
+Zur Wahl stehen drei Stränge. Meine Empfehlung ist die Reihenfolge, in der sie hier stehen:
+
+1. **Senken und Tiefe:** Schiffe und Module (bindet das viele Geld im Spätspiel), dazu Konvoi-Missionen und der Rest aus Phase 2 (Lizenzen, Verstecke, gefälschte Papiere, Veredelung, Versicherung).
+2. **Saison-Inhalt:** Sonderkarten pro Saison, Ticker, Schaukasten und Kosmetik, Prestige.
+3. **Phase 5:** Capacitor-Hülle, Push-Nachrichten, Haptik, Test auf echten Geräten.
+
+Unabhängig davon lohnt sich jetzt ein Test auf dem Handy: Phase 3 und 4 zusammen sind die Schleife, die Spieler zurückholen soll.

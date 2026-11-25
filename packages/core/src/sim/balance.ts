@@ -17,7 +17,7 @@ for (const policy of ['legal', 'smuggler'] as Policy[]) {
   }
   console.log(`\n=== ${policy} (${seeds} Spieler, ${days} Tage, 3 Sessions pro Tag) ===`);
   console.log('Tag   Vermögen p10     Median        p90  Gewinn/Sprung  Stufe  Karten  Legenden  Container  Quanten  Splitter  Serie  Sprünge  erwischt');
-  for (const d of [1, 2, 3, 5, 7, 10, 14, 21, 30].filter((x) => x <= days)) {
+  for (const d of [1, 2, 3, 5, 7, 10, 14, 21, 30, 42, 60, 90].filter((x) => x <= days)) {
     const at = runs.map((r) => r[d - 1]!);
     console.log(
       `${String(d).padStart(3)} ${fmt(q(at.map((s) => s.worth), 0.1))} ${fmt(q(at.map((s) => s.worth), 0.5))} ${fmt(q(at.map((s) => s.worth), 0.9))}`
@@ -38,6 +38,10 @@ for (const policy of ['legal', 'smuggler'] as Policy[]) {
   console.log(`Erstes volles Album: Median ${dayText(q(album, 0.5), days)}, frühestes Zehntel ${dayText(q(album, 0.1), days)}`);
   const collected = log.PostsCollected ?? 0;
   console.log(`Handelsposten: Stufen gesamt Tag ${days}: Median ${q(runs.map((r) => r[days - 1]!.posts), 0.5)}, Abholungen ${collected}. Bergung: ${log.SalvageOpened ?? 0} gekauft. Manifeste: ${log.ManifestDone ?? 0}. Shop-Käufe: ${log.OfferBought ?? 0}`);
+  const at = (d: number) => runs.map((r) => r[Math.min(days, d) - 1]!);
+  console.log(`Liga-Stufe (0 Bronze bis 4 Diamant) Median: Tag 7: ${q(at(7).map((s) => s.league), 0.5)}, Tag 14: ${q(at(14).map((s) => s.league), 0.5)}, Tag 21: ${q(at(21).map((s) => s.league), 0.5)}, Tag 30: ${q(at(30).map((s) => s.league), 0.5)}`);
+  const bought = runs.map((r) => r.find((s) => s.charterPremium)?.day ?? Infinity);
+  console.log(`Charter-Stufe Median: Tag 7: ${q(at(7).map((s) => s.charter), 0.5)}, Tag 14: ${q(at(14).map((s) => s.charter), 0.5)}, Tag 30: ${q(at(30).map((s) => s.charter), 0.5)} von 40. Premium gekauft: Median ${dayText(q(bought, 0.5), days)}`);
   console.log(`Auktionen: ${log.BidPlaced ?? 0} Gebote, ${log.CardListed ?? 0} eigene Angebote`);
   console.log(`Verlorene Container (Hangar voll): ${log.CrateLost ?? 0} bei ${log.CrateEarned ?? 0} verdienten`);
   const broke = runs.filter((r) => r[days - 1]!.worth < 500).length;

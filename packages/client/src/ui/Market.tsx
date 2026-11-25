@@ -1,4 +1,4 @@
-import { CATEGORY_NAME, GOOD_BY_ID, GOODS, quote, STATION_BY_ID, type GoodDef, type GoodId, type MarketRow } from '@nova/core';
+import { CATEGORY_NAME, CONFIG, GOOD_BY_ID, GOODS, quote, STATION_BY_ID, type GoodDef, type GoodId, type MarketRow } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { Auction } from './Auction.tsx';
@@ -179,6 +179,7 @@ export function Market() {
       </div>
       {mode === 'auction' ? <Auction /> : (
         <div className="market__list">
+          {view.weekend.active && <p className="market__event">Blockade-Lauf: Hehler zahlen {Math.round(CONFIG.weekend.fenceBonus * 100)} % mehr, der Zoll kontrolliert öfter.</p>}
           {aboard.length > 0 && <h4 className="market__section">An Bord</h4>}
           {list(aboard)}
           <h4 className="market__section">Offener Markt</h4>

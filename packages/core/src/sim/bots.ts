@@ -13,7 +13,7 @@ export type Policy = 'legal' | 'smuggler';
 
 const HOUR = 3_600_000;
 
-export interface DaySample { posts: number; day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
+export interface DaySample { league: number; charter: number; charterPremium: boolean; posts: number; day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
 
 interface Ctx { state: GameState; now: number; policy: Policy; log: Record<string, number> }
 
@@ -122,6 +122,12 @@ const FACTION_LIST = Object.keys(FACTIONS) as FactionId[];
 
 /** Everything a diligent player collects when opening the app. */
 function housekeeping(ctx: Ctx, view: ClientView): ClientView {
+  if (view.comeback) view = act(ctx, { type: 'ClaimComeback' });
+  if (view.league.last) view = act(ctx, { type: 'ClaimLeague' });
+  while (view.weekend.claimable > 0) view = act(ctx, { type: 'ClaimWeekend' });
+  // The charter comes before premium crates: it pays back most of its price over the season.
+  if (!view.season.premium && view.wallet.quanta >= view.season.premiumPrice) view = act(ctx, { type: 'BuyCharter' });
+  if (view.season.claimable > 0) view = act(ctx, { type: 'ClaimCharter' });
   if (view.calendar.claimable) view = act(ctx, { type: 'ClaimCalendar' });
   view.daily.missions.forEach((m, index) => { if (!m.claimed && m.progress >= m.target) view = act(ctx, { type: 'ClaimMission', index }); });
   if (!view.daily.chest.claimed && view.daily.chest.done === view.daily.chest.total) view = act(ctx, { type: 'ClaimChest' });
@@ -194,7 +200,8 @@ function session(ctx: Ctx): void {
     for (const tier of ['premium', 'standard'] as const) {
       const offer = view.crates.tiers[tier];
       // Credits: only when it barely dents the trading capital. Quanta: keep a reserve for a streak freeze.
-      const ok = offer.currency === 'credits' ? view.wallet.credits > offer.price * 3 : view.wallet.quanta >= offer.price + CONFIG.streak.freezePrice;
+      // Quanta are saved for the charter first.
+      const ok = offer.currency === 'credits' ? view.wallet.credits > offer.price * 3 : view.season.premium && view.wallet.quanta >= offer.price + CONFIG.streak.freezePrice;
       if (offer.leftToday > 0 && ok) { view = act(ctx, { type: 'BuyCrate', tier }); view = act(ctx, { type: 'AutoDeck' }); }
     }
     if (view.payOff !== null && view.wanted[STATION_BY_ID.get(view.location)!.faction] >= 3 && view.wallet.credits > view.payOff * 5) {
@@ -241,6 +248,9 @@ export function simulate(seed: string, policy: Policy, days: number, sessionsPer
       legends: Object.keys(view.collection).filter((id) => rarityRank(CARD_BY_ID.get(id)!.rarity) >= rarityRank('legend')).length,
       quanta: view.wallet.quanta,
       posts: view.posts.list.reduce((sum, p) => sum + p.level, 0),
+      league: view.league.tier,
+      charter: view.season.tier,
+      charterPremium: view.season.premium,
       shards: view.wallet.shards,
       streak: view.streak.count,
       albums: FACTION_LIST.filter((f) => view.albums[f].complete).length,

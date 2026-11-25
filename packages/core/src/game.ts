@@ -15,6 +15,10 @@ import {
 } from './meta.ts';
 import { nextFloat, pick, seedRng, type RngState } from './rng.ts';
 import {
+  charterReward, charterTier, leagueMove, leagueReward, seasonEndsAt, seasonIndex, seasonName, standings, weekEndsAt,
+  weekendActive, weekendStartsAt, weekIndex, weekStartsAt, type Standing,
+} from './season.ts';
+import {
   GOOD_BY_ID, GOODS, isBanned, STATION_BY_ID, STATIONS, stationMod,
   type Category, type GoodDef, type GoodId, type StationId,
 } from './world.ts';
@@ -23,7 +27,7 @@ import {
 // State
 // ---------------------------------------------------------------------------
 
-export const STATE_VERSION = 7;
+export const STATE_VERSION = 8;
 
 export type EncounterKind = 'pirates' | 'customs';
 export type EncounterChoice = 'fight' | 'flee' | 'pay' | 'submit' | 'bribe' | 'breakThrough';
@@ -56,6 +60,19 @@ export interface GameState {
   };
   /** Auction house: the secret seed behind all lots, open bids (lot key to limit, held in escrow), and own listings. */
   auction: { seed: string; bids: Record<string, number>; bought: string[]; listings: Listing[]; results: AuctionResult[] };
+  /** Current season: charter progress. Resets when a new season starts. */
+  season: { index: number; xp: number; premium: boolean; claimedFree: number; claimedPremium: number };
+  /** Weekly league. `last` is the finished week waiting to be collected. */
+  league: {
+    seed: string; tier: number; week: number; score: number;
+    last: { week: number; tier: number; rank: number; moved: -1 | 0 | 1; reward: Reward } | null;
+  };
+  weekend: { week: number; points: number; claimed: number };
+  /** Last day a command arrived, and whether a welcome-back gift is waiting. */
+  lastActiveDay: number;
+  comeback: boolean;
+  /** True during the weekend event. Kept in state so every price and chance sees the same answer. */
+  blockade: boolean;
   /** Trading posts by station. */
   posts: Partial<Record<StationId, Post>>;
   /** A sealed wreck container on offer at the current station, if any. */
@@ -195,6 +212,28 @@ export interface ClientView {
     fee: number;
     listMinutes: readonly number[];
   };
+  season: {
+    index: number; name: string; endsAt: number;
+    xp: number; xpPerTier: number; tier: number; tiers: number;
+    premium: boolean; premiumPrice: number;
+    claimedFree: number; claimedPremium: number;
+    /** Rewards that one tap would collect now. */
+    claimable: number;
+    /** Premium rewards already earned that buying the charter would unlock at once. */
+    waitingPremium: number;
+  };
+  league: {
+    tier: number; tierName: string; endsAt: number; score: number; rank: number;
+    standings: Standing[];
+    promote: number; relegate: number;
+    last: GameState['league']['last'];
+  };
+  weekend: {
+    active: boolean; startsAt: number; endsAt: number; points: number;
+    milestones: { at: number; reward: Reward; claimed: boolean }[];
+    claimable: number;
+  };
+  comeback: Reward | null;
   salvage: (SalvageLot & { outcomes: { kind: SalvageKind; weight: number; credits: number; shards: number }[] }) | null;
   calendar: { step: number; claimable: boolean; rewards: readonly Reward[] };
   streak: { count: number; best: number; bonus: number; status: StreakStatus; freezes: number; maxFreezes: number; freezePrice: number; endsAt: number };
@@ -248,6 +287,11 @@ export type Command =
   | { type: 'BuyNow'; lot: string }
   | { type: 'ListCard'; cardId: string; min: number; duration: number }
   | { type: 'AckAuctions' }
+  | { type: 'ClaimCharter' }
+  | { type: 'BuyCharter' }
+  | { type: 'ClaimLeague' }
+  | { type: 'ClaimWeekend' }
+  | { type: 'ClaimComeback' }
   | { type: 'Buy'; goodId: GoodId; qty: number }
   | { type: 'Sell'; goodId: GoodId; qty: number }
   | { type: 'Jump'; to: StationId }
@@ -291,6 +335,9 @@ export type GameEvent =
   | { type: 'BidPlaced'; lot: string; max: number }
   | { type: 'AuctionBought'; cardId: string; price: number }
   | { type: 'CardListed'; cardId: string }
+  | { type: 'CharterClaimed'; rewards: number; total: Reward; crates: number }
+  | { type: 'CharterBought' }
+  | { type: 'LeagueClaimed'; rank: number; moved: -1 | 0 | 1; tier: number }
   | { type: 'StreakChanged'; count: number; kind: 'started' | 'extended' | 'saved' | 'lost'; previous: number }
   | { type: 'Bought'; goodId: GoodId; qty: number; cost: number }
   | { type: 'Sold'; goodId: GoodId; qty: number; revenue: number; profit: number }
@@ -336,6 +383,12 @@ export function createInitialState(seed: string, now: number): GameState {
     deck: { pilot: null, trader: null, tech: null, gunner: null, smuggler: null },
     daily: { day: -1, missions: [], chestClaimed: false, bought: { standard: 0, premium: 0 }, offers: [], manifests: [], wheelSpun: false },
     auction: { seed: `${seed}:house`, bids: {}, bought: [], listings: [], results: [] },
+    season: { index: seasonIndex(now), xp: 0, premium: false, claimedFree: 0, claimedPremium: 0 },
+    league: { seed: `${seed}:league`, tier: 0, week: weekIndex(now), score: 0, last: null },
+    weekend: { week: weekIndex(now), points: 0, claimed: 0 },
+    lastActiveDay: dayIndex(now),
+    comeback: false,
+    blockade: weekendActive(now),
     posts: {},
     salvage: null,
     calendar: { lastDay: -1, step: 0 },
@@ -386,6 +439,8 @@ function settleFuel(state: GameState, now: number): void {
 
 function addXp(state: GameState, amount: number, events: GameEvent[], now: number): void {
   state.profile.xp += Math.max(0, Math.floor(amount));
+  // Everything that earns experience also moves the season charter.
+  state.season.xp += Math.max(0, Math.floor(amount));
   while (state.profile.xp >= xpForLevel(state.profile.level)) {
     state.profile.xp -= xpForLevel(state.profile.level);
     state.profile.level += 1;
@@ -426,6 +481,45 @@ function settleDaily(state: GameState, now: number): void {
     manifests: rollManifests(state.rng.daily),
     wheelSpun: false,
   };
+}
+
+/** New season, new week: reset what belongs to the old one and close the league week. */
+function settleCalendar(state: GameState, now: number): void {
+  const season = seasonIndex(now);
+  if (state.season.index !== season) {
+    // Unclaimed charter rewards of the old season are gone.
+    state.season = { index: season, xp: 0, premium: false, claimedFree: 0, claimedPremium: 0 };
+  }
+  const week = weekIndex(now);
+  if (state.league.week !== week) {
+    const l = state.league;
+    // Only a week that was played counts. Weeks away change nothing.
+    if (l.score > 0) {
+      // Final table: every rival has reached their score for that week.
+      const table = standings(l.seed, l.week, l.tier, l.score, weekStartsAt(l.week + 1));
+      const rank = table.findIndex((s) => s.you) + 1;
+      const moved = leagueMove(rank, l.tier);
+      l.last = { week: l.week, tier: l.tier, rank, moved, reward: leagueReward(rank, l.tier) };
+      l.tier += moved;
+    }
+    l.week = week;
+    l.score = 0;
+  }
+  if (state.weekend.week !== week) state.weekend = { week, points: 0, claimed: 0 };
+}
+
+/** Notice a long absence before today is marked as played. */
+function settlePresence(state: GameState, now: number): void {
+  const day = dayIndex(now);
+  if (day - state.lastActiveDay >= CONFIG.comeback.days) state.comeback = true;
+  state.lastActiveDay = day;
+}
+
+const comebackReward = (state: GameState): Reward =>
+  ({ credits: CONFIG.comeback.creditsPerLevel * state.profile.level, quanta: CONFIG.comeback.quanta, crate: 'standard' });
+
+function weekendPoints(state: GameState, now: number, points: number): void {
+  if (weekendActive(now)) state.weekend.points += points;
 }
 
 /** Close every auction whose time is up: pay out, hand over cards, return escrow. */
@@ -632,7 +726,8 @@ function marketRow(state: GameState, stationId: StationId, goodId: GoodId, heat:
     list: anchor * (1 + state.market[stationId][goodId]),
     step: anchor * CONFIG.market.impact,
     buyFactor: banned ? s.fenceBuy : 1,
-    sellFactor: (banned ? s.fenceSell + s.fenceSellCrew * hdl : CONFIG.travel.sellFactor + CONFIG.travel.sellFactorCrew * hdl) * hot * (1 + extra.streak + extra.album),
+    sellFactor: (banned ? s.fenceSell + s.fenceSellCrew * hdl + (state.blockade ? CONFIG.weekend.fenceBonus : 0) : CONFIG.travel.sellFactor + CONFIG.travel.sellFactorCrew * hdl)
+      * hot * (1 + extra.streak + extra.album),
   };
   return { ...row, buy: quote(row, 'buy', 1), sell: quote(row, 'sell', 1), level: row.list / good.base };
 }
@@ -708,7 +803,8 @@ function encounterChances(state: GameState, to: StationId): { pirates: number; c
   const customs = dest.customs === 0 ? 0
     : dest.customs * CONFIG.travel.customsPerLevel
       + state.wanted[dest.faction].level * CONFIG.wanted.customsPerStar
-      + maxHeat(state) * CONFIG.smuggling.heatCustoms * (1 - 0.5 * crew.smg);
+      + maxHeat(state) * CONFIG.smuggling.heatCustoms * (1 - 0.5 * crew.smg)
+      + (state.blockade ? CONFIG.weekend.customsBonus : 0);
   return { pirates, customs: clamp(customs, 0, 0.9 - pirates) };
 }
 
@@ -804,6 +900,7 @@ function arrive(state: GameState, to: StationId, events: GameEvent[], now: numbe
   state.pending = null;
   state.stats.jumps += 1;
   progress(state, 'jumps', 1);
+  weekendPoints(state, now, CONFIG.weekend.points.jump);
 
   // Cargo that is banned somewhere gets hotter with every jump it is carried.
   for (const g of GOODS) {
@@ -889,6 +986,7 @@ function resolveEncounter(state: GameState, choice: EncounterChoice, events: Gam
       if (success) {
         state.wallet.credits += Math.round(e.lootMin + nextFloat(state.rng.travel) * e.lootRange);
         progress(state, 'fightWin', 1);
+        weekendPoints(state, now, CONFIG.weekend.points.fightWin);
         // Sometimes the wreck holds a sealed crate.
         if (nextFloat(state.rng.travel) < CONFIG.crate.lootChance) grantCrate(state, 'standard', inner);
       } else lost = loseCargo(state, e.lossOnLostFight);
@@ -908,6 +1006,7 @@ function resolveEncounter(state: GameState, choice: EncounterChoice, events: Gam
       wantedDelta = addWanted(state, faction, choice === 'breakThrough' ? 2 : 1, inner);
     } else {
       progress(state, 'customsPass', 1);
+      if (bannedValue(state, faction) > 0) weekendPoints(state, now, CONFIG.weekend.points.smuggled);
       // Running a blockade is noticed, even when it works.
       if (choice === 'breakThrough') wantedDelta = addWanted(state, faction, 1, inner);
     }
@@ -950,6 +1049,9 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
   settleDaily(state, now);
   settlePosts(state, now);
   settleAuctions(state, now);
+  settleCalendar(state, now);
+  state.blockade = weekendActive(now);
+  settlePresence(state, now);
 
   if (state.pending && cmd.type !== 'Encounter') return reject('encounter_pending');
 
@@ -1180,6 +1282,67 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       state.auction.results = [];
       break;
     }
+    case 'ClaimCharter': {
+      const s = state.season;
+      const tier = charterTier(s.xp);
+      const total: Reward = {};
+      let count = 0;
+      let crates = 0;
+      const take = (r: Reward): void => {
+        count += 1;
+        if (r.crate) crates += 1;
+        total.credits = (total.credits ?? 0) + (r.credits ?? 0);
+        total.shards = (total.shards ?? 0) + (r.shards ?? 0);
+        total.quanta = (total.quanta ?? 0) + (r.quanta ?? 0);
+        if (r.crate) grantCrate(state, r.crate, events);
+      };
+      for (let t = s.claimedFree + 1; t <= tier; t++) take(charterReward(t, 'free'));
+      s.claimedFree = Math.max(s.claimedFree, tier);
+      if (s.premium) {
+        for (let t = s.claimedPremium + 1; t <= tier; t++) take(charterReward(t, 'premium'));
+        s.claimedPremium = Math.max(s.claimedPremium, tier);
+      }
+      if (count === 0) return reject('not_claimable');
+      state.wallet.credits += total.credits ?? 0;
+      state.wallet.shards += total.shards ?? 0;
+      state.wallet.quanta += total.quanta ?? 0;
+      for (const k of ['credits', 'shards', 'quanta'] as const) if (!total[k]) delete total[k];
+      events.push({ type: 'CharterClaimed', rewards: count, total, crates });
+      break;
+    }
+    case 'BuyCharter': {
+      if (state.season.premium) return reject('already_owned');
+      if (state.wallet.quanta < CONFIG.season.premiumPrice) return reject('not_enough_quanta');
+      state.wallet.quanta -= CONFIG.season.premiumPrice;
+      state.season.premium = true;
+      events.push({ type: 'CharterBought' });
+      break;
+    }
+    case 'ClaimLeague': {
+      const last = state.league.last;
+      if (!last) return reject('not_claimable');
+      state.league.last = null;
+      events.push({ type: 'LeagueClaimed', rank: last.rank, moved: last.moved, tier: last.tier + last.moved });
+      if (Object.keys(last.reward).length > 0) grantReward(state, last.reward, events);
+      break;
+    }
+    case 'ClaimWeekend': {
+      const w = state.weekend;
+      const { milestones, rewards } = CONFIG.weekend;
+      if (w.claimed >= milestones.length || w.points < milestones[w.claimed]!) return reject('not_claimable');
+      const reward = rewards[w.claimed]! as Reward;
+      w.claimed += 1;
+      grantReward(state, reward, events);
+      break;
+    }
+    case 'ClaimComeback': {
+      if (!state.comeback) return reject('not_claimable');
+      state.comeback = false;
+      state.fuel.amount = CONFIG.fuel.max;
+      state.fuel.updatedAt = now;
+      grantReward(state, comebackReward(state), events);
+      break;
+    }
     case 'ClaimAlbum': {
       if (!FACTION_IDS.includes(cmd.faction)) return reject('unknown_command');
       const album = albumInfo(state.collection, state.albums[cmd.faction], cmd.faction);
@@ -1226,6 +1389,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       lot.qty -= cmd.qty;
       if (lot.qty === 0) delete state.cargo[cmd.goodId];
       state.stats.profit += profit;
+      if (profit > 0) state.league.score += profit;
       events.push({ type: 'Sold', goodId: cmd.goodId, qty: cmd.qty, revenue, profit });
       progress(state, 'sellUnits', cmd.qty);
       progress(state, 'profit', profit);
@@ -1307,6 +1471,9 @@ export function toClientView(state: GameState, now: number): ClientView {
   settleDaily(s, now);
   settlePosts(s, now);
   settleAuctions(s, now);
+  settleCalendar(s, now);
+  s.blockade = weekendActive(now);
+  if (dayIndex(now) - s.lastActiveDay >= CONFIG.comeback.days) s.comeback = true;
   const { max, regenMs } = CONFIG.fuel;
   const here = s.location;
   const hereFaction = factionOf(here);
@@ -1340,6 +1507,11 @@ export function toClientView(state: GameState, now: number): ClientView {
     };
   });
   const hereLevel = s.posts[here]?.level ?? 0;
+  const tier = charterTier(s.season.xp);
+  const table = standings(s.league.seed, s.league.week, s.league.tier, s.league.score, now);
+  const milestones = CONFIG.weekend.milestones.map((at, i) => ({ at, reward: CONFIG.weekend.rewards[i]! as Reward, claimed: i < s.weekend.claimed }));
+  const weekendClaimable = milestones.filter((m, i) => i >= s.weekend.claimed && s.weekend.points >= m.at).length;
+  const charterClaimable = (tier - s.season.claimedFree) + (s.season.premium ? tier - s.season.claimedPremium : 0);
   const lots: LotView[] = activeLots(s, now).map((lot) => {
     const yourMax = s.auction.bids[lot.key] ?? null;
     const rival = rivalNow(lot, now);
@@ -1433,6 +1605,27 @@ export function toClientView(state: GameState, now: number): ClientView {
       fee: CONFIG.auction.fee,
       listMinutes: CONFIG.auction.listMinutes,
     },
+    season: {
+      index: s.season.index, name: seasonName(s.season.index), endsAt: seasonEndsAt(now),
+      xp: s.season.xp, xpPerTier: CONFIG.season.xpPerTier, tier, tiers: CONFIG.season.tiers,
+      premium: s.season.premium, premiumPrice: CONFIG.season.premiumPrice,
+      claimedFree: s.season.claimedFree, claimedPremium: s.season.claimedPremium,
+      claimable: charterClaimable,
+      waitingPremium: s.season.premium ? 0 : tier,
+    },
+    league: {
+      tier: s.league.tier, tierName: CONFIG.league.tiers[s.league.tier]!, endsAt: weekEndsAt(now), score: s.league.score,
+      rank: table.findIndex((x) => x.you) + 1,
+      standings: table,
+      promote: CONFIG.league.promote, relegate: CONFIG.league.relegate,
+      last: s.league.last,
+    },
+    weekend: {
+      active: s.blockade,
+      startsAt: weekendStartsAt(now), endsAt: weekEndsAt(now),
+      points: s.weekend.points, milestones, claimable: weekendClaimable,
+    },
+    comeback: s.comeback ? comebackReward(s) : null,
     salvage: s.salvage
       ? { ...s.salvage, outcomes: CONFIG.salvage.outcomes.map((o) => ({ kind: o.kind, weight: o.weight, ...salvagePrize(o.kind, s.salvage!.price) })) }
       : null,
@@ -1454,7 +1647,8 @@ export function toClientView(state: GameState, now: number): ClientView {
       station: postList.filter((p) => p.readyAt === null && p.stored >= p.cap * 0.9).length,
       market: s.auction.results.length + lots.filter((l) => l.yourMax !== null && !l.leading).length,
       daily: s.daily.missions.filter((m) => !m.claimed && m.progress >= m.target).length + (chestClaimable ? 1 : 0) + (calendarClaimable ? 1 : 0)
-        + (s.daily.wheelSpun ? 0 : 1) + manifests.filter((m) => !m.done && m.have >= m.need).length,
+        + (s.daily.wheelSpun ? 0 : 1) + manifests.filter((m) => !m.done && m.have >= m.need).length
+        + (charterClaimable > 0 ? 1 : 0) + (s.league.last ? 1 : 0) + (weekendClaimable > 0 ? 1 : 0) + (s.comeback ? 1 : 0),
       deck: FACTION_IDS.filter((f) => albums[f].claimable).length,
     },
     deck: { seats: deck.seats, chem: deck.chem },
@@ -1499,6 +1693,11 @@ export function parseCommand(input: unknown): Command | null {
     case 'SpinWheel':
     case 'BuySalvage':
     case 'AckAuctions':
+    case 'ClaimCharter':
+    case 'BuyCharter':
+    case 'ClaimLeague':
+    case 'ClaimWeekend':
+    case 'ClaimComeback':
       return { type: c.type };
     case 'PlaceBid':
       return typeof c.lot === 'string' && /^\d:-?\d{1,9}$/.test(c.lot) && typeof c.max === 'number' ? { type: 'PlaceBid', lot: c.lot, max: c.max } : null;

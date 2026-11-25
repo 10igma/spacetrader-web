@@ -121,7 +121,8 @@ export const useApp = create<AppState>((set, get) => ({
       const { view, events } = await get().service.send(cmd);
       set({ view, clockOffset: view.serverTime - Date.now() });
       // Wheel and salvage show their own result: no toast may give it away early.
-      const staged = events.some((e) => e.type === 'WheelSpun' || e.type === 'SalvageOpened');
+      // A charter claim sums up many rewards in one line.
+      const staged = events.some((e) => e.type === 'WheelSpun' || e.type === 'SalvageOpened' || e.type === 'CharterClaimed');
       for (const ev of events) {
         if (staged && (ev.type === 'RewardGranted' || ev.type === 'CrateEarned')) continue;
         if (ev.type === 'WheelSpun') set({ wheel: { index: ev.index, reward: ev.reward } });
@@ -133,6 +134,9 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'BidPlaced') get().showToast('Gebot steht', 'good');
         if (ev.type === 'AuctionBought') { audio.reveal(2); get().showToast('Gekauft: Karte ist in deiner Sammlung', 'good'); }
         if (ev.type === 'CardListed') get().showToast('Angebot läuft', 'good');
+        if (ev.type === 'CharterClaimed') { audio.coins(2000); get().showToast([rewardText(ev.total), ev.crates > 0 ? `${ev.crates} Container` : ''].filter(Boolean).join(' + ') || `${ev.rewards} Belohnungen abgeholt`, 'good'); }
+        if (ev.type === 'CharterBought') { audio.reveal(3); get().showToast('Premium-Charter aktiv', 'good'); }
+        if (ev.type === 'LeagueClaimed' && ev.moved !== 0) get().showToast(ev.moved > 0 ? 'Aufgestiegen' : 'Abgestiegen', ev.moved > 0 ? 'good' : 'bad');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls });
         if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0 }, routesOpen: false });
         if (ev.type === 'Arrived') {

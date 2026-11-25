@@ -125,6 +125,38 @@ export const CONFIG = {
     quanta: { amount: 20, price: 30_000 },
     dealDiscount: 0.4,
   },
+  /** Seasons run for six weeks, Monday to Sunday. Everything about a season is data. */
+  season: {
+    weeks: 6,
+    names: ['Blockade von Kessin', 'Der Helix-Riss', 'Zenit unter Verdacht', 'Glut über Varn'],
+    tiers: 40,
+    xpPerTier: 1_500,
+    /** The premium track is bought with quanta you earn by playing. */
+    premiumPrice: 500,
+  },
+  /**
+   * Weekly leagues of thirty. The twenty-nine rivals are simulated and say so on screen. Their scores depend
+   * only on the league tier and the week, never on what the player does.
+   */
+  league: {
+    size: 30,
+    tiers: ['Bronze', 'Silber', 'Gold', 'Platin', 'Diamant'],
+    /** Typical weekly trading profit of a rival per tier. */
+    typicalScore: [120_000, 300_000, 550_000, 800_000, 1_100_000],
+    spread: 0.55,
+    promote: 7,
+    relegate: 26,
+  },
+  /** Blockade run: every weekend, more customs, better black-market prices, and a milestone track. */
+  weekend: {
+    customsBonus: 0.08,
+    fenceBonus: 0.10,
+    points: { jump: 1, fightWin: 2, smuggled: 3 },
+    milestones: [10, 25, 45, 70],
+    rewards: [{ credits: 3_000 }, { shards: 150 }, { quanta: 25 }, { crate: 'premium' }] as const,
+  },
+  /** Welcome-back gift after this many days away. */
+  comeback: { days: 3, creditsPerLevel: 1_500, quanta: 20 },
   /**
    * Card auctions against simulated traders. Every lot has a rival whose highest bid is fixed when the lot
    * appears and never reacts to the player: an honest second-price auction with a hidden competitor.

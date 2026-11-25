@@ -57,6 +57,15 @@ export function missionText(m: Mission): string {
   }
 }
 
+/** For waits of hours and days, where seconds are noise. */
+export function longCountdown(ms: number): string {
+  const min = Math.max(0, Math.ceil(ms / 60_000));
+  const d = Math.floor(min / 1440), h = Math.floor((min % 1440) / 60), m = min % 60;
+  if (d > 0) return `${d} T ${h} Std.`;
+  if (h > 0) return `${h} Std. ${m} Min.`;
+  return `${m} Min.`;
+}
+
 export function duration(ms: number): string {
   const min = Math.round(ms / 60_000);
   return min >= 60 ? `${Math.round(min / 60)} Std.` : `${min} Min.`;

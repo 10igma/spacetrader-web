@@ -31,6 +31,11 @@ export function Hub() {
         <div className="chips">
           <span className={`chip ${station.customs >= 2 ? 'chip--hot' : 'chip--ok'}`}>{CUSTOMS[station.customs]}</span>
           <span className="chip chip--hot">{GOOD_BY_ID.get(wanted.goodId)!.name} gefragt</span>
+          {view.weekend.active && (
+            <button className="chip chip--event" onClick={() => { audio.tap(); setTab('daily'); }}>
+              Blockade-Lauf · {view.weekend.points} Punkte
+            </button>
+          )}
           {view.streak.count > 0 && (
             <button className={`chip chip--streak chip--${view.streak.status}`} onClick={() => { audio.tap(); setTab('daily'); }}>
               Serie {view.streak.count} · +{Math.round(view.streak.bonus * 100)} %{view.streak.status === 'atRisk' ? ` · endet in ${countdown(view.streak.endsAt - now)}` : ''}
