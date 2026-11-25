@@ -98,6 +98,47 @@ export const CONFIG = {
     bonusPerAlbum: 0.02,
   },
   levelUpQuanta: 5,
+  /** Trading posts earn while you are away, but their storage fills up: come back or lose the rest. */
+  posts: {
+    maxLevel: 5,
+    cost: [15_000, 37_000, 94_000, 234_000, 586_000],
+    perHour: [100, 220, 480, 1_000, 2_100],
+    buildMs: [10 * MINUTE, 30 * MINUTE, 2 * HOUR, 6 * HOUR, 12 * HOUR],
+    storageHours: 6,
+  },
+  /** One free spin per day. Segment sizes on screen are proportional to these weights. */
+  wheel: [
+    { weight: 28, reward: { credits: 400 }, scales: true },
+    { weight: 18, reward: { credits: 1_200 }, scales: true },
+    { weight: 5, reward: { credits: 4_000 }, scales: true },
+    { weight: 20, reward: { shards: 40 } },
+    { weight: 16, reward: { quanta: 5 } },
+    { weight: 5, reward: { quanta: 25 } },
+    { weight: 7, reward: { crate: 'standard' } },
+    { weight: 1, reward: { crate: 'premium' } },
+  ] as const,
+  /** Daily offers. One of them is marked down. */
+  shop: {
+    cardPrice: { standard: 2_000, rare: 9_000, elite: 45_000, legend: 350_000, singularity: 2_000_000 } satisfies Record<Rarity, number>,
+    legendChance: 0.08,
+    shards: { amount: 150, price: 12_000 },
+    quanta: { amount: 20, price: 30_000 },
+    dealDiscount: 0.4,
+  },
+  /** Sealed wreck containers: a gamble with credits, inside the fiction. Odds are shown before buying. */
+  salvage: {
+    chance: 0.35,
+    basePrice: 600,
+    weights: [1, 2, 4],
+    outcomes: [
+      { weight: 40, kind: 'scrap', factor: 0.25 },
+      { weight: 27, kind: 'credits', factor: 1.6 },
+      { weight: 6, kind: 'jackpot', factor: 4 },
+      { weight: 15, kind: 'shards', factor: 1 / 40 },
+      { weight: 10, kind: 'crate', factor: 0 },
+      { weight: 2, kind: 'premium', factor: 0 },
+    ] as const,
+  },
   travel: {
     /** Encounter chance per level of the destination (0 to 3). */
     piratesPerLevel: 0.11,

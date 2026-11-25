@@ -1,6 +1,7 @@
 import { FACTIONS, ROLES, type CardDef } from '@nova/core';
 import { useEffect, useRef } from 'react';
 import { Avatar } from './Avatar.tsx';
+import { CARD_ART } from './cardArt.ts';
 import { FACTION_COLOR, RARITY_LABEL } from './format.ts';
 
 interface Props {
@@ -79,7 +80,9 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
       role={onClick ? 'button' : undefined}
     >
       <div className="holo__body">
-        <div className="holo__art"><Avatar card={card} /></div>
+        <div className={`holo__art${CARD_ART.has(card.id) ? ' holo__art--painted' : ''}`}>
+          {CARD_ART.has(card.id) ? <img className="holo__img" src={CARD_ART.get(card.id)} alt="" draggable={false} /> : <Avatar card={card} />}
+        </div>
         <div className="holo__head">
           <span className="holo__rating">{locked ? '??' : card.rating}</span>
           <span className="holo__role">{ROLES[card.role].short}</span>

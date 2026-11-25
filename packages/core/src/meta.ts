@@ -142,3 +142,116 @@ export function albumInfo(collection: Record<string, number>, claimed: number, f
     complete: owned === cards.length,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Daily shop and manifests
+// ---------------------------------------------------------------------------
+
+export interface Offer {
+  kind: 'card' | 'shards' | 'quanta';
+  cardId?: string;
+  amount?: number;
+  price: number;
+  /** Price before the daily markdown, when this is the deal of the day. */
+  listPrice?: number;
+  bought: boolean;
+}
+
+/** Hand in spare copies of cards for a reward. Only duplicates count: you never lose your last copy. */
+export interface Manifest { need: number; faction?: FactionId; minRarity?: Rarity; reward: Reward; done: boolean }
+
+const FACTION_LIST: readonly FactionId[] = ['helix', 'tessera', 'asche', 'zenit'];
+
+export function rollOffers(rng: RngState, collection: Record<string, number>): Offer[] {
+  const cfg = CONFIG.shop;
+  const card = (rarity: Rarity): Offer => {
+    const pool = Object.values(CARDS_BY_FACTION).flat().filter((c) => c.rarity === rarity);
+    const missing = pool.filter((c) => !collection[c.id]);
+    // Mostly something you do not own yet: an offer should be worth a look.
+    const from = missing.length > 0 && nextFloat(rng) < 0.7 ? missing : pool;
+    return { kind: 'card', cardId: from[Math.floor(nextFloat(rng) * from.length)]!.id, price: cfg.cardPrice[rarity], bought: false };
+  };
+  const offers: Offer[] = [
+    card('rare'),
+    card('elite'),
+    nextFloat(rng) < cfg.legendChance ? card('legend') : card(nextFloat(rng) < 0.5 ? 'rare' : 'elite'),
+    { kind: 'shards', amount: cfg.shards.amount, price: cfg.shards.price, bought: false },
+    { kind: 'quanta', amount: cfg.quanta.amount, price: cfg.quanta.price, bought: false },
+  ];
+  const deal = offers[Math.floor(nextFloat(rng) * offers.length)]!;
+  deal.listPrice = deal.price;
+  deal.price = Math.round((deal.price * (1 - cfg.dealDiscount)) / 100) * 100;
+  return offers;
+}
+
+export function rollManifests(rng: RngState): Manifest[] {
+  const faction = FACTION_LIST[Math.floor(nextFloat(rng) * FACTION_LIST.length)]!;
+  const templates: Manifest[] = [
+    { need: 4, reward: { shards: 80 }, done: false },
+    { need: 3, faction, reward: { crate: 'standard' }, done: false },
+    { need: 2, minRarity: 'rare', reward: { quanta: 12 }, done: false },
+    { need: 1, minRarity: 'elite', reward: { quanta: 30 }, done: false },
+  ];
+  const first = templates.splice(Math.floor(nextFloat(rng) * templates.length), 1)[0]!;
+  const second = templates[Math.floor(nextFloat(rng) * templates.length)]!;
+  return [first, second];
+}
+
+/** Spare copies that fit a manifest, cheapest first. A card with n copies offers n - 1. */
+export function manifestCandidates(manifest: Manifest, collection: Record<string, number>): string[] {
+  const out: CardDef[] = [];
+  for (const cards of Object.values(CARDS_BY_FACTION)) {
+    for (const c of cards) {
+      if (manifest.faction && c.faction !== manifest.faction) continue;
+      if (manifest.minRarity && rarityRank(c.rarity) < rarityRank(manifest.minRarity)) continue;
+      for (let i = 1; i < (collection[c.id] ?? 0); i++) out.push(c);
+    }
+  }
+  return out.sort((a, b) => rarityRank(a.rarity) - rarityRank(b.rarity) || a.rating - b.rating).map((c) => c.id);
+}
+
+// ---------------------------------------------------------------------------
+// Trading posts
+// ---------------------------------------------------------------------------
+
+export interface Post { level: number; stored: number; storedAt: number; readyAt: number }
+
+export const postPerHour = (level: number): number => CONFIG.posts.perHour[level - 1] ?? 0;
+export const postCap = (level: number): number => postPerHour(level) * CONFIG.posts.storageHours;
+
+/** Bring a post's storage up to date. Nothing accrues while it is being built or once it is full. */
+export function settlePost(post: Post, now: number): void {
+  const start = Math.max(post.storedAt, post.readyAt);
+  if (now > start) post.stored = Math.min(postCap(post.level), post.stored + ((now - start) / 3_600_000) * postPerHour(post.level));
+  post.storedAt = Math.max(now, post.storedAt);
+}
+
+export function minutesCost(msLeft: number): number {
+  if (msLeft <= CONFIG.crate.speedUpFreeMs) return 0;
+  return Math.ceil(msLeft / 60_000 / CONFIG.crate.speedUpMinutesPerQuantum);
+}
+
+// ---------------------------------------------------------------------------
+// Wheel and salvage
+// ---------------------------------------------------------------------------
+
+export function wheelReward(index: number, level: number): Reward {
+  const seg = CONFIG.wheel[index]!;
+  const reward: Reward = { ...seg.reward };
+  // Credit prizes grow with your level, so the wheel stays worth a spin.
+  if ('scales' in seg && seg.scales && reward.credits) reward.credits = reward.credits * level;
+  return reward;
+}
+
+export interface SalvageLot { price: number; weight: 0 | 1 | 2; origin: FactionId }
+export type SalvageKind = (typeof CONFIG.salvage.outcomes)[number]['kind'];
+
+export function pickWeighted(rng: RngState, weights: readonly number[]): number {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let x = nextFloat(rng) * total;
+  for (let i = 0; i < weights.length; i++) {
+    x -= weights[i]!;
+    if (x < 0) return i;
+  }
+  return weights.length - 1;
+}
