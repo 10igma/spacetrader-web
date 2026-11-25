@@ -13,6 +13,7 @@ import { Market } from './Market.tsx';
 import { num } from './format.ts';
 import { Reveal } from './Reveal.tsx';
 import { RouteSheet } from './RouteSheet.tsx';
+import { PostSheet, SalvageSheet, WheelSheet } from './Sheets.tsx';
 import { Splash } from './Splash.tsx';
 import { TopBar } from './TopBar.tsx';
 import { Travel } from './Travel.tsx';
@@ -34,6 +35,7 @@ export function App() {
   const travel = useApp((s) => s.travel);
   const routesOpen = useApp((s) => s.routesOpen);
   const sale = useApp((s) => s.sale);
+  const sheet = useApp((s) => s.sheet);
   const location = view?.location;
   const inspect = useApp((s) => s.inspect);
   const toast = useApp((s) => s.toast);
@@ -96,6 +98,9 @@ export function App() {
         </div>
       )}
       {routesOpen && !travel && <RouteSheet />}
+      {sheet === 'posts' && !travel && <PostSheet />}
+      {sheet === 'wheel' && <WheelSheet />}
+      {sheet === 'salvage' && !travel && <SalvageSheet />}
       {reveal && <Reveal pulls={reveal} />}
       {travel && <Travel travel={travel} />}
       {sale && (

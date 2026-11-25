@@ -12,11 +12,12 @@ export function Hub() {
   const setTab = useApp((s) => s.setTab);
   const openRoutes = useApp((s) => s.setRoutesOpen);
   const send = useApp((s) => s.send);
+  const setSheet = useApp((s) => s.setSheet);
   const stars = view.wanted[STATION_BY_ID.get(view.location)!.faction];
   const news = view.event && view.event.stationId !== view.location ? view.event : null;
   const now = useServerNow();
   const station = STATION_BY_ID.get(view.location)!;
-  const go = (tab: 'hangar' | 'market') => (): void => { audio.tap(); setTab(tab); };
+  const go = (tab: 'hangar') => (): void => { audio.tap(); setTab(tab); };
 
   // The ticker is the live local market, strongest deviations first.
   const movers = [...view.market].sort((a, b) => Math.abs(b.level - 1) - Math.abs(a.level - 1));
@@ -41,6 +42,12 @@ export function Hub() {
             </button>
           )}
         </div>
+        {view.salvage && (
+          <button className="news news--salvage" onClick={() => { audio.tap(); setSheet('salvage'); }}>
+            <b>Bergungs-Auktion am Dock</b>
+            Versiegelter Wrack-Container für {num(view.salvage.price)} Credits. Tippen für Details.
+          </button>
+        )}
         {news && (
           <p className="news">
             <b>Eilmeldung</b>
@@ -62,10 +69,10 @@ export function Hub() {
       <div className="hub__grow" />
 
       <div className="tiles">
-        <button className="tile" onClick={go('market')}>
+        <button className={`tile${view.badges.station > 0 ? ' tile--ready' : ''}`} onClick={() => { audio.tap(); setSheet('posts'); }}>
           <span className="tile__icon"><IconMarket /></span>
-          <span className="tile__label">Laderaum</span>
-          <span className="tile__value">{view.cargo.used}<small> / {view.cargo.cap}</small></span>
+          <span className="tile__label">{view.posts.list.length > 0 ? (view.badges.station > 0 ? 'Posten voll' : 'Handelsposten') : 'Posten bauen'}</span>
+          <span className="tile__value">{view.posts.list.length > 0 ? num(view.posts.stored) : '+'}</span>
         </button>
         <div className="tile">
           <span className="tile__icon"><IconFuel /></span>

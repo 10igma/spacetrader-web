@@ -12,7 +12,7 @@ export type Policy = 'legal' | 'smuggler';
 
 const HOUR = 3_600_000;
 
-export interface DaySample { day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
+export interface DaySample { posts: number; day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
 
 interface Ctx { state: GameState; now: number; policy: Policy; log: Record<string, number> }
 
@@ -125,6 +125,13 @@ function housekeeping(ctx: Ctx, view: ClientView): ClientView {
   view.daily.missions.forEach((m, index) => { if (!m.claimed && m.progress >= m.target) view = act(ctx, { type: 'ClaimMission', index }); });
   if (!view.daily.chest.claimed && view.daily.chest.done === view.daily.chest.total) view = act(ctx, { type: 'ClaimChest' });
   for (const f of FACTION_LIST) while (view.albums[f].claimable) view = act(ctx, { type: 'ClaimAlbum', faction: f });
+  if (view.daily.wheel.available) view = act(ctx, { type: 'SpinWheel' });
+  if (view.posts.stored > 0) view = act(ctx, { type: 'CollectPosts' });
+  view.daily.manifests.forEach((m, index) => { if (!m.done && m.have >= m.need) view = act(ctx, { type: 'SubmitManifest', index }); });
+  // Shop: missing cards when the price barely dents the trading capital.
+  view.daily.offers.forEach((o, index) => {
+    if (!o.bought && o.kind === 'card' && !view.collection[o.cardId!] && view.wallet.credits > o.price * 5) view = act(ctx, { type: 'BuyOffer', index });
+  });
   let opened = false;
   while (view.crates.free.stock > 0) { view = act(ctx, { type: 'ClaimFreeCrate' }); opened = true; }
   for (let i = view.slots.length - 1; i >= 0; i--) if (view.slots[i]!.state === 'ready') { view = act(ctx, { type: 'OpenSlot', slot: i }); opened = true; }
@@ -173,6 +180,11 @@ function session(ctx: Ctx): void {
     if (view.payOff !== null && view.wanted[STATION_BY_ID.get(view.location)!.faction] >= 3 && view.wallet.credits > view.payOff * 5) {
       view = act(ctx, { type: 'PayOff' });
     }
+    // A post wherever we dock, once it is cheap relative to the capital. A small gamble on wrecks now and then.
+    if (view.posts.next && !view.posts.list.some((p) => p.stationId === view.location && p.readyAt !== null) && view.wallet.credits > view.posts.next.cost * 5) {
+      view = act(ctx, { type: 'BuildPost' });
+    }
+    if (view.salvage && view.wallet.credits > view.salvage.price * 25) view = act(ctx, { type: 'BuySalvage' });
     // Reinvest: a bigger hold pays for itself.
     if (view.holdUpgrade && view.wallet.credits > view.holdUpgrade.cost * 1.6) view = act(ctx, { type: 'UpgradeHold' });
     if (view.fuel.amount < 1) return;
@@ -208,6 +220,7 @@ export function simulate(seed: string, policy: Policy, days: number, sessionsPer
       cards: Object.keys(view.collection).length,
       legends: Object.keys(view.collection).filter((id) => rarityRank(CARD_BY_ID.get(id)!.rarity) >= rarityRank('legend')).length,
       quanta: view.wallet.quanta,
+      posts: view.posts.list.reduce((sum, p) => sum + p.level, 0),
       shards: view.wallet.shards,
       streak: view.streak.count,
       albums: FACTION_LIST.filter((f) => view.albums[f].complete).length,

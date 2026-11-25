@@ -1,4 +1,4 @@
-import type { ClientView, Command, GameEvent, GameService, Pull, RejectReason, StationId } from '@nova/core';
+import type { ClientView, Command, GameEvent, GameService, Pull, RejectReason, Reward, SalvageKind, StationId } from '@nova/core';
 import { create } from 'zustand';
 import { audio } from './audio/engine.ts';
 import { rewardText } from './ui/format.ts';
@@ -19,6 +19,7 @@ export interface Travel {
 }
 
 export interface SalePop { id: number; profit: number; revenue: number }
+export type Sheet = 'posts' | 'wheel' | 'salvage' | null;
 
 const REJECT_TEXT: Record<RejectReason, string> = {
   not_enough_credits: 'Nicht genug Credits',
@@ -59,6 +60,10 @@ interface AppState {
   travel: Travel | null;
   routesOpen: boolean;
   sale: SalePop | null;
+  sheet: Sheet;
+  /** Result of the last spin, decided by the game service. The wheel only plays it back. */
+  wheel: { index: number; reward: Reward } | null;
+  salvageResult: { kind: SalvageKind; credits: number; shards: number } | null;
   inspect: string | null;
   toast: { text: string; tone: 'bad' | 'good' } | null;
   connect(): Promise<void>;
@@ -69,6 +74,7 @@ interface AppState {
   closeReveal(): void;
   endTravel(): void;
   setRoutesOpen(open: boolean): void;
+  setSheet(sheet: Sheet): void;
   setInspect(cardId: string | null): void;
   showToast(text: string, tone?: 'bad' | 'good'): void;
 }
@@ -90,6 +96,9 @@ export const useApp = create<AppState>((set, get) => ({
   travel: null,
   routesOpen: false,
   sale: null,
+  sheet: null,
+  wheel: null,
+  salvageResult: null,
   inspect: null,
   toast: null,
 
@@ -106,7 +115,16 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const { view, events } = await get().service.send(cmd);
       set({ view, clockOffset: view.serverTime - Date.now() });
+      // Wheel and salvage show their own result: no toast may give it away early.
+      const staged = events.some((e) => e.type === 'WheelSpun' || e.type === 'SalvageOpened');
       for (const ev of events) {
+        if (staged && (ev.type === 'RewardGranted' || ev.type === 'CrateEarned')) continue;
+        if (ev.type === 'WheelSpun') set({ wheel: { index: ev.index, reward: ev.reward } });
+        if (ev.type === 'SalvageOpened') set({ salvageResult: { kind: ev.kind, credits: ev.credits, shards: ev.shards } });
+        if (ev.type === 'PostBuilt') get().showToast(ev.level === 1 ? 'Handelsposten im Bau' : `Ausbau auf Stufe ${ev.level} läuft`, 'good');
+        if (ev.type === 'PostsCollected') { audio.coins(ev.amount); set({ sale: { id: ++saleId, profit: ev.amount, revenue: ev.amount } }); }
+        if (ev.type === 'OfferBought') { audio.coins(300); get().showToast('Gekauft', 'good'); }
+        if (ev.type === 'ManifestDone') get().showToast('Manifest erfüllt', 'good');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls });
         if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0 }, routesOpen: false });
         if (ev.type === 'Arrived') {
@@ -161,6 +179,7 @@ export const useApp = create<AppState>((set, get) => ({
   closeReveal() { set({ reveal: null }); },
   endTravel() { set({ travel: null, tab: 'market' }); },
   setRoutesOpen(open) { set({ routesOpen: open }); },
+  setSheet(sheet) { set(sheet === null ? { sheet, wheel: null, salvageResult: null } : { sheet }); },
   setInspect(cardId) { set({ inspect: cardId }); },
   showToast(text, tone = 'bad') {
     toastQueue.push({ text, tone });

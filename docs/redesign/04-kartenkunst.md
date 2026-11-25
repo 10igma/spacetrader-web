@@ -49,6 +49,32 @@ face, moody, dark overall palette. No text, no letters, no numbers, no frame, no
 watermark.
 ```
 
+## Prompts für die übrigen Legenden und Singularitäten
+
+Jeweils den festen Anfang und das feste Ende aus der Vorlage verwenden und nur den Mittelteil ersetzen. Datei danach unter der angegebenen ID ablegen.
+
+| ID | Karte | Mittelteil (Figur, Hintergrund, Lichtfarbe) |
+|---|---|---|
+| `c22` | Kazimir Voss, Der letzte Admiral (Kanonier, Aschenorden) | A scarred, broad-shouldered man in his sixties, former fleet admiral turned gunner, short grey beard, one cybernetic eye glowing orange, heavy charcoal armoured coat with worn brass rank bars. Background: a shipyard foundry with sparks and glowing molten metal. Strong orange rim light from the left |
+| `c25` | Ilse Marrow, Hüterin der Tiefe (Technik, Aschenorden) | A lean woman in her forties, master reactor engineer, soot on her cheek, welding goggles pushed up into short copper hair, heat-scarred leather apron over a pressure suit, calm focused gaze. Background: the glowing core of a reactor chamber, drifting embers. Strong orange rim light from the left |
+| `c23` | Oriel Santhe, Geist von Helix (Schmuggel, Helix-Kartell) | An androgynous figure in their thirties, legendary smuggler, half the face hidden by a sleek matte mask, pale eyes, hooded iridescent black cloak with thin magenta light seams, a faint smirk. Background: a neon night market in haze with shadowy silhouettes. Strong magenta rim light from the left |
+| `c28` | Okon Rhee, Kometenreiter (Pilot, Helix-Kartell) | A wiry man in his thirties, daredevil pilot, grinning, shaved sides with a short dreadlock crest, flight suit covered in mismatched patches, cracked helmet under his arm reflecting magenta light. Background: a cockpit canopy with a comet tail streaking past. Strong magenta rim light from the left |
+| `c26` | Dax Verhoeven, Der Makler (Händler, Zenit-Konsortium) | An immaculate man in his fifties, corporate broker, slicked silver hair, thin rimless glasses with scrolling data reflections, tailored white high-collar suit with a single platinum pin, cold polite smile. Background: a glass corporate tower at night with sterile light bands. Strong cool white-blue rim light from the left |
+| `c27` | Sera Quill, Nullsignatur (Schmuggel, Zenit-Konsortium) | A poised woman in her thirties, corporate defector and ghost courier, sharp bob haircut, a faint shimmering stealth field distorting one shoulder, slim grey bodysuit with a stolen executive badge, watchful eyes. Background: an empty white corridor with glass walls and security light strips. Strong cool white-blue rim light from the left |
+| `c29` | Marisol Kade, Zunftmeisterin (Technik, Freie Gilde Tessera) | A sturdy woman in her sixties, guild master engineer, warm lined face, braided grey hair with small brass tools woven in, oil-stained teal work jacket with guild sash, a small repair drone hovering at her shoulder. Background: a busy trade station workshop with a window to space, teal nebula. Strong cyan rim light from the left |
+| `c24` | ECHO-9, Erwachter Schiffsgeist (Singularität, Zenit-Konsortium) | Not a human: an awakened ship intelligence shown as a translucent humanoid bust made of white-blue light filaments and floating glass shards, a single bright ring where the face would be, serene and unsettling. Background: the dark bridge of an empty starship, consoles lighting up on their own. Strong cool white-blue rim light, prismatic highlights |
+| `c30` | MUTTER, Die Stimme hinter Helix (Singularität, Helix-Kartell) | Not a human: a vast artificial mind shown as a veiled feminine silhouette formed from thousands of tiny magenta data threads, no visible face, only a soft glow behind the veil, regal and menacing. Background: a cathedral-like server vault disappearing into darkness. Strong magenta rim light, prismatic highlights |
+
+**Drei Wege, die Bilder zu erzeugen:**
+
+| Weg | Aufwand | Kosten |
+|---|---|---|
+| Von Hand in Gemini oder ChatGPT: Prompt einfügen, Bild herunterladen, hier hochladen oder ins Repo legen | Etwa 2 Minuten pro Karte | Im Rahmen deines Abos |
+| Über Figma: läuft vollautomatisch aus dieser Sitzung | Keiner für dich | KI-Guthaben deines Figma-Plans |
+| Über einen API-Schlüssel (Google AI Studio oder OpenAI): läuft automatisch, sobald der Schlüssel sicher hinterlegt ist | Einmalig Schlüssel anlegen | API-Abrechnung getrennt vom App-Abo |
+
+Zuschneiden auf 640 x 800, Umwandeln in WebP und Einbauen übernehme ich in allen drei Fällen.
+
 ## Was zu klären ist, bevor alle 130 Karten so entstehen
 
 | Punkt | Einschätzung |

@@ -36,7 +36,13 @@ export class LocalGameService implements GameService {
     const seed = new URLSearchParams(location.search).get('seed');
     if (seed) state = null;
     this.state = state ?? createInitialState(seed ?? crypto.randomUUID(), now);
-    return toClientView(this.state, now);
+    try {
+      return toClientView(this.state, now);
+    } catch {
+      // A save that parses but does not fit the rules any more must never lock the player out.
+      this.state = createInitialState(crypto.randomUUID(), now);
+      return toClientView(this.state, now);
+    }
   }
 
   async send(cmd: Command): Promise<CommandResult> {

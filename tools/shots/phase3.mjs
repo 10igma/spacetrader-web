@@ -37,7 +37,7 @@ await page.evaluate(() => {
   s.crates.freeStock = 1; s.crates.freeAt = now + 5 * 3600000; s.crates.sinceElite = 6; s.crates.sinceLegend = 41;
   s.streak = { count: 6, lastDay: day - 1, freezes: 1, best: 6 };
   s.calendar = { lastDay: day - 1, step: 3 };
-  s.daily = { day, chestClaimed: false, bought: { standard: 1, premium: 0 }, missions: [
+  s.daily = { ...s.daily, day, chestClaimed: false, bought: { standard: 1, premium: 0 }, missions: [
     { kind: 'jumps', target: 5, progress: 5, claimed: false, reward: { credits: 2400 } },
     { kind: 'hotUnits', target: 8, progress: 3, claimed: false, reward: { shards: 40 } },
     { kind: 'profit', target: 32000, progress: 32000, claimed: true, reward: { quanta: 6 } },

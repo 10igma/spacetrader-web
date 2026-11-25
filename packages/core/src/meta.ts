@@ -187,9 +187,9 @@ export function rollOffers(rng: RngState, collection: Record<string, number>): O
 export function rollManifests(rng: RngState): Manifest[] {
   const faction = FACTION_LIST[Math.floor(nextFloat(rng) * FACTION_LIST.length)]!;
   const templates: Manifest[] = [
-    { need: 4, reward: { shards: 80 }, done: false },
-    { need: 3, faction, reward: { crate: 'standard' }, done: false },
-    { need: 2, minRarity: 'rare', reward: { quanta: 12 }, done: false },
+    { need: 5, reward: { shards: 60 }, done: false },
+    { need: 5, faction, reward: { crate: 'standard' }, done: false },
+    { need: 3, minRarity: 'rare', reward: { quanta: 12 }, done: false },
     { need: 1, minRarity: 'elite', reward: { quanta: 30 }, done: false },
   ];
   const first = templates.splice(Math.floor(nextFloat(rng) * templates.length), 1)[0]!;

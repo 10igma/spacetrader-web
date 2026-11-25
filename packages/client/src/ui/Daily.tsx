@@ -1,6 +1,7 @@
+import { FACTIONS } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
-import { countdown, missionText, num, rewardText } from './format.ts';
+import { countdown, missionText, num, RARITY_LABEL, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFlame, Quanta } from './icons.tsx';
 
@@ -15,6 +16,7 @@ const STREAK_TEXT = {
 export function Daily() {
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
+  const setSheet = useApp((s) => s.setSheet);
   const busy = useApp((s) => s.busy);
   const now = useServerNow();
   const { streak, calendar, daily } = view;
@@ -42,6 +44,15 @@ export function Daily() {
           <small><Quanta />{streak.freezePrice}</small>
         </button>
       </div>
+
+      <button className={`wheelcard${daily.wheel.available ? ' wheelcard--ready' : ''}`} onClick={tap(() => setSheet('wheel'))}>
+        <span className="wheelcard__icon" />
+        <span className="wheelcard__main">
+          <b>Glücksrad</b>
+          <small>{daily.wheel.available ? 'Dein Gratis-Dreh für heute wartet' : 'Heute gedreht. Morgen gibt es den nächsten'}</small>
+        </span>
+        <span className="mission__btn" aria-hidden="true">{daily.wheel.available ? 'Drehen' : 'Quoten'}</span>
+      </button>
 
       <h4 className="market__section">Login-Kalender<span>{calendar.claimable ? 'Heute abholbar' : 'Morgen wieder'}</span></h4>
       <div className="calendar">
@@ -83,6 +94,25 @@ export function Daily() {
           <b>{daily.chest.claimed ? 'Tagesbonus erhalten' : 'Tagesbonus für alle drei'}</b>
           <small>{rewardText(daily.chest.reward)}</small>
         </button>
+      </div>
+      <h4 className="market__section">Manifeste<span>Duplikate abgeben, Belohnung kassieren</span></h4>
+      <div className="missions">
+        {daily.manifests.map((m, i) => {
+          const ready = !m.done && m.have >= m.need;
+          const what = `${m.need} ${m.need === 1 ? 'Duplikat' : 'Duplikate'}${m.faction ? ` · ${FACTIONS[m.faction].name}` : ''}${m.minRarity ? ` · ab ${RARITY_LABEL[m.minRarity]}` : ''}`;
+          return (
+            <div key={i} className={`mission${ready ? ' is-done' : ''}${m.done ? ' is-claimed' : ''}`}>
+              <div className="mission__main">
+                <b>{what}</b>
+                <div className="mission__bar"><i style={{ width: `${Math.min(1, m.have / m.need) * 100}%` }} /></div>
+                <small>{m.done ? 'Erfüllt' : `Passende Duplikate: ${m.have}`} · {rewardText(m.reward)}</small>
+              </div>
+              <button className="mission__btn" disabled={busy || !ready} onClick={tap(() => void send({ type: 'SubmitManifest', index: i }))}>
+                {m.done ? 'Erhalten' : ready ? 'Abgeben' : 'Offen'}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

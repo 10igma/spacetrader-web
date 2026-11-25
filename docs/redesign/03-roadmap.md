@@ -4,11 +4,11 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 
 ## Stand (25.11.2026)
 
-**Phase 0 bis 2 sind umgesetzt, Phase 3 zur Hälfte.** Neu aus Phase 3: grosses Kartenset mit Aufwertung und Schmieden, Container-Stufen mit Slots und Timern, Sammelalben, Tagesaufträge, Login-Kalender und Handelsserie.
+**Phase 0 bis 2 sind umgesetzt, Phase 3 bis auf das Auktionshaus.** Aus Phase 3 spielbar: grosses Kartenset mit Aufwertung und Schmieden, Container-Stufen mit Slots und Timern, Sammelalben, Tagesaufträge, Login-Kalender, Handelsserie, Handelsposten mit Offline-Ertrag, Glücksrad, Tages-Shop, Manifeste und Bergungs-Auktion.
 
 | Baustein | Stand | Geprüft durch |
 |---|---|---|
-| Kern: Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 71 Unit-Tests |
+| Kern: Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 83 Unit-Tests |
 | Handel, Schmuggel, Sprünge, Begegnungen, Crew-Deck, Laderaum (Phase 1 und 2) | fertig | Tests und Browser-Durchläufe |
 | Kartenset: 130 Karten, je Fraktion und Rolle gleich tief | fertig | Test zur Verteilung |
 | Kartenstufen (Aufwerten mit Splittern) und Schmieden fehlender Karten | fertig | Tests zu Kosten, Wirkung, Obergrenze |
@@ -18,10 +18,16 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Kauf: Standard wird pro Tag mit jedem Kauf teurer, Premium kostet Quanten | fertig | Tests zu Preisstufen und Tageslimit |
 | Tagesaufträge mit Tagesbonus, Login-Kalender, Handelsserie mit Urlaubsschein | fertig | Tests über Tagesgrenzen hinweg |
 | Sammelalben pro Fraktion mit Meilensteinen und Dauerbonus | fertig | Tests |
+| Handelsposten: Bauzeit, Ertrag pro Stunde, Lager voll nach 6 Stunden, Ausbau, Beschleunigen | fertig | Tests zu Bau, Ertrag, Lagergrenze, Abholen |
+| Glücksrad: ein Dreh pro Tag, Segmentgrösse entspricht der Quote | fertig | Test über 6'000 Drehs gegen die angezeigten Quoten |
+| Tages-Shop: fünf Angebote, eines reduziert, je einmal kaufbar | fertig | Tests |
+| Manifeste: Duplikate abgeben, die letzte Kopie bleibt immer | fertig | Tests |
+| Bergungs-Auktion: versiegelter Container, Quoten vor dem Kauf sichtbar | fertig | Test über 4'000 Käufe gegen die angezeigten Quoten |
+| Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, 1 Beispielkarte | Screenshot, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
 | Bot-Simulation | fertig | Zwei Spielertypen, je 20 Spieler über 30 Tage, dazu Leitplanken-Test |
-| Autoritativer Server (Skelett) | fertig | Elf Betrugsversuche gegen die neuen Befehle abgewiesen |
-| Bühne, UI, Musik und Effekte | fertig | Vier automatische Durchläufe ohne Konsolenfehler |
+| Autoritativer Server (Skelett) | fertig | Zwanzig Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen |
+| Bühne, UI, Musik und Effekte | fertig | Fünf automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
@@ -29,19 +35,20 @@ Median von je 20 simulierten Spielern, drei Sessions pro Tag, 30 Tage:
 
 | | Tag 1 | Tag 7 | Tag 14 | Tag 30 |
 |---|---|---|---|---|
-| Sprünge kumuliert | 27 | 132 | 244 | 497 |
+| Sprünge kumuliert | 26 | 130 | 243 | 495 |
 | Stufe | 5 | 10 | 13 | 17 |
-| Gewinn pro Sprung legal | 1'700 | 4'500 | 5'500 | 6'300 |
-| Gewinn pro Sprung Schmuggel | 2'000 | 5'700 | 7'100 | 8'600 |
-| Vermögen legal | 24'000 | 184'000 | 296'000 | 527'000 |
-| Karten von 130 | 9 | 79 | 112 | 125 |
-| Legenden von 10 (Durchschnitt) | 0.1 | 1.8 | 3.5 | 6.5 |
-| Container geöffnet | 3 | 38 | 83 | 183 |
-| Beschlagnahmungen Schmuggel | 0.8 | 5.0 | 9.4 | 19.1 |
+| Gewinn pro Sprung legal | 2'200 | 4'600 | 5'700 | 6'600 |
+| Gewinn pro Sprung Schmuggel | 2'800 | 5'800 | 7'400 | 8'800 |
+| Vermögen legal | 23'000 | 165'000 | 175'000 | 451'000 |
+| Karten von 130 | 9 | 82 | 119 | 127 |
+| Legenden von 10 (Durchschnitt) | 0.1 | 1.5 | 3.4 | 6.3 |
+| Container geöffnet | 3 | 39 | 88 | 201 |
+| Beschlagnahmungen Schmuggel | 0.6 | 5.5 | 9.7 | 20.4 |
 
-- **Erste Legende:** Median Tag 6, schnellstes Zehntel Tag 2, langsamstes Tag 11. Ziel war Tag 5 bis 10.
-- **Erstes volles Album:** legale Händler im Median an Tag 26, Schmuggler mehrheitlich erst nach Tag 30. Ziel war um Tag 30.
-- **Energie:** erster Tag grosszügig (27 Sprünge), danach rund 16 bis 17 pro Tag.
+- **Erste Legende:** Median Tag 5 bis 6, schnellstes Zehntel Tag 2, langsamstes Tag 10. Ziel war Tag 5 bis 10.
+- **Erstes volles Album:** Median Tag 19 bis 20. Ziel war um Tag 30. Shop, Manifeste und Bergung haben es gegenüber der Fassung davor (Tag 26) beschleunigt.
+- **Energie:** erster Tag grosszügig (26 Sprünge), danach rund 16 bis 17 pro Tag.
+- **Handelsposten:** nach 30 Tagen im Median 21 Ausbaustufen über alle Stationen. Sie binden Credits: Das Vermögen stagniert zwischen Tag 7 und 14, weil investiert wird.
 
 Was die Simulation unterwegs aufgedeckt hat:
 
@@ -54,12 +61,13 @@ Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lasse
 **Nicht geprüft, weil hier nicht prüfbar:** wie Musik und Effekte klingen, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
 
 **Offen:**
-- **Rest von Phase 3:** Handelsposten mit Offline-Ertrag, Konvoi-Missionen, Tages-Shop, Glücksrad, Bergungs-Auktion, Auktionshaus, Manifeste, Bauzeiten.
+- **Rest von Phase 3:** Auktionshaus mit Bieten gegen simulierte Händler, Konvoi-Missionen.
+- **Album-Tempo.** Tag 19 bis 20 statt 30. Manifeste werden von fleissigen Spielern fast täglich erfüllt und bringen Container. Vor der Beta nachziehen.
+- **Kartenkunst.** Eine Beispielkarte mit generiertem Porträt, Vorgehen und offene Fragen in Dokument 04.
 - **Legenden-Tempo.** 6.5 von 10 nach 30 Tagen passt zu Saisons von sechs Wochen mit neuen Karten (Phase 4). Ohne Saisons wäre es zu schnell.
 - **Tagesgrenze.** Mitternacht nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
 - **Push-Nachrichten fehlen.** Serie in Gefahr und volle Lager wirken erst mit Erinnerung richtig (Phase 5).
 - **Aus Phase 2:** Lizenzen, Verstecke, gefälschte Papiere, Veredelung, Versicherung.
-- **Porträts.** Einfache prozedurale Helme, bei 130 Karten fällt das stärker auf.
 - **Speicherstand.** Im Offline-Modus lokal, bei Regeländerungen wird er verworfen. Der Server hält Sitzungen nur im Arbeitsspeicher.
 
 ## Prinzipien
@@ -211,4 +219,4 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-Rest von Phase 3: Handelsposten mit Offline-Ertrag, Auktionshaus mit simulierten Händlern, Manifeste, Tages-Shop, Glücksrad und Bergungs-Auktion. Davor lohnt sich dein Test auf dem Handy, weil jetzt zum ersten Mal ein Tagesrhythmus spielbar ist.
+Auktionshaus (Bieten und Verkaufen gegen simulierte Händler) als letzter grosser Baustein von Phase 3, dazu die Porträts der zehn Legenden und Singularitäten, sobald der Weg dafür entschieden ist. Danach Phase 4 mit Saisons, Ligen und Events.

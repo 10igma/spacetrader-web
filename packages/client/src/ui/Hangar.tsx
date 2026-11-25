@@ -1,4 +1,4 @@
-import { RARITIES, type CrateTier, type SlotView } from '@nova/core';
+import { CARD_BY_ID, FACTIONS, RARITIES, ROLES, type CrateTier, type SlotView } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
@@ -113,6 +113,28 @@ export function Hangar() {
             <span className={`price price--${tiers[tier].currency}`}>{tiers[tier].currency === 'credits' ? <Credits /> : <Quanta />}{num(tiers[tier].price)}</span>
           </button>
         ))}
+      </div>
+
+      <h4 className="market__section">Tagesangebote<span>Wechseln um Mitternacht</span></h4>
+      <div className="shop">
+        {view.daily.offers.map((o, i) => {
+          const card = o.cardId ? CARD_BY_ID.get(o.cardId) : undefined;
+          const owned = card ? !!view.collection[card.id] : false;
+          return (
+            <button key={i} className={`shop__item offer${o.listPrice ? ' offer--deal' : ''}${card ? ` offer--${card.rarity}` : ''}${o.bought ? ' is-bought' : ''}`} disabled={busy || o.bought || view.wallet.credits < o.price} onClick={() => { audio.tap(); void send({ type: 'BuyOffer', index: i }); }}>
+              <span className="shop__main">
+                <b>{card ? card.name : o.kind === 'shards' ? `${num(o.amount ?? 0)} Splitter` : `${num(o.amount ?? 0)} Quanten`}</b>
+                <small>
+                  {card ? `${RARITY_LABEL[card.rarity]} · ${ROLES[card.role].name} · ${FACTIONS[card.faction].short} · ${owned ? 'hast du schon' : 'fehlt dir'}` : o.kind === 'shards' ? 'Zum Aufwerten und Schmieden' : 'Für Premium-Container und Beschleunigen'}
+                </small>
+              </span>
+              <span className="offer__price">
+                {o.listPrice && <s>{num(o.listPrice)}</s>}
+                <span className="price"><Credits />{o.bought ? 'Gekauft' : num(o.price)}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="pity">

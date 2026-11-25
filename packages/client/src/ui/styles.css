@@ -1353,6 +1353,76 @@ button.tile:active { transform: scale(0.96); }
 .sheet td { text-align: right; font-variant-numeric: tabular-nums; }
 .sheet td:first-child { text-align: left; }
 
+/* ---------------------------------------------------------------------------
+   Phase 3b: posts, wheel, salvage, offers
+   --------------------------------------------------------------------------- */
+.posts .picker__list { max-height: 44vh; }
+.post { display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 14px; border-radius: 14px; background: linear-gradient(100deg, color-mix(in srgb, var(--faction) 14%, transparent), transparent 55%), rgba(255, 255, 255, 0.04); border: 1px solid var(--stroke); position: relative; overflow: hidden; }
+.post::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--faction); }
+.post__main { flex: 1; min-width: 0; }
+.post__main b { font-family: var(--font-display); font-size: 15px; }
+.post__main b small { font-size: 11px; font-weight: 500; color: var(--ink-dim); margin-left: 4px; }
+.post__main > small { font-size: 11px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.post.is-full { border-color: var(--amber); }
+.post.is-full .mission__bar i { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.post.is-full .post__main > small { color: var(--amber); }
+.post__rush { min-width: 62px; display: flex; flex-direction: column; align-items: center; background: rgba(59, 227, 255, 0.15); color: var(--cyan); box-shadow: none; border: 1px solid rgba(59, 227, 255, 0.4); }
+.post__rush svg { width: 10px; height: 10px; }
+.post__rush small { font-family: var(--font-body); font-size: 9px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+.posts .trade__actions .cta small { font-size: 10px; text-align: center; padding: 0 6px; line-height: 1.2; }
+
+.news--salvage { display: block; width: 100%; text-align: left; cursor: pointer; border-color: rgba(176, 108, 255, 0.55); background: linear-gradient(90deg, rgba(176, 108, 255, 0.24), rgba(8, 13, 26, 0.7)); }
+.news--salvage b { color: var(--r-elite); }
+
+.wheelcard { display: flex; align-items: center; gap: 12px; margin-top: 8px; padding: 10px 10px 10px 12px; border-radius: var(--radius-m); text-align: left; background: var(--glass-strong); border: 1px solid var(--stroke); }
+.wheelcard--ready { border-color: var(--amber); box-shadow: 0 0 22px -8px var(--amber); }
+.wheelcard__icon { width: 40px; height: 40px; flex: none; border-radius: 50%; background: conic-gradient(#1c3554 0 28%, #2b6f5a 0 46%, #ff8a3c 0 51%, #b06cff 0 71%, #4d9dff 0 92%, #3be3ff 0 99%, #ffc24a 0); border: 2px solid #050912; box-shadow: 0 0 0 1.5px var(--stroke-strong); }
+.wheelcard--ready .wheelcard__icon { animation: rays 6s linear infinite; }
+.wheelcard__main { flex: 1; min-width: 0; }
+.wheelcard__main b { display: block; font-family: var(--font-display); font-size: 15px; }
+.wheelcard__main small { font-size: 11px; color: var(--ink-dim); }
+.wheelcard:not(.wheelcard--ready) .mission__btn { color: var(--ink-dim); background: rgba(255, 255, 255, 0.07); box-shadow: none; }
+
+.wheel { width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.wheel h3 { font-family: var(--font-display); font-size: 26px; text-transform: uppercase; letter-spacing: 0.06em; }
+.wheel__stage { position: relative; width: min(74vw, 290px); aspect-ratio: 1; margin: 6px 0; }
+.wheel__disc { width: 100%; height: 100%; border-radius: 50%; transition: transform 3.8s cubic-bezier(0.12, 0.75, 0.1, 1); filter: drop-shadow(0 0 24px rgba(59, 227, 255, 0.35)); }
+.wheel__label { font-family: var(--font-display); font-size: 8.5px; font-weight: 700; fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, 0.6); stroke-width: 2px; }
+.wheel__pointer { position: absolute; z-index: 2; top: -8px; left: 50%; margin-left: -11px; border: 11px solid transparent; border-top: 20px solid #fff; filter: drop-shadow(0 0 8px var(--amber)); }
+.wheel .cta { max-width: 260px; }
+.wheel__result { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; animation: pop 0.45s var(--spring) both; }
+.wheel__result small { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber); }
+.wheel__result b { font-family: var(--font-display); font-size: 28px; font-weight: 800; text-shadow: 0 0 22px var(--amber); margin-bottom: 6px; }
+.wheel__odds { list-style: none; margin: 6px 0 0; padding: 0; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; font-size: 11px; color: var(--ink-dim); text-align: left; }
+.wheel__odds li { display: flex; align-items: center; gap: 6px; }
+.wheel__odds i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.wheel__odds b { margin-left: auto; font-family: var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.salvage h3 { font-size: 20px; }
+.salvage table { margin: 10px 0 14px; }
+.salvage td { font-size: 13px; }
+.salvage td:nth-child(2) { color: var(--ink-dim); }
+.salvage tr.is-hit td { color: var(--amber); font-weight: 700; }
+.salvage__result { display: flex; flex-direction: column; align-items: center; padding: 12px; margin-top: 10px; border-radius: var(--radius-m); background: rgba(255, 255, 255, 0.05); font-family: var(--font-display); animation: pop 0.45s var(--spring) both; }
+.salvage__result small { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink-dim); }
+.salvage__result b { font-size: 26px; font-weight: 800; }
+.salvage__result span { font-family: var(--font-body); font-size: 13px; color: var(--ink-dim); }
+.salvage__result.is-win b { color: var(--ok); text-shadow: 0 0 20px var(--ok); }
+.salvage__result.is-loss b { color: var(--ink-dim); }
+
+.offer { --rar: var(--stroke); padding-left: 14px; border-color: color-mix(in srgb, var(--rar) 50%, var(--stroke)); }
+.offer--rare { --rar: var(--r-rare); }
+.offer--elite { --rar: var(--r-elite); }
+.offer--legend { --rar: var(--r-legend); box-shadow: 0 0 22px -8px var(--r-legend); }
+.offer .shop__main b { text-transform: none; letter-spacing: 0.01em; font-size: 15px; }
+.offer--rare .shop__main b, .offer--elite .shop__main b, .offer--legend .shop__main b { color: var(--rar); }
+.offer__price { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex: none; }
+.offer__price s { font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.offer--deal { border-color: var(--danger); }
+.offer--deal .price { background: var(--danger); color: #fff; }
+.offer--deal .price svg { color: #fff; }
+.offer.is-bought { opacity: 0.45; }
+
 .toast {
   position: fixed;
   z-index: 60;

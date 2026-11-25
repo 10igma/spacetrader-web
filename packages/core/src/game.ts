@@ -4,8 +4,10 @@ import {
   type CardDef, type FactionId, type Rarity, type RoleId,
 } from './content.ts';
 import {
-  albumInfo, CRATE_TIERS, cratePrice, dayEndsAt, dayIndex, effectiveOdds, liveStreak, rollMissions, speedUpCost, streakBonus, streakStatus, upgradeCost,
-  type AlbumView, type CrateTier, type Mission, type Reward, type Slot, type StreakState, type StreakStatus,
+  albumInfo, CRATE_TIERS, cratePrice, dayEndsAt, dayIndex, effectiveOdds, liveStreak, manifestCandidates, minutesCost, pickWeighted,
+  postCap, postPerHour, rollManifests, rollMissions, rollOffers, settlePost, speedUpCost, streakBonus, streakStatus, upgradeCost, wheelReward,
+  type AlbumView, type CrateTier, type Manifest, type Mission, type Offer, type Post, type Reward, type SalvageKind, type SalvageLot,
+  type Slot, type StreakState, type StreakStatus,
 } from './meta.ts';
 import { nextFloat, pick, seedRng, type RngState } from './rng.ts';
 import {
@@ -17,7 +19,7 @@ import {
 // State
 // ---------------------------------------------------------------------------
 
-export const STATE_VERSION = 5;
+export const STATE_VERSION = 6;
 
 export type EncounterKind = 'pirates' | 'customs';
 export type EncounterChoice = 'fight' | 'flee' | 'pay' | 'submit' | 'bribe' | 'breakThrough';
@@ -44,7 +46,14 @@ export interface GameState {
   /** Upgrade level per card. Missing means level 1. */
   cardLevels: Record<string, number>;
   deck: Record<RoleId, string | null>;
-  daily: { day: number; missions: Mission[]; chestClaimed: boolean; bought: Record<CrateTier, number> };
+  daily: {
+    day: number; missions: Mission[]; chestClaimed: boolean; bought: Record<CrateTier, number>;
+    offers: Offer[]; manifests: Manifest[]; wheelSpun: boolean;
+  };
+  /** Trading posts by station. */
+  posts: Partial<Record<StationId, Post>>;
+  /** A sealed wreck container on offer at the current station, if any. */
+  salvage: SalvageLot | null;
   calendar: { lastDay: number; step: number };
   streak: StreakState;
   /** Claimed milestones per faction album. */
@@ -115,6 +124,15 @@ export interface CrewBonus { nav: number; hdl: number; tec: number; kmp: number;
 export type BonusKey = keyof CrewBonus;
 export interface SeatView { cardId: string; value: number; links: number; onRole: boolean }
 
+export interface PostView {
+  stationId: StationId; level: number; perHour: number; stored: number; cap: number;
+  /** When the storage is full, or null while it is full already or under construction. */
+  fullAt: number | null;
+  /** End of construction, or null when the post is running. */
+  readyAt: number | null;
+  speedUpCost: number;
+}
+
 export interface SlotView { tier: CrateTier; state: 'sealed' | 'unlocking' | 'ready'; readyAt: number | null; unlockMs: number; speedUpCost: number }
 
 /** What the client is allowed to see. No RNG state, no prices of places you are not at. */
@@ -134,14 +152,26 @@ export interface ClientView {
   slotCap: number;
   collection: Record<string, number>;
   cardLevels: Record<string, number>;
-  daily: { endsAt: number; missions: Mission[]; chest: { done: number; total: number; claimed: boolean; reward: Reward } };
+  daily: {
+    endsAt: number; missions: Mission[]; chest: { done: number; total: number; claimed: boolean; reward: Reward };
+    offers: Offer[];
+    manifests: (Manifest & { have: number })[];
+    wheel: { available: boolean; segments: { weight: number; reward: Reward }[] };
+  };
+  posts: {
+    list: PostView[];
+    /** What can be built at the current station, or null at the top level. */
+    next: { level: number; cost: number; buildMs: number; perHour: number } | null;
+    stored: number;
+  };
+  salvage: (SalvageLot & { outcomes: { kind: SalvageKind; weight: number; credits: number; shards: number }[] }) | null;
   calendar: { step: number; claimable: boolean; rewards: readonly Reward[] };
   streak: { count: number; best: number; bonus: number; status: StreakStatus; freezes: number; maxFreezes: number; freezePrice: number; endsAt: number };
   albums: Record<FactionId, AlbumView>;
   /** Permanent and streak bonuses on every sale, already included in market prices. */
   saleBonus: { streak: number; album: number };
   /** Things waiting to be collected, per tab. Drives the red dots. */
-  badges: { hangar: number; daily: number; deck: number };
+  badges: { station: number; hangar: number; daily: number; deck: number };
   deck: { seats: Record<RoleId, SeatView | null>; chem: number };
   crew: CrewBonus;
   location: StationId;
@@ -176,6 +206,13 @@ export type Command =
   | { type: 'ClaimCalendar' }
   | { type: 'BuyFreeze' }
   | { type: 'ClaimAlbum'; faction: FactionId }
+  | { type: 'BuildPost' }
+  | { type: 'SpeedUpPost'; stationId: StationId }
+  | { type: 'CollectPosts' }
+  | { type: 'SpinWheel' }
+  | { type: 'BuyOffer'; index: number }
+  | { type: 'SubmitManifest'; index: number }
+  | { type: 'BuySalvage' }
   | { type: 'Buy'; goodId: GoodId; qty: number }
   | { type: 'Sell'; goodId: GoodId; qty: number }
   | { type: 'Jump'; to: StationId }
@@ -209,6 +246,12 @@ export type GameEvent =
   | { type: 'RewardGranted'; reward: Reward }
   | { type: 'CardUpgraded'; cardId: string; level: number }
   | { type: 'CardForged'; cardId: string }
+  | { type: 'PostBuilt'; stationId: StationId; level: number }
+  | { type: 'PostsCollected'; amount: number }
+  | { type: 'WheelSpun'; index: number; reward: Reward }
+  | { type: 'OfferBought'; index: number }
+  | { type: 'ManifestDone'; index: number; cardIds: string[] }
+  | { type: 'SalvageOpened'; kind: SalvageKind; credits: number; shards: number }
   | { type: 'StreakChanged'; count: number; kind: 'started' | 'extended' | 'saved' | 'lost'; previous: number }
   | { type: 'Bought'; goodId: GoodId; qty: number; cost: number }
   | { type: 'Sold'; goodId: GoodId; qty: number; revenue: number; profit: number }
@@ -252,7 +295,9 @@ export function createInitialState(seed: string, now: number): GameState {
     collection: {},
     cardLevels: {},
     deck: { pilot: null, trader: null, tech: null, gunner: null, smuggler: null },
-    daily: { day: -1, missions: [], chestClaimed: false, bought: { standard: 0, premium: 0 } },
+    daily: { day: -1, missions: [], chestClaimed: false, bought: { standard: 0, premium: 0 }, offers: [], manifests: [], wheelSpun: false },
+    posts: {},
+    salvage: null,
     calendar: { lastDay: -1, step: 0 },
     streak: { count: 0, lastDay: -1, freezes: 0, best: 0 },
     albums: { helix: 0, tessera: 0, asche: 0, zenit: 0 },
@@ -332,7 +377,31 @@ function settleFree(state: GameState, now: number): void {
 function settleDaily(state: GameState, now: number): void {
   const day = dayIndex(now);
   if (state.daily.day === day) return;
-  state.daily = { day, missions: rollMissions(state.rng.daily, state.profile.level), chestClaimed: false, bought: { standard: 0, premium: 0 } };
+  state.daily = {
+    day,
+    missions: rollMissions(state.rng.daily, state.profile.level),
+    chestClaimed: false,
+    bought: { standard: 0, premium: 0 },
+    offers: rollOffers(state.rng.daily, state.collection),
+    manifests: rollManifests(state.rng.daily),
+    wheelSpun: false,
+  };
+}
+
+function settlePosts(state: GameState, now: number): void {
+  for (const post of Object.values(state.posts)) if (post) settlePost(post, now);
+}
+
+/** Add one copy of a card. Duplicates pay shards; a new specialist takes the empty seat for their role. */
+function addCard(state: GameState, cardId: string): { isNew: boolean; shards: number } {
+  const card = CARD_BY_ID.get(cardId)!;
+  const owned = state.collection[cardId] ?? 0;
+  const isNew = owned === 0;
+  const shards = isNew ? 0 : CONFIG.shardsPerDuplicate[card.rarity];
+  state.collection[cardId] = owned + 1;
+  state.wallet.shards += shards;
+  if (isNew && state.deck[card.role] === null) state.deck[card.role] = cardId;
+  return { isNew, shards };
 }
 
 function progress(state: GameState, kind: Mission['kind'], amount: number): void {
@@ -631,13 +700,7 @@ function openCrate(state: GameState, source: 'free' | 'bought' | 'slot', tier: C
 
   const pulls: Pull[] = rolled.map(({ rarity, upgradedFrom }) => {
     const card = pick(rng, CARDS_BY_RARITY[rarity]);
-    const owned = state.collection[card.id] ?? 0;
-    const isNew = owned === 0;
-    const shards = isNew ? 0 : CONFIG.shardsPerDuplicate[rarity];
-    state.collection[card.id] = owned + 1;
-    state.wallet.shards += shards;
-    // A new specialist takes the empty seat for their role, so the first crates matter at once.
-    if (isNew && state.deck[card.role] === null) state.deck[card.role] = card.id;
+    const { isNew, shards } = addCard(state, card.id);
     return upgradedFrom ? { cardId: card.id, rarity, isNew, shards, upgradedFrom } : { cardId: card.id, rarity, isNew, shards };
   });
   // Reveal order: weakest first, best last.
@@ -696,6 +759,15 @@ function arrive(state: GameState, to: StationId, events: GameEvent[], now: numbe
       jumpsLeft: CONFIG.marketEvent.jumps,
     };
     events.push({ type: 'MarketEventStarted', event: { ...state.event } });
+  }
+
+  // Now and then a sealed wreck container is on offer at the dock.
+  if (nextFloat(state.rng.market) < CONFIG.salvage.chance) {
+    const weight = pickWeighted(state.rng.market, [5, 3, 1]) as 0 | 1 | 2;
+    const base = CONFIG.salvage.basePrice * state.profile.level ** 1.2 * CONFIG.salvage.weights[weight]!;
+    state.salvage = { price: Math.max(100, Math.round(base / 100) * 100), weight, origin: pick(state.rng.market, FACTION_IDS) };
+  } else {
+    state.salvage = null;
   }
 
   rollRoutes(state);
@@ -774,6 +846,14 @@ function resolveEncounter(state: GameState, choice: EncounterChoice, events: Gam
 // The one way state changes
 // ---------------------------------------------------------------------------
 
+/** What a salvage outcome pays for a lot of the given price. Used for the result and for the odds sheet. */
+function salvagePrize(kind: SalvageKind, price: number): { credits: number; shards: number } {
+  const o = CONFIG.salvage.outcomes.find((x) => x.kind === kind)!;
+  if (kind === 'shards') return { credits: 0, shards: Math.round(price * o.factor) };
+  if (kind === 'crate' || kind === 'premium') return { credits: 0, shards: 0 };
+  return { credits: Math.round(price * o.factor), shards: 0 };
+}
+
 const isQty = (n: number): boolean => Number.isInteger(n) && n > 0 && n <= 1000;
 
 /**
@@ -788,6 +868,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
   settleFuel(state, now);
   settleFree(state, now);
   settleDaily(state, now);
+  settlePosts(state, now);
 
   if (state.pending && cmd.type !== 'Encounter') return reject('encounter_pending');
 
@@ -886,6 +967,91 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       if (state.wallet.quanta < CONFIG.streak.freezePrice) return reject('not_enough_quanta');
       state.wallet.quanta -= CONFIG.streak.freezePrice;
       state.streak.freezes += 1;
+      break;
+    }
+    case 'BuildPost': {
+      const here = state.location;
+      const post = state.posts[here];
+      const level = post?.level ?? 0;
+      if (post && post.readyAt > now) return reject('slot_busy');
+      if (level >= CONFIG.posts.maxLevel) return reject('max_level');
+      const cost = CONFIG.posts.cost[level]!;
+      if (state.wallet.credits < cost) return reject('not_enough_credits');
+      state.wallet.credits -= cost;
+      const readyAt = now + CONFIG.posts.buildMs[level]!;
+      // Storage keeps what it holds. Nothing new accrues until construction is done.
+      state.posts[here] = { level: level + 1, stored: post?.stored ?? 0, storedAt: now, readyAt };
+      events.push({ type: 'PostBuilt', stationId: here, level: level + 1 });
+      break;
+    }
+    case 'SpeedUpPost': {
+      const post = state.posts[cmd.stationId];
+      if (!post || post.readyAt <= now) return reject('slot_not_ready');
+      const cost = minutesCost(post.readyAt - now);
+      if (state.wallet.quanta < cost) return reject('not_enough_quanta');
+      state.wallet.quanta -= cost;
+      post.readyAt = now;
+      post.storedAt = now;
+      break;
+    }
+    case 'CollectPosts': {
+      let amount = 0;
+      for (const post of Object.values(state.posts)) {
+        if (!post) continue;
+        const take = Math.floor(post.stored);
+        amount += take;
+        post.stored -= take;
+      }
+      if (amount <= 0) return reject('not_claimable');
+      state.wallet.credits += amount;
+      events.push({ type: 'PostsCollected', amount });
+      break;
+    }
+    case 'SpinWheel': {
+      if (state.daily.wheelSpun) return reject('not_claimable');
+      state.daily.wheelSpun = true;
+      const index = pickWeighted(state.rng.daily, CONFIG.wheel.map((s) => s.weight));
+      const reward = wheelReward(index, state.profile.level);
+      events.push({ type: 'WheelSpun', index, reward });
+      grantReward(state, reward, events);
+      break;
+    }
+    case 'BuyOffer': {
+      const offer = state.daily.offers[cmd.index];
+      if (!offer || offer.bought) return reject('not_claimable');
+      if (state.wallet.credits < offer.price) return reject('not_enough_credits');
+      state.wallet.credits -= offer.price;
+      offer.bought = true;
+      if (offer.kind === 'card') addCard(state, offer.cardId!);
+      if (offer.kind === 'shards') state.wallet.shards += offer.amount ?? 0;
+      if (offer.kind === 'quanta') state.wallet.quanta += offer.amount ?? 0;
+      events.push({ type: 'OfferBought', index: cmd.index });
+      break;
+    }
+    case 'SubmitManifest': {
+      const manifest = state.daily.manifests[cmd.index];
+      if (!manifest || manifest.done) return reject('not_claimable');
+      const cardIds = manifestCandidates(manifest, state.collection).slice(0, manifest.need);
+      if (cardIds.length < manifest.need) return reject('not_claimable');
+      for (const id of cardIds) state.collection[id]! -= 1;
+      manifest.done = true;
+      events.push({ type: 'ManifestDone', index: cmd.index, cardIds });
+      grantReward(state, manifest.reward, events);
+      break;
+    }
+    case 'BuySalvage': {
+      const lot = state.salvage;
+      if (!lot) return reject('not_claimable');
+      if (state.wallet.credits < lot.price) return reject('not_enough_credits');
+      state.wallet.credits -= lot.price;
+      state.salvage = null;
+      const outcome = CONFIG.salvage.outcomes[pickWeighted(state.rng.travel, CONFIG.salvage.outcomes.map((o) => o.weight))]!;
+      const win = salvagePrize(outcome.kind, lot.price);
+      state.wallet.credits += win.credits;
+      state.wallet.shards += win.shards;
+      events.push({ type: 'SalvageOpened', kind: outcome.kind, credits: win.credits, shards: win.shards });
+      if (outcome.kind === 'crate') grantCrate(state, 'standard', events);
+      if (outcome.kind === 'premium') grantCrate(state, 'premium', events);
       break;
     }
     case 'ClaimAlbum': {
@@ -1013,6 +1179,7 @@ export function toClientView(state: GameState, now: number): ClientView {
   settleFuel(s, now);
   settleFree(s, now);
   settleDaily(s, now);
+  settlePosts(s, now);
   const { max, regenMs } = CONFIG.fuel;
   const here = s.location;
   const hereFaction = factionOf(here);
@@ -1030,6 +1197,22 @@ export function toClientView(state: GameState, now: number): ClientView {
   const missionsDone = s.daily.missions.filter((m) => m.progress >= m.target).length;
   const calendarClaimable = s.calendar.lastDay !== day;
   const chestClaimable = !s.daily.chestClaimed && missionsDone === s.daily.missions.length;
+  const manifests = s.daily.manifests.map((m) => ({ ...m, have: manifestCandidates(m, s.collection).length }));
+  const postList: PostView[] = (Object.entries(s.posts) as [StationId, Post][]).map(([stationId, post]) => {
+    const cap = postCap(post.level);
+    const building = post.readyAt > now;
+    return {
+      stationId,
+      level: post.level,
+      perHour: postPerHour(post.level),
+      stored: Math.floor(post.stored),
+      cap,
+      fullAt: building || post.stored >= cap ? null : now + ((cap - post.stored) / postPerHour(post.level)) * 3_600_000,
+      readyAt: building ? post.readyAt : null,
+      speedUpCost: building ? minutesCost(post.readyAt - now) : 0,
+    };
+  });
+  const hereLevel = s.posts[here]?.level ?? 0;
 
   const market: MarketRow[] = GOODS.map((g) => marketRow(s, here, g.id, s.cargo[g.id]?.heat ?? 0));
   const lot = CONFIG.market.hintLot;
@@ -1084,7 +1267,23 @@ export function toClientView(state: GameState, now: number): ClientView {
       endsAt: dayEndsAt(now),
       missions: s.daily.missions,
       chest: { done: missionsDone, total: s.daily.missions.length, claimed: s.daily.chestClaimed, reward: CONFIG.daily.chest },
+      offers: s.daily.offers,
+      manifests,
+      wheel: {
+        available: !s.daily.wheelSpun,
+        segments: CONFIG.wheel.map((seg, i) => ({ weight: seg.weight, reward: wheelReward(i, s.profile.level) })),
+      },
     },
+    posts: {
+      list: postList,
+      next: hereLevel < CONFIG.posts.maxLevel
+        ? { level: hereLevel + 1, cost: CONFIG.posts.cost[hereLevel]!, buildMs: CONFIG.posts.buildMs[hereLevel]!, perHour: postPerHour(hereLevel + 1) }
+        : null,
+      stored: postList.reduce((sum, p) => sum + p.stored, 0),
+    },
+    salvage: s.salvage
+      ? { ...s.salvage, outcomes: CONFIG.salvage.outcomes.map((o) => ({ kind: o.kind, weight: o.weight, ...salvagePrize(o.kind, s.salvage!.price) })) }
+      : null,
     calendar: { step: s.calendar.step, claimable: calendarClaimable, rewards: CONFIG.calendar },
     streak: {
       count: liveStreak(s.streak, day),
@@ -1100,7 +1299,9 @@ export function toClientView(state: GameState, now: number): ClientView {
     saleBonus: saleBonus(s),
     badges: {
       hangar: s.crates.freeStock + slots.filter((x) => x.state === 'ready').length,
-      daily: s.daily.missions.filter((m) => !m.claimed && m.progress >= m.target).length + (chestClaimable ? 1 : 0) + (calendarClaimable ? 1 : 0),
+      station: postList.filter((p) => p.readyAt === null && p.stored >= p.cap * 0.9).length,
+      daily: s.daily.missions.filter((m) => !m.claimed && m.progress >= m.target).length + (chestClaimable ? 1 : 0) + (calendarClaimable ? 1 : 0)
+        + (s.daily.wheelSpun ? 0 : 1) + manifests.filter((m) => !m.done && m.have >= m.need).length,
       deck: FACTION_IDS.filter((f) => albums[f].claimable).length,
     },
     deck: { seats: deck.seats, chem: deck.chem },
@@ -1140,7 +1341,16 @@ export function parseCommand(input: unknown): Command | null {
     case 'ClaimChest':
     case 'ClaimCalendar':
     case 'BuyFreeze':
+    case 'BuildPost':
+    case 'CollectPosts':
+    case 'SpinWheel':
+    case 'BuySalvage':
       return { type: c.type };
+    case 'SpeedUpPost':
+      return typeof c.stationId === 'string' && STATION_BY_ID.has(c.stationId as StationId) ? { type: 'SpeedUpPost', stationId: c.stationId as StationId } : null;
+    case 'BuyOffer':
+    case 'SubmitManifest':
+      return typeof c.index === 'number' && Number.isInteger(c.index) && c.index >= 0 && c.index < 16 ? { type: c.type, index: c.index } : null;
     case 'BuyCrate':
       return typeof c.tier === 'string' && CRATE_TIERS.includes(c.tier as CrateTier) ? { type: 'BuyCrate', tier: c.tier as CrateTier } : null;
     case 'StartUnlock':
