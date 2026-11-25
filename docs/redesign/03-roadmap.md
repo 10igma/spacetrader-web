@@ -4,25 +4,45 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 
 ## Stand (25.11.2026)
 
-**Phase 0 und Phase 1 (Vertical Slice) sind umgesetzt.** Der Kern-Loop ist einmal komplett spielbar: kaufen, Route wählen, springen, Begegnung entscheiden, ankommen, verkaufen, Container öffnen.
+**Phase 0 und 1 sind umgesetzt, Phase 2 zum grössten Teil.** Spielbar sind Handel mit 27 Waren, Schmuggel mit Hehler und Fahndung, Sprünge mit Begegnungen, das Crew-Deck mit Chemie, Container und Laderaum-Ausbau.
 
 | Baustein | Stand | Geprüft durch |
 |---|---|---|
-| Kern: Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 25 Unit-Tests |
-| Container mit Quoten, Garantie, Pity, Splitter | fertig | Monte Carlo über 60'000 Container, Pity über 10'000 |
-| Handel: 10 Waren (4 davon Schmuggelware), 8 Stationen, Preisdrift, Laderaum | fertig | Tests zu Preisen, Laderaum, Geld, Gewinnrechnung |
-| Sprung: Routen mit Preis-Hinweisen, Treibstoff, Stufenaufstieg füllt den Tank | fertig | Tests und Browser-Durchlauf |
-| Begegnungen: Piraten und Zoll, Quoten sichtbar, Crew verbessert Quoten | fertig | Test: angezeigte Quote stimmt mit 3'000 Würfen überein |
-| Autoritativer Server (Skelett) | fertig | Browser-Durchlauf gegen den Server. Vier manipulierte Befehle abgewiesen, ein untergeschobener Preis ignoriert |
-| Bühne: Nebel, Sterne, eigene Welt pro Station, Warp-Tunnel, Reveal-Riss | fertig | Screenshots in 390 x 844 |
-| UI: Hub, Markt, Handelsblatt, Routenwahl, Reise-Szene, Hangar, Sammlung, Reveal | fertig | Automatische Durchläufe ohne Konsolenfehler, auch im Produktions-Build |
-| Generative Musik und Effekte (Warp, Alarm, Münzen, Reveal) | fertig | Pegelmessung im Browser (spielt, übersteuert nicht) |
+| Kern: Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 50 Unit-Tests |
+| Container mit Quoten, Garantie, Pity, Splitter | fertig | Monte Carlo über 60'000 Container |
+| Waren: 27 Güter in 8 Kategorien, drei Legalitätsstufen, Verbote pro Fraktion | fertig | Tests zur Rechtslage pro Fraktion |
+| Markt: Preisprofile pro Station, Drift, Preiswirkung grosser Mengen, Knappheits-Ereignisse | fertig | Tests: Hin- und Rückkauf verliert immer, Ereignis-Station ist immer erreichbar |
+| Schmuggel: Hehler mit Tageslimit, Heisse Fracht, Fahndungsstufe mit Abklingen und Freikauf | fertig | Tests zu Limit, Hitze, Sternen, Beschlagnahmung nur verbotener Ware |
+| Deck: fünf Plätze, Rollen-Passung, Fraktions-Chemie, automatische Aufstellung | fertig | Tests: Werte, Chemie, angezeigte Quoten ändern sich mit der Crew |
+| Sprung, Begegnungen, Treibstoff, Stufen, Kurierprämie, Laderaum-Ausbau | fertig | Tests und Browser-Durchläufe |
+| Bot-Simulation für die Balance | fertig | Zwei Spielertypen, je 40 Spieler über 14 Tage, dazu Leitplanken-Test |
+| Autoritativer Server (Skelett) | fertig | Browser-Durchlauf gegen den Server, manipulierte Befehle abgewiesen |
+| Bühne, UI, Musik und Effekte | fertig | Automatische Durchläufe ohne Konsolenfehler, Pegelmessung |
+
+### Balance nach Simulation
+
+Die erste Simulation zeigte, dass die Wirtschaft unbrauchbar war: Stufe 22 und 400'000 Credits an Tag 1, weil jeder Stufenaufstieg den Tank füllte und Margen ohne Grenze skalierten. Nach den Korrekturen (Preiswirkung, engere Preisspannen, steilere Stufenkurve, Laderaum als Investition) sieht der Median so aus:
+
+| | Tag 1 | Tag 3 | Tag 7 | Tag 14 |
+|---|---|---|---|---|
+| Sprünge kumuliert | 25 | 61 | 129 | 242 |
+| Stufe | 4 bis 5 | 7 | 10 | 12 bis 13 |
+| Vermögen legal | 15'000 | 70'000 | 162'000 | 295'000 |
+| Vermögen Schmuggel | 18'000 | 76'000 | 184'000 | 363'000 |
+| Gewinn pro Sprung legal | 1'400 | 2'500 | 3'400 | 3'800 |
+| Gewinn pro Sprung Schmuggel | 1'700 | 3'300 | 4'700 | 5'500 |
+| Beschlagnahmungen Schmuggel | 0.6 | 1.9 | 4.8 | 9.7 |
+
+Lesart: Der erste Tag ist grosszügig (25 Sprünge statt 15, vier Stufen), danach taktet der Treibstoff auf rund 17 Sprünge pro Tag. Schmuggel bringt etwa 1.4-mal so viel wie legaler Handel, mit deutlich breiterer Streuung: Das schwächste Zehntel der Schmuggler steht an Tag 2 bei 2'500 Credits, das der legalen Händler bei 21'000.
+
+Die Bots spielen vernünftig, aber nicht klug. Echte Spieler finden bessere Routen. Die Zahlen sind eine Untergrenze für geschicktes Spiel und kein Ersatz für Messung an Menschen.
 
 **Nicht geprüft, weil hier nicht prüfbar:** wie Musik und Effekte klingen, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
 
-**Bewusst noch roh:**
-- **Balance.** Preise, Quoten und Strafen sind erste Setzungen ohne Bot-Simulation. Schmuggel ist aktuell zu lukrativ.
-- **Crew.** Die besten Werte der Sammlung verbessern die Quoten. Ein Deck mit Plätzen und Chemie fehlt noch.
+**Offen aus Phase 2:**
+- **Sammlung zu klein.** 24 Karten sind nach zwei Wochen fast komplett (Median 22). Das grosse Set kommt mit Phase 3.
+- **Geld ohne Ziel im Spätspiel.** Nach dem letzten Laderaum-Ausbau fehlt eine Senke. Schiffe, Module (Verstecke) und teurere Container-Stufen sind geplant.
+- **Lizenzen.** Die Stufe "lizenziert" aus dem Katalog ist noch nicht gebaut, ebenso Veredelung, Versicherung und Bestechungs-Varianten.
 - **Porträts.** Einfache prozedurale Helme, der schwächste Teil der Optik.
 - **Speicherstand.** Im Offline-Modus lokal, bei Regeländerungen wird er verworfen. Der Server hält Sitzungen nur im Arbeitsspeicher.
 
@@ -175,4 +195,4 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-Phase 2: Bot-Simulation für die Balance, voller Warenkatalog mit Legalität pro Fraktion, Heisse Fracht, Fahndungsstufe, Verstecke und Hehler (Dokument 02), dazu das Deck mit Crew-Plätzen und Chemie. Vorher lohnt sich dein Test auf dem Handy: Wenn Optik, Ton oder Spielgefühl nicht treffen, ist jetzt der günstigste Moment zum Korrigieren.
+Phase 3 (Sammeln und Wiederkehr): grosses Kartenset mit Aufwertung, Container-Stufen, Sammelalben, Tagesaufträge, Login-Kalender, Streak, Gratis-Container-Slots mit Timern, Handelsposten mit Offline-Ertrag. Davor steht dein Test auf dem Handy, weil Phase 3 viel Inhalt auf das jetzige Fundament setzt.

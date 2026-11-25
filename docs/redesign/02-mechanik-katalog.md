@@ -47,7 +47,9 @@ Handel ist das Herz. Die Vielfalt entsteht aus vier Legalitätsstufen, die je na
 | **Sanktioniert** | In manchen Fraktionen verboten | hoch | Beschlagnahmung, Ruf sinkt |
 | **Geächtet** | Überall verboten, nur über Hehler | sehr hoch, stark schwankend | Beschlagnahmung, Fahndung, Schiff in Gefahr |
 
-### Waren (erstes Set, rund 50 Güter)
+**Umgesetzt (Stand Phase 2):** 27 Güter mit den Stufen frei, sanktioniert und geächtet. Im Helix-Kartell gilt kein Verbot. Die Stufe lizenziert, Verstecke, Papiere und Veredelung folgen.
+
+### Waren (Zielumfang, rund 50 Güter)
 
 | Kategorie | Frei und lizenziert | Sanktioniert und geächtet |
 |---|---|---|

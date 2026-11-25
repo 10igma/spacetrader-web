@@ -1,0 +1,36 @@
+// Balance report: pnpm --filter @nova/core balance [seeds] [days]
+import { simulate, type DaySample, type Policy } from './bots.ts';
+
+const seeds = Number(process.argv[2] ?? 200);
+const days = Number(process.argv[3] ?? 14);
+const q = (xs: number[], p: number): number => [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(xs.length * p))]!;
+const fmt = (n: number): string => Math.round(n).toLocaleString('de-CH').padStart(10);
+
+for (const policy of ['legal', 'smuggler'] as Policy[]) {
+  const runs: DaySample[][] = [];
+  const log: Record<string, number> = {};
+  for (let i = 0; i < seeds; i++) {
+    const r = simulate(`bal-${i}`, policy, days);
+    runs.push(r.samples);
+    for (const [k, v] of Object.entries(r.log)) log[k] = (log[k] ?? 0) + v;
+  }
+  console.log(`\n=== ${policy} (${seeds} Spieler, ${days} Tage, 3 Sessions pro Tag) ===`);
+  console.log('Tag   Vermögen p10     Median        p90  Gewinn/Sprung  Stufe  Karten  Container  Sprünge  erwischt');
+  for (const d of [1, 2, 3, 5, 7, 10, 14].filter((x) => x <= days)) {
+    const at = runs.map((r) => r[d - 1]!);
+    console.log(
+      `${String(d).padStart(3)} ${fmt(q(at.map((s) => s.worth), 0.1))} ${fmt(q(at.map((s) => s.worth), 0.5))} ${fmt(q(at.map((s) => s.worth), 0.9))}`
+      + `  ${fmt(q(at.map((s) => s.profit / Math.max(1, s.jumps)), 0.5)).padStart(13)}`
+      + `  ${String(q(at.map((s) => s.level), 0.5)).padStart(5)}  ${String(q(at.map((s) => s.cards), 0.5)).padStart(6)}  ${String(q(at.map((s) => s.crates), 0.5)).padStart(9)}`
+      + `  ${String(q(at.map((s) => s.jumps), 0.5)).padStart(7)}  ${(at.reduce((a, s) => a + s.caught, 0) / at.length).toFixed(1).padStart(8)}`,
+    );
+  }
+  const jumps = log.JumpStarted ?? 1;
+  const pick = (prefix: string): string => Object.entries(log).filter(([k]) => k.startsWith(prefix)).map(([k, v]) => `${k.slice(prefix.length)} ${v}`).join(', ');
+  console.log(`Begegnungen pro 100 Sprünge: Piraten ${(((log['EncounterStarted'] ?? 0) - Object.entries(log).filter(([k]) => k.startsWith('customs:')).reduce((a, [, v]) => a + v, 0)) / jumps * 100).toFixed(1)}, Zoll ${(Object.entries(log).filter(([k]) => k.startsWith('customs:')).reduce((a, [, v]) => a + v, 0) / jumps * 100).toFixed(1)}`);
+  console.log(`Piraten: ${pick('pirates:')}`);
+  console.log(`Zoll: ${pick('customs:')}`);
+  console.log(`Abgelehnte Befehle: ${pick('rejected:') || 'keine'}`);
+  const broke = runs.filter((r) => r[days - 1]!.worth < 500).length;
+  console.log(`Pleite am Ende (unter 500): ${broke} von ${seeds}`);
+}

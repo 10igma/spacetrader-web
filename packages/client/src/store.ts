@@ -13,6 +13,8 @@ export interface Travel {
   outcome: Extract<GameEvent, { type: 'EncounterResolved' }> | null;
   /** True when we reconnected into a pending encounter and skip the launch. */
   resumed: boolean;
+  /** Courier pay on arrival, once known. */
+  courier: number;
 }
 
 export interface SalePop { id: number; profit: number; revenue: number }
@@ -28,6 +30,11 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   no_encounter: 'Keine Begegnung offen',
   invalid_choice: 'Diese Wahl gibt es hier nicht',
   unknown_command: 'Aktion nicht möglich',
+  fence_limit: 'So viel nimmt der Hehler heute nicht',
+  fence_closed: 'Der Hehler hat dichtgemacht: Fahndung zu hoch',
+  card_not_owned: 'Karte nicht in der Sammlung',
+  not_wanted: 'Hier liegt nichts gegen dich vor',
+  max_level: 'Bereits voll ausgebaut',
 };
 
 interface AppState {
@@ -79,7 +86,7 @@ export const useApp = create<AppState>((set, get) => ({
     const view = await get().service.connect();
     set({ view, clockOffset: view.serverTime - Date.now() });
     // Reconnected in the middle of an encounter: pick the scene up where it stopped.
-    if (view.encounter) set({ travel: { from: view.location, to: view.encounter.to, outcome: null, resumed: true } });
+    if (view.encounter) set({ travel: { from: view.location, to: view.encounter.to, outcome: null, resumed: true, courier: 0 } });
   },
 
   async send(cmd) {
@@ -90,7 +97,13 @@ export const useApp = create<AppState>((set, get) => ({
       set({ view, clockOffset: view.serverTime - Date.now() });
       for (const ev of events) {
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls });
-        if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false }, routesOpen: false });
+        if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0 }, routesOpen: false });
+        if (ev.type === 'Arrived') {
+          const travel = get().travel;
+          if (travel) set({ travel: { ...travel, courier: ev.courier } });
+        }
+        if (ev.type === 'HoldUpgraded') get().showToast(`Laderaum ausgebaut: ${ev.cap} Einheiten`, 'good');
+        if (ev.type === 'WantedChanged' && !get().travel) get().showToast(ev.level === 0 ? 'Fahndung eingestellt' : `Fahndung gesenkt auf ${ev.level}`, 'good');
         if (ev.type === 'EncounterResolved') {
           const travel = get().travel;
           if (travel) set({ travel: { ...travel, outcome: ev } });

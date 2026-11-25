@@ -16,7 +16,7 @@ Der frühere Space-Trader-Port liegt unverändert unter `legacy/classic` und ist
 packages/core     Spielregeln, Zustand, Zufall. Läuft im Server und im Offline-Modus
 packages/server   Autoritativer Server (Skelett)
 packages/client   Vite-App: Bühne (PixiJS, Shader), Audio, UI
-tools/shots       Screenshot-Durchlauf in Handy-Auflösung
+tools/shots       Screenshot-Durchläufe in Handy-Auflösung
 ```
 
 ## Entwickeln
@@ -26,6 +26,7 @@ pnpm install
 pnpm dev          # Client im Offline-Modus, http://localhost:5173
 pnpm dev:server   # Server auf Port 8787
 pnpm test         # Tests des Spielkerns
+pnpm balance      # Bot-Simulation: Wirtschaft über 14 Tage, legal und Schmuggel
 pnpm typecheck
 pnpm build        # Produktions-Build nach packages/client/dist
 ```

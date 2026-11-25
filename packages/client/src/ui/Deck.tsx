@@ -1,23 +1,112 @@
-import { CARDS, rarityRank } from '@nova/core';
+import { CARD_BY_ID, CARDS, rarityRank, ROLES, seatStat, SEATS, type BonusKey, type RoleId } from '@nova/core';
+import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { HoloCard } from './HoloCard.tsx';
-import { num } from './format.ts';
+import { BONUS_LABEL, FACTION_COLOR, num, RARITY_LABEL } from './format.ts';
 import { Shard } from './icons.tsx';
 
 const SORTED = [...CARDS].sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) || b.rating - a.rating);
+const SEAT_BONUS: Record<RoleId, BonusKey> = { pilot: 'nav', trader: 'hdl', tech: 'tec', gunner: 'kmp', smuggler: 'smg' };
+const BONUS_USE: Record<BonusKey, string> = {
+  nav: 'Flucht und Durchbruch',
+  hdl: 'Verkaufspreise und Bestechung',
+  tec: 'Scanner täuschen',
+  kmp: 'Kampf gegen Piraten',
+  smg: 'Zoll meidet dich, Scan findet weniger',
+};
+
+function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
+  const view = useApp((s) => s.view)!;
+  const send = useApp((s) => s.send);
+  const current = view.deck.seats[seat]?.cardId ?? null;
+  const seatOf = (id: string): RoleId | undefined => SEATS.find((s) => view.deck.seats[s]?.cardId === id);
+  const owned = CARDS.filter((c) => view.collection[c.id])
+    .map((c) => ({ card: c, value: Math.round(seatStat(c, seat) * (c.role === seat ? 1 : 0.75)) }))
+    .sort((a, b) => b.value - a.value);
+  const set = (cardId: string | null) => (): void => { audio.tap(); void send({ type: 'SetSeat', seat, cardId }).then(onClose); };
+
+  return (
+    <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
+      <div className="sheet sheet--trade picker" onClick={(e) => e.stopPropagation()}>
+        <span className="eyebrow">Platz besetzen</span>
+        <h3>{ROLES[seat].name}</h3>
+        <p className="trade__note">Zählt für {BONUS_LABEL[SEAT_BONUS[seat]]}: {BONUS_USE[SEAT_BONUS[seat]]}. Fremde Rollen bringen 75 % ihres Werts.</p>
+        <div className="picker__list">
+          {owned.length === 0 && <p className="trade__note">Noch keine Crew. Öffne einen Container im Hangar.</p>}
+          {owned.map(({ card, value }) => {
+            const elsewhere = seatOf(card.id);
+            return (
+              <button key={card.id} className={`pick pick--${card.rarity}${card.id === current ? ' is-current' : ''}`} style={{ ['--faction' as string]: FACTION_COLOR[card.faction] }} onClick={set(card.id)}>
+                <span className="pick__value">{value}</span>
+                <span className="pick__main">
+                  <b>{card.name}</b>
+                  <small>{ROLES[card.role].name} · {RARITY_LABEL[card.rarity]}{card.role !== seat ? ' · fremde Rolle' : ''}</small>
+                </span>
+                <span className="pick__state">{card.id === current ? 'Sitzt hier' : elsewhere ? `Wechselt von ${ROLES[elsewhere].short}` : ''}</span>
+              </button>
+            );
+          })}
+        </div>
+        {current && <button className="cta cta--ghost" onClick={set(null)}><span>Platz leeren</span></button>}
+      </div>
+    </div>
+  );
+}
 
 export function Deck() {
   const view = useApp((s) => s.view)!;
+  const send = useApp((s) => s.send);
+  const busy = useApp((s) => s.busy);
   const setInspect = useApp((s) => s.setInspect);
+  const [picking, setPicking] = useState<RoleId | null>(null);
   const owned = SORTED.filter((c) => view.collection[c.id]);
   const missing = SORTED.filter((c) => !view.collection[c.id]);
 
   return (
     <section className="deck">
       <header className="screenhead">
-        <span className="eyebrow">Sammlung · Set 1</span>
-        <h2>{owned.length}<small> / {CARDS.length} Crew</small></h2>
+        <span className="eyebrow">Brücke</span>
+        <h2>Crew</h2>
+        <span className="pill pill--chem">Chemie <b>{view.deck.chem}</b></span>
+      </header>
+
+      <div className="bridge">
+        {SEATS.map((seat) => {
+          const s = view.deck.seats[seat];
+          const card = s ? CARD_BY_ID.get(s.cardId) : undefined;
+          return (
+            <button key={seat} className={`seat${card ? ` seat--${card.rarity}` : ' seat--empty'}`} style={card ? { ['--faction' as string]: FACTION_COLOR[card.faction] } : undefined} onClick={() => { audio.tap(); setPicking(seat); }}>
+              <span className="seat__role">{ROLES[seat].short}</span>
+              {card && s ? (
+                <>
+                  <span className="seat__value">{s.value}</span>
+                  <span className="seat__name">{card.name.split(' ').slice(-1)[0]}</span>
+                  <span className="seat__links">{[0, 1, 2, 3].map((i) => <i key={i} className={i < s.links ? 'on' : ''} />)}</span>
+                  {!s.onRole && <span className="seat__off">fremd</span>}
+                </>
+              ) : <span className="seat__plus">+</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="bonuses">
+        {(Object.keys(BONUS_LABEL) as BonusKey[]).map((k) => (
+          <div key={k} className="bonus" title={BONUS_USE[k]}>
+            <span>{BONUS_LABEL[k]}</span>
+            <div className="bonus__bar"><i style={{ width: `${view.crew[k] * 100}%` }} /></div>
+            <b>{Math.round(view.crew[k] * 100)}</b>
+          </div>
+        ))}
+      </div>
+      <div className="deck__actions">
+        <button className="link" disabled={busy || owned.length === 0} onClick={() => { audio.tap(); void send({ type: 'AutoDeck' }); }}>Automatisch aufstellen</button>
+        <span>Gleiche Fraktion: +4 % pro Kollege</span>
+      </div>
+
+      <header className="screenhead screenhead--sub">
+        <h2>{owned.length}<small> / {CARDS.length} gesammelt</small></h2>
         <span className="pill pill--shards"><Shard />{num(view.wallet.shards)}</span>
       </header>
       <div className="deck__bar"><i style={{ width: `${(owned.length / CARDS.length) * 100}%` }} /></div>
@@ -27,6 +116,7 @@ export function Deck() {
         ))}
         {missing.map((c) => <HoloCard key={c.id} card={c} size="sm" locked />)}
       </div>
+      {picking && <SeatPicker seat={picking} onClose={() => setPicking(null)} />}
     </section>
   );
 }

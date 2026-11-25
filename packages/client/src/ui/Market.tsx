@@ -1,11 +1,18 @@
-import { GOOD_BY_ID, GOODS, STATION_BY_ID, type GoodId } from '@nova/core';
+import { CATEGORY_NAME, GOOD_BY_ID, GOODS, quote, STATION_BY_ID, type GoodDef, type GoodId, type MarketRow } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
-import { num } from './format.ts';
+import { num, pct } from './format.ts';
 import { Credits } from './icons.tsx';
 
-const pct = (x: number): string => `${x >= 0 ? '+' : '−'}${Math.abs(Math.round(x * 100))} %`;
+const Heat = ({ heat }: { heat: number }) => (heat > 0 ? <i className="heat" title="Heisse Fracht">{'▲'.repeat(Math.min(heat, 5))}</i> : null);
+
+function legalNote(good: GoodDef, row: MarketRow): string {
+  if (row.channel === 'fence') return 'hier verboten';
+  if (good.tier === 'outlawed') return 'fast überall verboten';
+  if (good.tier === 'sanctioned') return 'anderswo verboten';
+  return '';
+}
 
 function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }) {
   const view = useApp((s) => s.view)!;
@@ -15,11 +22,20 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
   const row = view.market.find((m) => m.goodId === goodId)!;
   const lot = view.cargo.items[goodId];
   const owned = lot?.qty ?? 0;
+  const fence = row.channel === 'fence';
+  const fenceLeft = fence ? (view.fence.closed ? 0 : view.fence.left) : Infinity;
   const free = view.cargo.cap - view.cargo.used;
-  const maxBuy = Math.max(0, Math.min(free, Math.floor(view.wallet.credits / row.buy)));
-  const [qty, setQty] = useState(() => Math.max(1, owned > 0 ? owned : Math.min(5, maxBuy)));
+
+  let maxBuy = Math.min(free, fenceLeft, 99);
+  while (maxBuy > 0 && quote(row, 'buy', maxBuy) > view.wallet.credits) maxBuy--;
+  const maxSell = Math.min(owned, fenceLeft);
+
+  const [qty, setQty] = useState(() => Math.max(1, owned > 0 ? maxSell : Math.min(5, maxBuy)));
   const step = (d: number) => (): void => { audio.tap(); setQty((q) => Math.max(1, Math.min(99, q + d))); };
-  const gain = lot ? Math.round((row.sell - lot.avgCost) * Math.min(qty, owned)) : 0;
+  const cost = quote(row, 'buy', qty);
+  const revenue = quote(row, 'sell', Math.min(qty, owned));
+  const gain = lot ? Math.round(revenue - lot.avgCost * Math.min(qty, owned)) : 0;
+  const note = legalNote(good, row);
 
   const trade = (type: 'Buy' | 'Sell') => async (): Promise<void> => {
     audio.tap();
@@ -29,19 +45,32 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
 
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
-      <div className="sheet sheet--trade" onClick={(e) => e.stopPropagation()}>
+      <div className={`sheet sheet--trade${fence ? ' sheet--fence' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="trade__head">
           <div>
-            <span className="eyebrow">{good.category}{good.contraband ? ' · Schmuggelware' : ''}</span>
+            <span className="eyebrow">{CATEGORY_NAME[good.category]}{note ? ` · ${note}` : ''}</span>
             <h3>{good.name}</h3>
           </div>
           <span className={`trade__level ${row.level < 1 ? 'is-cheap' : 'is-dear'}`}>{pct(row.level - 1)}<small>zum Mittel</small></span>
         </div>
+        {fence && (
+          <p className="trade__fence">
+            {view.fence.closed
+              ? 'Der Hehler hat dichtgemacht: Die Fahndung nach dir ist zu hoch.'
+              : `Nur über den Hehler: schlechtere Preise, nimmt heute noch ${view.fence.left} Einheiten.`}
+          </p>
+        )}
         <div className="trade__prices">
           <div><span>Kaufpreis</span><b><Credits />{num(row.buy)}</b></div>
           <div><span>Verkaufspreis</span><b><Credits />{num(row.sell)}</b></div>
-          <div><span>An Bord</span><b>{owned}{lot ? <small> zu {num(Math.round(lot.avgCost))}</small> : null}</b></div>
+          <div>
+            <span>An Bord <Heat heat={lot?.heat ?? 0} /></span>
+            <b>{owned}{lot ? <small> zu {num(Math.round(lot.avgCost))}</small> : null}</b>
+          </div>
         </div>
+        {lot && lot.heat > 0 && good.tier !== 'free' && (
+          <p className="trade__hot">Heisse Fracht: {lot.heat} {lot.heat === 1 ? 'Sprung' : 'Sprünge'} unterwegs. Der Verkaufspreis steigt, die Aufmerksamkeit des Zolls auch.</p>
+        )}
         <div className="stepper">
           <button onClick={step(-5)} aria-label="5 weniger">−5</button>
           <button onClick={step(-1)} aria-label="1 weniger">−</button>
@@ -51,60 +80,109 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
         </div>
         <div className="stepper__quick">
           <button className="link" disabled={maxBuy < 1} onClick={() => { audio.tap(); setQty(Math.max(1, maxBuy)); }}>Maximum kaufbar: {maxBuy}</button>
-          <button className="link" disabled={owned < 1} onClick={() => { audio.tap(); setQty(Math.max(1, owned)); }}>Alles an Bord: {owned}</button>
+          <button className="link" disabled={maxSell < 1} onClick={() => { audio.tap(); setQty(Math.max(1, maxSell)); }}>Verkaufbar: {maxSell}</button>
         </div>
         <div className="trade__actions">
           <button className="cta" disabled={busy || qty > maxBuy} onClick={trade('Buy')}>
             <span>Kaufen</span>
-            <small>{num(row.buy * qty)} Credits</small>
+            <small>{qty > maxBuy ? 'Nicht möglich' : `${num(cost)} · je ${num(Math.round(cost / qty))}`}</small>
           </button>
-          <button className="cta cta--gold" disabled={busy || qty > owned} onClick={trade('Sell')}>
+          <button className="cta cta--gold" disabled={busy || qty > maxSell} onClick={trade('Sell')}>
             <span>Verkaufen</span>
-            <small>{qty > owned ? 'Nicht an Bord' : `${num(row.sell * qty)} · ${gain >= 0 ? 'Gewinn' : 'Verlust'} ${num(Math.abs(gain))}`}</small>
+            <small>{qty > owned ? 'Nicht an Bord' : qty > maxSell ? 'Hehler-Limit' : `${num(revenue)} · ${gain >= 0 ? 'Gewinn' : 'Verlust'} ${num(Math.abs(gain))}`}</small>
           </button>
         </div>
+        <p className="trade__note">Grosse Mengen bewegen den Preis. Der Betrag oben gilt für die gewählte Menge.</p>
       </div>
     </div>
+  );
+}
+
+function HoldSheet({ onClose }: { onClose: () => void }) {
+  const view = useApp((s) => s.view)!;
+  const send = useApp((s) => s.send);
+  const busy = useApp((s) => s.busy);
+  const up = view.holdUpgrade;
+  return (
+    <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
+      <div className="sheet sheet--trade" onClick={(e) => e.stopPropagation()}>
+        <span className="eyebrow">Werft</span>
+        <h3>Laderaum</h3>
+        {up ? (
+          <>
+            <div className="upgrade">
+              <b>{view.cargo.cap}</b><i>→</i><b className="is-up">{up.cap}</b><span>Einheiten</span>
+            </div>
+            <button className="cta" disabled={busy || view.wallet.credits < up.cost} onClick={() => { audio.tap(); void send({ type: 'UpgradeHold' }).then(onClose); }}>
+              <span>Ausbauen <i className="price"><Credits />{num(up.cost)}</i></span>
+              <small>{view.wallet.credits < up.cost ? `Es fehlen ${num(up.cost - view.wallet.credits)} Credits` : `Ausbaustufe ${up.level}`}</small>
+            </button>
+          </>
+        ) : <p className="trade__note">Der Laderaum ist voll ausgebaut: {view.cargo.cap} Einheiten.</p>}
+      </div>
+    </div>
+  );
+}
+
+function GoodRow({ good, row, onOpen }: { good: GoodDef; row: MarketRow; onOpen: () => void }) {
+  const lot = useApp((s) => s.view!.cargo.items[good.id]);
+  const gain = lot ? row.sell - lot.avgCost : 0;
+  const note = legalNote(good, row);
+  return (
+    <button className={`good${good.tier !== 'free' ? ' good--hot' : ''}${lot ? ' good--owned' : ''}`} onClick={onOpen}>
+      <span className="good__name">
+        <b>{good.name}</b>
+        <small>{CATEGORY_NAME[good.category]}{note ? ` · ${note}` : ''}</small>
+      </span>
+      <span className={`good__level ${row.level < 0.95 ? 'is-cheap' : row.level > 1.05 ? 'is-dear' : ''}`}>{pct(row.level - 1)}</span>
+      <span className="good__price">
+        <b>{num(row.buy)}</b>
+        {lot
+          ? <small className={gain >= 0 ? 'is-up' : 'is-down'}><Heat heat={lot.heat} /> {lot.qty} an Bord · {gain >= 0 ? '+' : '−'}{num(Math.abs(Math.round(gain)))}</small>
+          : <small>Verkauf {num(row.sell)}</small>}
+      </span>
+    </button>
   );
 }
 
 export function Market() {
   const view = useApp((s) => s.view)!;
   const [open, setOpen] = useState<GoodId | null>(null);
+  const [hold, setHold] = useState(false);
   const station = STATION_BY_ID.get(view.location)!;
   const byId = new Map(view.market.map((m) => [m.goodId, m]));
+  const aboard = GOODS.filter((g) => view.cargo.items[g.id]);
+  const open_ = GOODS.filter((g) => !view.cargo.items[g.id] && byId.get(g.id)!.channel === 'open');
+  const fence = GOODS.filter((g) => !view.cargo.items[g.id] && byId.get(g.id)!.channel === 'fence');
+  const list = (goods: GoodDef[]) => goods.map((g) => (
+    <GoodRow key={g.id} good={g} row={byId.get(g.id)!} onOpen={() => { audio.tap(); setOpen(g.id); }} />
+  ));
 
   return (
     <section className="market">
       <header className="screenhead">
         <span className="eyebrow">Markt · {station.name}</span>
         <h2>Handel</h2>
-        <span className="pill">Laderaum {view.cargo.used} / {view.cargo.cap}</span>
+        <button className="pill pill--btn" onClick={() => { audio.tap(); setHold(true); }}>
+          Laderaum {view.cargo.used} / {view.cargo.cap}{view.holdUpgrade ? <i className="plus">+</i> : null}
+        </button>
       </header>
       <div className="deck__bar"><i style={{ width: `${(view.cargo.used / view.cargo.cap) * 100}%` }} /></div>
       <div className="market__list">
-        {GOODS.map((g) => {
-          const row = byId.get(g.id)!;
-          const lot = view.cargo.items[g.id];
-          const gain = lot ? row.sell - lot.avgCost : 0;
-          return (
-            <button key={g.id} className={`good${g.contraband ? ' good--hot' : ''}${lot ? ' good--owned' : ''}`} onClick={() => { audio.tap(); setOpen(g.id); }}>
-              <span className="good__name">
-                <b>{g.name}</b>
-                <small>{g.category}{g.contraband ? ' · illegal' : ''}</small>
-              </span>
-              <span className={`good__level ${row.level < 0.95 ? 'is-cheap' : row.level > 1.05 ? 'is-dear' : ''}`}>{pct(row.level - 1)}</span>
-              <span className="good__price">
-                <b>{num(row.buy)}</b>
-                {lot
-                  ? <small className={gain >= 0 ? 'is-up' : 'is-down'}>{lot.qty} an Bord · {gain >= 0 ? '+' : '−'}{num(Math.abs(Math.round(gain)))}</small>
-                  : <small>Verkauf {num(row.sell)}</small>}
-              </span>
-            </button>
-          );
-        })}
+        {aboard.length > 0 && <h4 className="market__section">An Bord</h4>}
+        {list(aboard)}
+        <h4 className="market__section">Offener Markt</h4>
+        {list(open_)}
+        {fence.length > 0 && (
+          <h4 className="market__section market__section--fence">
+            Schwarzmarkt
+            <span>{view.fence.closed ? 'Hehler hat dichtgemacht' : `Hehler nimmt noch ${view.fence.left} von ${view.fence.cap}`}</span>
+          </h4>
+        )}
+        {list(fence)}
       </div>
       {open && <TradeSheet goodId={open} onClose={() => setOpen(null)} />}
+      {hold && <HoldSheet onClose={() => setHold(false)} />}
     </section>
   );
 }

@@ -1,14 +1,13 @@
-import { FACTIONS, GOOD_BY_ID, STATION_BY_ID } from '@nova/core';
+import { CATEGORY_NAME, FACTIONS, GOOD_BY_ID, STATION_BY_ID } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { countdown, FACTION_COLOR } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFuel } from './icons.tsx';
 
-const Risk = ({ label, level }: { label: string; level: number }) => (
-  <span className={`risk risk--${level}`}>
-    {label}
-    <span className="risk__pips">{[0, 1, 2].map((i) => <i key={i} className={i < level ? 'on' : ''} />)}</span>
+const Risk = ({ label, chance }: { label: string; chance: number }) => (
+  <span className={`risk risk--${chance >= 0.4 ? 3 : chance >= 0.2 ? 2 : chance > 0 ? 1 : 0}`}>
+    {label} <b>{Math.round(chance * 100)} %</b>
   </span>
 );
 
@@ -35,7 +34,7 @@ export function RouteSheet() {
           return (
             <button
               key={r.stationId}
-              className="route"
+              className={`route${r.event ? ' route--event' : ''}`}
               style={{ ['--faction' as string]: FACTION_COLOR[st.faction], animationDelay: `${i * 70}ms` }}
               disabled={busy || empty}
               onClick={() => { audio.tap(); void send({ type: 'Jump', to: r.stationId }); }}
@@ -47,18 +46,24 @@ export function RouteSheet() {
                 </span>
                 <span className="route__go">Sprung<small>{r.fuel} Treibstoff</small></span>
               </span>
+              {r.event && (
+                <span className="route__event">
+                  Knappheit: {CATEGORY_NAME[r.event.category]} +{Math.round((r.event.mult - 1) * 100)} % · noch {r.event.jumpsLeft} {r.event.jumpsLeft === 1 ? 'Sprung' : 'Sprünge'}
+                </span>
+              )}
               <span className="route__risks">
-                <Risk label="Zoll" level={r.customs} />
-                <Risk label="Piraten" level={r.pirates} />
+                <Risk label="Zoll" chance={r.customsChance} />
+                <Risk label="Piraten" chance={r.piratesChance} />
+                {r.wanted > 0 && <span className="risk risk--3">Fahndung <b>{'★'.repeat(r.wanted)}</b></span>}
               </span>
               <span className="route__hints">
-                {r.hints.length === 0 && <i className="hint">Keine lohnende Ware von hier</i>}
+                {r.hints.length === 0 && <i className="hint hint--none">Keine lohnende Ware von hier</i>}
                 {r.hints.map((h) => {
                   const good = GOOD_BY_ID.get(h.goodId)!;
                   const aboard = (view.cargo.items[h.goodId]?.qty ?? 0) > 0;
                   return (
-                    <i key={h.goodId} className={`hint${aboard ? ' hint--aboard' : ''}${good.contraband ? ' hint--hot' : ''}`}>
-                      {good.name} +{Math.round(h.pct * 100)} %
+                    <i key={h.goodId} className={`hint${aboard ? ' hint--aboard' : ''}${h.fence ? ' hint--hot' : ''}`}>
+                      {good.name} +{Math.round(h.pct * 100)} %{h.fence ? ' · Hehler' : ''}
                     </i>
                   );
                 })}
@@ -69,7 +74,7 @@ export function RouteSheet() {
         <p className="routes__note">
           {empty && view.fuel.nextAt
             ? `Tank leer. Nächste Einheit in ${countdown(view.fuel.nextAt - now)}. Ein Stufenaufstieg füllt den Tank.`
-            : 'Aufschläge gelten für Ware, die du hier kaufst. Preise bewegen sich während des Sprungs.'}
+            : 'Gewinn für 10 Einheiten, hier gekauft und dort verkauft. Preise bewegen sich während des Sprungs.'}
         </p>
       </div>
     </div>

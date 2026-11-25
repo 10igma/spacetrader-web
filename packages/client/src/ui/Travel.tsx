@@ -17,9 +17,9 @@ const OPTION: Record<EncounterChoice, { label: string; stat?: 'nav' | 'hdl' | 't
   fight: { label: 'Kämpfen', stat: 'kmp', note: () => 'Sieg bringt Beute. Niederlage kostet 40 % der Fracht' },
   flee: { label: 'Fliehen', stat: 'nav', note: () => 'Misslingt es, gehen 25 % der Fracht verloren' },
   pay: { label: 'Tribut zahlen', note: () => 'Sie lassen dich ziehen' },
-  submit: { label: 'Kontrollieren lassen', stat: 'tec', note: (hot) => (hot ? 'Wird Schmuggelware gefunden: beschlagnahmt, dazu Busse' : 'Deine Fracht ist sauber') },
+  submit: { label: 'Kontrollieren lassen', stat: 'tec', note: (hot) => (hot ? 'Wird verbotene Ware gefunden: beschlagnahmt, Busse, Fahndung' : 'Deine Fracht ist hier legal') },
   bribe: { label: 'Bestechen', stat: 'hdl', note: () => 'Geld ist in jedem Fall weg' },
-  breakThrough: { label: 'Durchbrechen', stat: 'nav', note: () => 'Scheitert es, wird alles durchsucht' },
+  breakThrough: { label: 'Durchbrechen', stat: 'nav', note: () => 'Bringt immer Fahndung. Scheitert es, wird alles durchsucht' },
 };
 
 const OUTCOME_TEXT: Record<EncounterChoice, [string, string]> = {
@@ -110,7 +110,7 @@ export function Travel({ travel }: { travel: TravelState }) {
           <p>
             {encounter.kind === 'pirates'
               ? 'Ein Jäger hängt an deinem Heck und verlangt die Fracht.'
-              : encounter.hasContraband ? 'Ein Kreuzer befiehlt den Stopp. Du hast Schmuggelware an Bord.' : 'Ein Kreuzer befiehlt den Stopp. Routinekontrolle.'}
+              : encounter.hasContraband ? `Ein Kreuzer befiehlt den Stopp. Du hast Ware an Bord, die im ${FACTIONS[dest.faction].name} verboten ist.` : 'Ein Kreuzer befiehlt den Stopp. Routinekontrolle.'}
           </p>
           <div className="enc__options">
             {encounter.options.map((o) => {
@@ -146,7 +146,8 @@ export function Travel({ travel }: { travel: TravelState }) {
             {(Object.entries(travel.outcome.lost) as [GoodId, number][]).map(([id, qty]) => (
               <li key={id} className="is-down">−{qty} {GOOD_BY_ID.get(id)!.name}</li>
             ))}
-            {travel.outcome.creditsDelta === 0 && Object.keys(travel.outcome.lost).length === 0 && <li>Fracht und Kasse unberührt</li>}
+            {travel.outcome.wantedDelta > 0 && <li className="is-down">Fahndung +{travel.outcome.wantedDelta} · {FACTIONS[dest.faction].short}</li>}
+            {travel.outcome.creditsDelta === 0 && Object.keys(travel.outcome.lost).length === 0 && travel.outcome.wantedDelta === 0 && <li>Fracht und Kasse unberührt</li>}
           </ul>
         </div>
       )}
@@ -161,7 +162,7 @@ export function Travel({ travel }: { travel: TravelState }) {
           <span className="eyebrow">{FACTIONS[dest.faction].name} · {dest.tagline}</span>
           <h2>{dest.name}</h2>
           <div className="arrive__line" />
-          <span className="arrive__sub">Andocken</span>
+          <span className="arrive__sub">Andocken{travel.courier > 0 ? ` · Kurierpost +${num(travel.courier)}` : ''}</span>
         </div>
       )}
     </div>

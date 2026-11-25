@@ -1,7 +1,7 @@
-import { FACTIONS, GOOD_BY_ID, STATION_BY_ID } from '@nova/core';
+import { CATEGORY_NAME, FACTIONS, GOOD_BY_ID, STATION_BY_ID } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
-import { countdown, FACTION_COLOR } from './format.ts';
+import { countdown, FACTION_COLOR, num } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFuel, IconHangar, IconMarket } from './icons.tsx';
 
@@ -11,6 +11,9 @@ export function Hub() {
   const view = useApp((s) => s.view)!;
   const setTab = useApp((s) => s.setTab);
   const openRoutes = useApp((s) => s.setRoutesOpen);
+  const send = useApp((s) => s.send);
+  const stars = view.wanted[STATION_BY_ID.get(view.location)!.faction];
+  const news = view.event && view.event.stationId !== view.location ? view.event : null;
   const now = useServerNow();
   const station = STATION_BY_ID.get(view.location)!;
   const freeIn = view.crates.nextFreeAt - now;
@@ -28,7 +31,18 @@ export function Hub() {
         <div className="chips">
           <span className={`chip ${station.customs >= 2 ? 'chip--hot' : 'chip--ok'}`}>{CUSTOMS[station.customs]}</span>
           <span className="chip chip--hot">{GOOD_BY_ID.get(wanted.goodId)!.name} gefragt</span>
+          {stars > 0 && view.payOff !== null && (
+            <button className="chip chip--wanted" onClick={() => { audio.tap(); void send({ type: 'PayOff' }); }}>
+              Fahndung {'★'.repeat(stars)} · Freikaufen {num(view.payOff)}
+            </button>
+          )}
         </div>
+        {news && (
+          <p className="news">
+            <b>Eilmeldung</b>
+            Knappheit an {CATEGORY_NAME[news.category]} auf {STATION_BY_ID.get(news.stationId)!.name}: Preise +{Math.round((news.mult - 1) * 100)} %, noch {news.jumpsLeft} {news.jumpsLeft === 1 ? 'Sprung' : 'Sprünge'}.
+          </p>
+        )}
       </header>
 
       <div className="ticker" aria-hidden="true">

@@ -34,6 +34,10 @@ export const FACTION_COLOR: Record<FactionId, string> = {
   zenit: '#a9bfff',
 };
 
+export const BONUS_LABEL = { nav: 'NAV', hdl: 'HDL', tec: 'TEC', kmp: 'KMP', smg: 'TARN' } as const;
+
+export const pct = (x: number): string => `${x >= 0 ? '+' : '−'}${Math.abs(Math.round(x * 100))} %`;
+
 export function hashString(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
