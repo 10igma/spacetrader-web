@@ -4,7 +4,7 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 
 ## Stand (25.11.2026)
 
-**Phase 0 bis 3 sind umgesetzt, bis auf Konvoi-Missionen. Aus Phase 4 steht der simulierte Teil:** Saison-Charter mit Gratis- und Premium-Spur, Wochenliga mit Auf- und Abstieg gegen simulierte Rivalen, das Wochenend-Event Blockade-Lauf und der Rückkehr-Bonus. Aus Phase 3 spielbar: grosses Kartenset mit Aufwertung und Schmieden, Container-Stufen mit Slots und Timern, Sammelalben, Tagesaufträge, Login-Kalender, Handelsserie, Handelsposten mit Offline-Ertrag, Glücksrad, Tages-Shop, Manifeste, Bergungs-Auktion und das Auktionshaus.
+**Phase 0 bis 3 sind umgesetzt, inklusive Konvoi-Missionen. Neu dazu: die Werft mit sechs Schiffen und sechs Modulen als Geldsenke. Aus Phase 4 steht der simulierte Teil:** Saison-Charter mit Gratis- und Premium-Spur, Wochenliga mit Auf- und Abstieg gegen simulierte Rivalen, das Wochenend-Event Blockade-Lauf und der Rückkehr-Bonus. Aus Phase 3 spielbar: grosses Kartenset mit Aufwertung und Schmieden, Container-Stufen mit Slots und Timern, Sammelalben, Tagesaufträge, Login-Kalender, Handelsserie, Handelsposten mit Offline-Ertrag, Glücksrad, Tages-Shop, Manifeste, Bergungs-Auktion und das Auktionshaus.
 
 | Baustein | Stand | Geprüft durch |
 |---|---|---|
@@ -28,34 +28,41 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Wochenliga: 30er-Tabelle, 5 Ligen von Bronze bis Diamant, Platz 1 bis 7 steigt auf, 26 bis 30 steigt ab. Wertung ist der Handelsgewinn der Woche | fertig | Tests: Rivalen hängen nie vom Spieler ab, Punkte fallen nie, Endstand ist reproduzierbar, ungespielte Wochen zählen nicht |
 | Wochenend-Event Blockade-Lauf (Samstag und Sonntag): mehr Zoll, bessere Hehlerpreise, Meilensteine mit Belohnungen | fertig | Tests: wirkt nur am Wochenende, Meilensteine der Reihe nach, neue Woche setzt zurück |
 | Rückkehr-Bonus nach 3 Tagen Pause: Credits nach Stufe, Quanten, Container, voller Tank | fertig | Tests |
+| Werft: sechs Schiffe von 45'000 bis 2.8 Millionen Credits mit Stufengrenze. Sie bringen Laderaum, Tank, Modulplätze und Boni auf Kampf, Flucht und Scan | fertig | Tests: Kauf, Wechsel nur mit passender Fracht, angezeigte Chancen sind die gewürfelten |
+| Module in drei Stufen: Schildgitter, Nachbrenner, Signalstörer, Frachtgondeln, Fusionslader, Schmuggelfach. Sie wirken nur eingebaut | fertig | Tests: Preise, Plätze, Schmuggelfach rettet die wertvollsten Einheiten durch einen Scan |
+| Konvois: Reserve-Crew fliegt Aufträge von 1, 4 und 8 Stunden. Vier Aufträge pro Tag, zwei gleichzeitig, Sofort-Rückkehr gegen Quanten | fertig | Tests: Erfolg tritt so oft ein wie angezeigt (1'500 Würfe), Karten gehen nie verloren, Crew im Konvoi kann nicht auf die Brücke |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
-| Bot-Simulation | fertig | Zwei Spielertypen, je 16 Spieler über 42 Tage, dazu Leitplanken-Test |
-| Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus |
-| Bühne, UI, Musik und Effekte | fertig | Sieben automatische Durchläufe ohne Konsolenfehler |
+| Bot-Simulation | fertig | Zwei Spielertypen, je 12 Spieler über 60 Tage, dazu Leitplanken-Test |
+| Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus und 16 gegen Werft und Konvois |
+| Bühne, UI, Musik und Effekte | fertig | Acht automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
-Median von je 16 simulierten Spielern, drei Sessions pro Tag, 30 Tage:
+Median von je 12 simulierten Spielern, drei Sessions pro Tag, 60 Tage:
 
-| | Tag 1 | Tag 7 | Tag 14 | Tag 30 |
-|---|---|---|---|---|
-| Sprünge kumuliert | 27 | 132 | 246 | 499 |
-| Stufe | 5 | 10 | 13 | 17 |
-| Gewinn pro Sprung legal | 1'800 | 4'100 | 5'300 | 6'400 |
-| Gewinn pro Sprung Schmuggel | 1'900 | 5'800 | 7'400 | 8'900 |
-| Vermögen legal | 21'000 | 136'000 | 303'000 | 702'000 |
-| Karten von 130 | 14 | 98 | 123 | 127 |
-| Legenden von 10 (Durchschnitt) | 0.0 | 1.1 | 3.3 | 6.9 |
-| Container geöffnet | 3 | 40 | 93 | 225 |
-| Beschlagnahmungen Schmuggel | 0.7 | 5.9 | 11.3 | 23.4 |
+| | Tag 1 | Tag 7 | Tag 14 | Tag 30 | Tag 60 |
+|---|---|---|---|---|---|
+| Sprünge kumuliert | 26 | 125 | 256 | 558 | 1'127 |
+| Stufe | 5 | 10 | 14 | 19 | 24 |
+| Gewinn pro Sprung legal | 1'500 | 4'400 | 5'700 | 6'600 | 7'600 |
+| Gewinn pro Sprung Schmuggel | 1'900 | 6'300 | 8'000 | 9'900 | 11'200 |
+| Vermögen legal | 16'000 | 100'000 | 217'000 | 654'000 | 1'620'000 |
+| Schiff | Sperling | Kormoran | Nachtfalter | Basilisk | Leviathan |
+| Modul-Stufen von 18 | 0 | 7 | 12 | 18 | 18 |
+| Karten von 130 | 12 | 98 | 122 | 127 | 130 |
+| Legenden von 10 (Durchschnitt) | 0.0 | 0.8 | 2.8 | 6.8 | 9.8 |
+| Container geöffnet | 3 | 38 | 89 | 210 | 440 |
+| Beschlagnahmungen Schmuggel | 0.8 | 4.8 | 10.0 | 18.6 | 36.3 |
 
-- **Erste Legende:** Median Tag 6 bis 7, schnellstes Zehntel Tag 3, langsamstes Tag 10. Ziel war Tag 5 bis 10.
-- **Erstes volles Album:** Median Tag 20 bis 21 (vor Phase 4: Tag 24 bis 28). Charter, Liga und Event bringen rund 17 zusätzliche Container in 30 Tagen. Ziel war um Tag 30, siehe Offen.
-- **Energie:** erster Tag grosszügig (27 Sprünge), danach rund 16 bis 17 pro Tag.
-- **Auktionshaus:** rund 2 Gebote und 5 eigene Angebote pro Spieler und Tag.
-- **Charter:** Wer dreimal täglich spielt, steht an Tag 7 auf Stufe 9, an Tag 14 auf Stufe 19 und schliesst die 40 Stufen um Tag 30 von 42 ab. Die Premium-Spur leisten sich die Bots im Median an Tag 9 aus erspielten Quanten.
-- **Liga:** Aufstieg bis Gold in zwei Wochen, danach wird es eng: Platin im Median nach vier Wochen.
+- **Werft:** Kormoran in der ersten Woche, Lanze und Nachtfalter in der zweiten, Basilisk um Tag 30, Leviathan zwischen Tag 45 und 55. Alle Module sind um Tag 30 auf Stufe 3. Schiffe und Module binden zusammen rund 6 Millionen Credits.
+- **Konvois:** rund 4 pro Spieler und Tag, 87 Prozent erfolgreich. Die Anforderung wächst mit der Stufe des Kapitäns, damit lange Aufträge ein Risiko bleiben und Splitter für die Reserve einen Sinn haben.
+- **Erste Legende:** Median Tag 6 bis 7, schnellstes Zehntel Tag 4, langsamstes Tag 9. Ziel war Tag 5 bis 10.
+- **Erstes volles Album:** Median Tag 17 bis 23 je nach Lauf (vor Phase 4: Tag 24 bis 28). Ziel war um Tag 30, siehe Offen.
+- **Energie:** erster Tag grosszügig (26 Sprünge), danach rund 16 pro Tag, mit grösserem Tank und Fusionslader rund 19.
+- **Auktionshaus:** rund 1 bis 2 Gebote und 5 eigene Angebote pro Spieler und Tag.
+- **Charter:** Wer dreimal täglich spielt, steht an Tag 7 auf Stufe 8, an Tag 14 auf Stufe 19 und schliesst die 40 Stufen vor Tag 30 von 42 ab. Eine Stufe braucht jetzt 1'800 statt 1'500 Erfahrung, weil Konvois zusätzliche Erfahrung bringen. Die Premium-Spur leisten sich die Bots im Median an Tag 9 aus erspielten Quanten.
+- **Liga:** Aufstieg bis Gold in zwei Wochen, Platin nach drei bis vier.
 
 Was die Simulation unterwegs aufgedeckt hat:
 
@@ -64,23 +71,26 @@ Was die Simulation unterwegs aufgedeckt hat:
 3. **Nebeneffekt:** Die steigenden Container-Preise binden überschüssige Credits. Das Vermögen an Tag 30 fiel von 1.7 Millionen auf rund 530'000.
 4. **Mit Shop, Manifesten und Auktionshaus** kam das erste Album wieder zu früh (Tag 15 bis 20). Höhere Schmiedekosten änderten nichts. Der Treiber war die schiere Menge an Containern (rund 7 pro Tag). Gelöst über die Legenden-Quote: 0.5 statt 0.8 Prozent pro Karte im Standard-Container, weniger Legenden in Auktionen und im Shop.
 5. **Der Leitplanken-Test** hat einen Fehler in den Bots gefunden: Sie gaben ein zweites Manifest ab, nachdem das erste dieselben Duplikate verbraucht hatte. Die Regeln haben es korrekt abgelehnt.
+6. **Erste Fassung der Konvois:** 100 Prozent Erfolg, weil eine breite Sammlung jede Anforderung mühelos erfüllte. Jetzt wächst die Anforderung mit der Stufe.
+7. **Erste Fassung der Werft:** Der Leviathan war nach sechs Wochen gekauft. Die beiden grossen Schiffe und die dritte Modulstufe kosten jetzt deutlich mehr.
 
 Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lassen Tage aus und kommen langsamer voran, finden dafür bessere Routen. Die Zahlen sind eine Planungsgrundlage und kein Ersatz für Messung an Menschen.
 
 **Nicht geprüft, weil hier nicht prüfbar:** wie Musik und Effekte klingen, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
 
 **Offen:**
-- **Rest von Phase 3:** Konvoi-Missionen (Reserve-Crew auf Zeit losschicken).
 - **Auktionshaus und Liga sind simuliert.** Gegenbieter, Käufer und Liga-Rivalen sind Zufallsgrössen mit festen Grenzen, keine echten Spieler. Die Liga sagt das auf dem Bildschirm. Echte Mitspieler brauchen Konten, Datenbank und Schutz gegen Absprachen (zweiter Teil von Phase 4).
 - **Rest von Phase 4:** Sonderkarten der Saison, Ticker, Schaukasten und Kosmetik, Prestige, Telemetrie. Die Saison wechselt bisher nur Name und Charter, noch keine Karten-Edition.
 - **Premium-Charter ist für fleissige Spieler gratis.** 500 Quanten sind nach gut einer Woche erspielt. Das ist gewollt, solange es kein Echtgeld gibt, muss aber vor Phase 6 neu gerechnet werden.
 - **Sammeltempo.** Das erste Album kommt mit Phase 4 rund eine Woche früher als geplant. Sobald Saison-Karten das Set vergrössern, verschiebt sich das wieder. Bis dahin lasse ich die Quoten stehen.
-- **Zu viel Geld im Spätspiel.** 700'000 Credits an Tag 30, und der Verkauf von Duplikaten verstärkt das. Schiffe und Module als nächste Senke.
+- **Geld im Spätspiel.** Die Werft bindet das Geld bis etwa Tag 50. Danach sammelt es sich wieder an (Schmuggler: 3 Millionen an Tag 60). Für die Zeit danach braucht es Saison-Inhalte, Kosmetik oder Prestige.
+- **Vermögen der Bots täuscht.** Sie sparen stur auf das nächste Schiff und kaufen dann nur zwei Container pro Tag. Echte Spieler verteilen ihr Geld anders.
+- **Schiffe sind Umrisse.** Die sechs Schiffe haben einfache Vektor-Silhouetten, keine gemalte Kunst, und fliegen noch nicht sichtbar durch die Warp-Szene.
 - **Kartenkunst.** Die 10 höchsten Karten sind gemalt, 120 zeigen Helme. Vorgehen in Dokument 04.
 - **Legenden-Tempo.** 7 von 10 nach 30 Tagen passt nur zu Saisons von sechs Wochen mit neuen Karten. Die Saison-Edition fehlt noch.
 - **Tages- und Wochengrenze.** Mitternacht und Montag nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
 - **Push-Nachrichten fehlen.** Serie in Gefahr und volle Lager wirken erst mit Erinnerung richtig (Phase 5).
-- **Aus Phase 2:** Lizenzen, Verstecke, gefälschte Papiere, Veredelung, Versicherung.
+- **Aus Phase 2:** Lizenzen, gefälschte Papiere, Veredelung, Versicherung. Verstecke gibt es jetzt als Modul Schmuggelfach.
 - **Speicherstand.** Im Offline-Modus lokal, bei Regeländerungen wird er verworfen. Der Server hält Sitzungen nur im Arbeitsspeicher.
 
 ## Prinzipien
@@ -234,8 +244,8 @@ Hier kommt der grösste Teil des Katalogs.
 
 Zur Wahl stehen drei Stränge. Meine Empfehlung ist die Reihenfolge, in der sie hier stehen:
 
-1. **Senken und Tiefe:** Schiffe und Module (bindet das viele Geld im Spätspiel), dazu Konvoi-Missionen und der Rest aus Phase 2 (Lizenzen, Verstecke, gefälschte Papiere, Veredelung, Versicherung).
-2. **Saison-Inhalt:** Sonderkarten pro Saison, Ticker, Schaukasten und Kosmetik, Prestige.
-3. **Phase 5:** Capacitor-Hülle, Push-Nachrichten, Haptik, Test auf echten Geräten.
+1. **Saison-Inhalt:** Sonderkarten pro Saison (nach 60 Tagen ist das Set komplett), Ticker, Schaukasten und Kosmetik, Prestige.
+2. **Phase 5:** Capacitor-Hülle, Push-Nachrichten (Konvoi zurück, Serie in Gefahr, Lager voll), Haptik, Test auf echten Geräten.
+3. **Rest aus Phase 2:** Lizenzen, gefälschte Papiere, Veredelung, Versicherung.
 
-Unabhängig davon lohnt sich jetzt ein Test auf dem Handy: Phase 3 und 4 zusammen sind die Schleife, die Spieler zurückholen soll.
+Unabhängig davon lohnt sich jetzt ein Test auf dem Handy: Die Schleife aus Handel, Sammeln, Werft, Konvois, Saison und Liga ist vollständig.

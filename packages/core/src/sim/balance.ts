@@ -42,6 +42,9 @@ for (const policy of ['legal', 'smuggler'] as Policy[]) {
   console.log(`Liga-Stufe (0 Bronze bis 4 Diamant) Median: Tag 7: ${q(at(7).map((s) => s.league), 0.5)}, Tag 14: ${q(at(14).map((s) => s.league), 0.5)}, Tag 21: ${q(at(21).map((s) => s.league), 0.5)}, Tag 30: ${q(at(30).map((s) => s.league), 0.5)}`);
   const bought = runs.map((r) => r.find((s) => s.charterPremium)?.day ?? Infinity);
   console.log(`Charter-Stufe Median: Tag 7: ${q(at(7).map((s) => s.charter), 0.5)}, Tag 14: ${q(at(14).map((s) => s.charter), 0.5)}, Tag 30: ${q(at(30).map((s) => s.charter), 0.5)} von 40. Premium gekauft: Median ${dayText(q(bought, 0.5), days)}`);
+  console.log(`Schiff (0 Sperling bis 5 Leviathan) Median: Tag 7: ${q(at(7).map((s) => s.ship), 0.5)}, Tag 14: ${q(at(14).map((s) => s.ship), 0.5)}, Tag 21: ${q(at(21).map((s) => s.ship), 0.5)}, Tag 30: ${q(at(30).map((s) => s.ship), 0.5)}, Tag ${days}: ${q(at(days).map((s) => s.ship), 0.5)}. Modul-Stufen von 18: Tag 7: ${q(at(7).map((s) => s.modules), 0.5)}, Tag 14: ${q(at(14).map((s) => s.modules), 0.5)}, Tag 30: ${q(at(30).map((s) => s.modules), 0.5)}, Tag ${days}: ${q(at(days).map((s) => s.modules), 0.5)}`);
+  const back = (log['convoy:ok'] ?? 0) + (log['convoy:fail'] ?? 0);
+  console.log(`Konvois: ${back} zurück (${(back / runs.length / days).toFixed(1)} pro Spieler und Tag), davon ${back ? Math.round(((log['convoy:ok'] ?? 0) / back) * 100) : 0} % erfolgreich`);
   console.log(`Auktionen: ${log.BidPlaced ?? 0} Gebote, ${log.CardListed ?? 0} eigene Angebote`);
   console.log(`Verlorene Container (Hangar voll): ${log.CrateLost ?? 0} bei ${log.CrateEarned ?? 0} verdienten`);
   const broke = runs.filter((r) => r[days - 1]!.worth < 500).length;

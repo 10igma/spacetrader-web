@@ -1,4 +1,4 @@
-import { CATEGORY_NAME, FACTIONS, GOOD_BY_ID, STATION_BY_ID } from '@nova/core';
+import { CATEGORY_NAME, FACTIONS, GOOD_BY_ID, SHIP_BY_ID, STATION_BY_ID } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { countdown, FACTION_COLOR, num } from './format.ts';
@@ -10,6 +10,7 @@ const CUSTOMS = ['Kein Zoll', 'Zoll lax', 'Zoll wachsam', 'Zoll streng'];
 export function Hub() {
   const view = useApp((s) => s.view)!;
   const setTab = useApp((s) => s.setTab);
+  const setHangarMode = useApp((s) => s.setHangarMode);
   const openRoutes = useApp((s) => s.setRoutesOpen);
   const send = useApp((s) => s.send);
   const setSheet = useApp((s) => s.setSheet);
@@ -31,6 +32,9 @@ export function Hub() {
         <div className="chips">
           <span className={`chip ${station.customs >= 2 ? 'chip--hot' : 'chip--ok'}`}>{CUSTOMS[station.customs]}</span>
           <span className="chip chip--hot">{GOOD_BY_ID.get(wanted.goodId)!.name} gefragt</span>
+          <button className="chip chip--ship" onClick={() => { audio.tap(); setHangarMode('yard'); setTab('hangar'); }}>
+            {SHIP_BY_ID.get(view.fleet.active)!.name} · Werft
+          </button>
           {view.weekend.active && (
             <button className="chip chip--event" onClick={() => { audio.tap(); setTab('daily'); }}>
               Blockade-Lauf · {view.weekend.points} Punkte

@@ -13,6 +13,10 @@ import {
   type AlbumView, type CrateTier, type Manifest, type Mission, type Offer, type Post, type Reward, type SalvageKind, type SalvageLot,
   type Slot, type StreakState, type StreakStatus,
 } from './meta.ts';
+import {
+  convoyChance, convoyPayout, MODULE_BY_ID, MODULE_MAX, newFleet, rigOf, rollConvoys, SHIP_BY_ID,
+  type Convoy, type ConvoyOffer, type FleetState, type ModuleId, type Rig, type ShipId,
+} from './fleet.ts';
 import { nextFloat, pick, seedRng, type RngState } from './rng.ts';
 import {
   charterReward, charterTier, leagueMove, leagueReward, seasonEndsAt, seasonIndex, seasonName, standings, weekEndsAt,
@@ -27,7 +31,7 @@ import {
 // State
 // ---------------------------------------------------------------------------
 
-export const STATE_VERSION = 8;
+export const STATE_VERSION = 9;
 
 export type EncounterKind = 'pirates' | 'customs';
 export type EncounterChoice = 'fight' | 'flee' | 'pay' | 'submit' | 'bribe' | 'breakThrough';
@@ -42,7 +46,7 @@ export interface MarketEvent { stationId: StationId; category: Category; mult: n
 export interface GameState {
   version: typeof STATE_VERSION;
   createdAt: number;
-  rng: { crate: RngState; market: RngState; travel: RngState; daily: RngState; auction: RngState };
+  rng: { crate: RngState; market: RngState; travel: RngState; daily: RngState; auction: RngState; convoy: RngState };
   profile: { level: number; xp: number };
   wallet: { credits: number; quanta: number; shards: number };
   fuel: { amount: number; updatedAt: number };
@@ -56,8 +60,12 @@ export interface GameState {
   deck: Record<RoleId, string | null>;
   daily: {
     day: number; missions: Mission[]; chestClaimed: boolean; bought: Record<CrateTier, number>;
-    offers: Offer[]; manifests: Manifest[]; wheelSpun: boolean;
+    offers: Offer[]; manifests: Manifest[]; wheelSpun: boolean; convoys: ConvoyOffer[];
   };
+  /** Ships, modules and what is built into the active ship. */
+  fleet: FleetState;
+  /** Convoys on their way. Their crew cannot sit on the bridge. */
+  convoys: Convoy[];
   /** Auction house: the secret seed behind all lots, open bids (lot key to limit, held in escrow), and own listings. */
   auction: { seed: string; bids: Record<string, number>; bought: string[]; listings: Listing[]; results: AuctionResult[] };
   /** Current season: charter progress. Resets when a new season starts. */
@@ -234,6 +242,14 @@ export interface ClientView {
     claimable: number;
   };
   comeback: Reward | null;
+  fleet: { active: ShipId; owned: ShipId[]; modules: Partial<Record<ModuleId, number>>; fitted: ModuleId[]; rig: Rig };
+  convoys: {
+    slots: number; crew: number;
+    running: (Convoy & { done: boolean; rushCost: number })[];
+    offers: ConvoyOffer[];
+    /** Cards that are away and cannot take a seat. */
+    busy: string[];
+  };
   salvage: (SalvageLot & { outcomes: { kind: SalvageKind; weight: number; credits: number; shards: number }[] }) | null;
   calendar: { step: number; claimable: boolean; rewards: readonly Reward[] };
   streak: { count: number; best: number; bonus: number; status: StreakStatus; freezes: number; maxFreezes: number; freezePrice: number; endsAt: number };
@@ -265,6 +281,14 @@ export interface ClientView {
 
 export type Command =
   | { type: 'ClaimFreeCrate' }
+  | { type: 'BuyShip'; ship: ShipId }
+  | { type: 'SelectShip'; ship: ShipId }
+  | { type: 'BuyModule'; module: ModuleId }
+  | { type: 'FitModule'; module: ModuleId }
+  | { type: 'UnfitModule'; module: ModuleId }
+  | { type: 'SendConvoy'; offer: number; cards: string[] }
+  | { type: 'ClaimConvoy'; slot: number }
+  | { type: 'RushConvoy'; slot: number }
   | { type: 'BuyCrate'; tier: CrateTier }
   | { type: 'StartUnlock'; slot: number }
   | { type: 'OpenSlot'; slot: number }
@@ -317,7 +341,8 @@ export type RejectReason =
   | 'fence_limit' | 'fence_closed' | 'card_not_owned' | 'not_wanted' | 'max_level'
   | 'no_such_slot' | 'slot_busy' | 'slot_not_ready' | 'not_enough_quanta' | 'not_enough_shards' | 'not_claimable'
   | 'daily_limit' | 'already_owned'
-  | 'no_such_lot' | 'bid_too_low' | 'too_many_bids' | 'too_many_listings' | 'no_spare_copy';
+  | 'no_such_lot' | 'bid_too_low' | 'too_many_bids' | 'too_many_listings' | 'no_spare_copy'
+  | 'level_too_low' | 'not_owned' | 'no_free_slot' | 'card_busy' | 'invalid_team' | 'no_such_contract';
 
 export type GameEvent =
   | { type: 'CrateOpened'; source: 'free' | 'bought' | 'slot'; tier: CrateTier; pulls: Pull[] }
@@ -337,6 +362,12 @@ export type GameEvent =
   | { type: 'CardListed'; cardId: string }
   | { type: 'CharterClaimed'; rewards: number; total: Reward; crates: number }
   | { type: 'CharterBought' }
+  | { type: 'ShipBought'; ship: ShipId }
+  | { type: 'ShipSelected'; ship: ShipId }
+  | { type: 'ModuleBought'; module: ModuleId; level: number }
+  | { type: 'ModulesChanged' }
+  | { type: 'ConvoySent'; hours: number; chance: number }
+  | { type: 'ConvoyReturned'; success: boolean; reward: Reward; xp: number }
   | { type: 'LeagueClaimed'; rank: number; moved: -1 | 0 | 1; tier: number }
   | { type: 'StreakChanged'; count: number; kind: 'started' | 'extended' | 'saved' | 'lost'; previous: number }
   | { type: 'Bought'; goodId: GoodId; qty: number; cost: number }
@@ -349,6 +380,8 @@ export type GameEvent =
     choice: EncounterChoice;
     success: boolean;
     creditsDelta: number;
+    /** Units the smuggling stash kept out of sight. */
+    hidden: number;
     lost: Partial<Record<GoodId, number>>;
     /** Stars gained with the destination's faction. */
     wantedDelta: number;
@@ -371,7 +404,7 @@ export function createInitialState(seed: string, now: number): GameState {
   const state: GameState = {
     version: STATE_VERSION,
     createdAt: now,
-    rng: { crate: seedRng(`${seed}:crate`), market: seedRng(`${seed}:market`), travel: seedRng(`${seed}:travel`), daily: seedRng(`${seed}:daily`), auction: seedRng(`${seed}:auction`) },
+    rng: { crate: seedRng(`${seed}:crate`), market: seedRng(`${seed}:market`), travel: seedRng(`${seed}:travel`), daily: seedRng(`${seed}:daily`), auction: seedRng(`${seed}:auction`), convoy: seedRng(`${seed}:convoy`) },
     profile: { level: 1, xp: 0 },
     wallet: { credits: CONFIG.startCredits, quanta: CONFIG.startQuanta, shards: 0 },
     fuel: { amount: CONFIG.fuel.max, updatedAt: now },
@@ -381,7 +414,7 @@ export function createInitialState(seed: string, now: number): GameState {
     collection: {},
     cardLevels: {},
     deck: { pilot: null, trader: null, tech: null, gunner: null, smuggler: null },
-    daily: { day: -1, missions: [], chestClaimed: false, bought: { standard: 0, premium: 0 }, offers: [], manifests: [], wheelSpun: false },
+    daily: { day: -1, missions: [], chestClaimed: false, bought: { standard: 0, premium: 0 }, offers: [], manifests: [], wheelSpun: false, convoys: [] },
     auction: { seed: `${seed}:house`, bids: {}, bought: [], listings: [], results: [] },
     season: { index: seasonIndex(now), xp: 0, premium: false, claimedFree: 0, claimedPremium: 0 },
     league: { seed: `${seed}:league`, tier: 0, week: weekIndex(now), score: 0, last: null },
@@ -396,6 +429,8 @@ export function createInitialState(seed: string, now: number): GameState {
     albums: { helix: 0, tessera: 0, asche: 0, zenit: 0 },
     location: CONFIG.startStation,
     hold: 0,
+    fleet: newFleet(),
+    convoys: [],
     cargo: {},
     market: Object.fromEntries(
       STATIONS.map((s) => [s.id, Object.fromEntries(GOODS.map((g) => [g.id, 0]))]),
@@ -425,8 +460,12 @@ export const xpForLevel = (level: number): number => 80 * level + 30 * level * l
 // Shared helpers
 // ---------------------------------------------------------------------------
 
+const fuelMax = (state: GameState): number => CONFIG.fuel.max + rigOf(state.fleet).fuel;
+const fuelRegen = (state: GameState): number => Math.round(CONFIG.fuel.regenMs * (1 - rigOf(state.fleet).charge));
+
 function settleFuel(state: GameState, now: number): void {
-  const { max, regenMs } = CONFIG.fuel;
+  const max = fuelMax(state);
+  const regenMs = fuelRegen(state);
   if (state.fuel.amount >= max) {
     state.fuel.updatedAt = now;
     return;
@@ -445,7 +484,7 @@ function addXp(state: GameState, amount: number, events: GameEvent[], now: numbe
     state.profile.xp -= xpForLevel(state.profile.level);
     state.profile.level += 1;
     // A level-up refills the tank: the session continues exactly when it would end.
-    state.fuel.amount = CONFIG.fuel.max;
+    state.fuel.amount = fuelMax(state);
     state.fuel.updatedAt = now;
     state.wallet.quanta += CONFIG.levelUpQuanta;
     events.push({ type: 'LevelUp', level: state.profile.level });
@@ -480,6 +519,7 @@ function settleDaily(state: GameState, now: number): void {
     offers: rollOffers(state.rng.daily, state.collection),
     manifests: rollManifests(state.rng.daily),
     wheelSpun: false,
+    convoys: rollConvoys(state.rng.daily, state.profile.level),
   };
 }
 
@@ -672,7 +712,8 @@ export function deckInfo(
 const crewOf = (state: GameState): CrewBonus => deckInfo(state.deck, state.cardLevels).bonus;
 
 function autoDeck(state: GameState): void {
-  const owned = Object.keys(state.collection).map((id) => CARD_BY_ID.get(id)).filter((c): c is CardDef => !!c);
+  const away = new Set(state.convoys.flatMap((c) => c.cards));
+  const owned = Object.keys(state.collection).filter((id) => !away.has(id)).map((id) => CARD_BY_ID.get(id)).filter((c): c is CardDef => !!c);
   const used = new Set<string>();
   // Fill the seat with the clearest best candidate first, so specialists land in their role.
   const fit = (c: CardDef, seat: RoleId): number => seatFit(c, seat, state.cardLevels[c.id] ?? 1);
@@ -697,6 +738,9 @@ function autoDeck(state: GameState): void {
 
 export const holdCap = (level: number): number => CONFIG.hold.base + CONFIG.hold.perLevel * level;
 export const holdCost = (level: number): number => Math.round((CONFIG.hold.costBase * CONFIG.hold.costGrowth ** level) / 100) * 100;
+
+/** Room in the active ship: hold upgrades, hull and cargo pods. */
+const cargoCap = (state: GameState): number => holdCap(state.hold) + rigOf(state.fleet).hold;
 
 const cargoUsed = (state: GameState): number =>
   Object.values(state.cargo).reduce((sum, lot) => sum + (lot?.qty ?? 0), 0);
@@ -811,11 +855,12 @@ function encounterChances(state: GameState, to: StationId): { pirates: number; c
 function encounterOptions(state: GameState, kind: EncounterKind, to: StationId): EncounterOption[] {
   const e = CONFIG.encounter;
   const crew = crewOf(state);
+  const rig = rigOf(state.fleet);
   if (kind === 'pirates') {
     const tribute = Math.min(state.wallet.credits, Math.max(e.tributeMin, Math.round(state.wallet.credits * e.tributeShare)));
     return [
-      { id: 'fight', chance: e.fight.base + e.fight.crew * crew.kmp, cost: 0 },
-      { id: 'flee', chance: e.flee.base + e.flee.crew * crew.nav, cost: 0 },
+      { id: 'fight', chance: Math.min(0.95, e.fight.base + e.fight.crew * crew.kmp + rig.fight), cost: 0 },
+      { id: 'flee', chance: Math.min(0.95, e.flee.base + e.flee.crew * crew.nav + rig.flee), cost: 0 },
       { id: 'pay', chance: 1, cost: tribute },
     ];
   }
@@ -823,14 +868,14 @@ function encounterOptions(state: GameState, kind: EncounterKind, to: StationId):
   const stars = state.wanted[faction].level;
   const hot = bannedValue(state, faction);
   const detect = clamp(
-    e.detect.base - e.detect.tec * crew.tec - e.detect.smg * crew.smg + CONFIG.smuggling.heatDetect * maxHeat(state),
+    e.detect.base - e.detect.tec * crew.tec - e.detect.smg * crew.smg - rig.stealth + CONFIG.smuggling.heatDetect * maxHeat(state),
     0.1, 0.95,
   );
   const bribe = Math.min(state.wallet.credits, e.bribeBase + Math.round(hot * e.bribeShare));
   return [
     { id: 'submit', chance: hot > 0 ? 1 - detect : 1, cost: 0 },
     { id: 'bribe', chance: clamp(e.bribe.base + e.bribe.crew * crew.hdl - CONFIG.wanted.bribePenalty * stars, 0.2, 0.97), cost: bribe },
-    { id: 'breakThrough', chance: e.breakThrough.base + e.breakThrough.crew * crew.nav, cost: 0 },
+    { id: 'breakThrough', chance: Math.min(0.95, e.breakThrough.base + e.breakThrough.crew * crew.nav + rig.flee), cost: 0 },
   ];
 }
 
@@ -968,6 +1013,27 @@ function loseCargo(state: GameState, share: number, only?: FactionId): Partial<R
   return lost;
 }
 
+/**
+ * The smuggling stash: take up to `units` of banned cargo out of sight, most valuable first.
+ * Returns a function that puts them back after the scan, and how many units were hidden.
+ */
+function hideCargo(state: GameState, faction: FactionId, units: number): { restore: () => void; hidden: number } {
+  const taken: { id: GoodId; lot: CargoLot; qty: number }[] = [];
+  let left = units;
+  for (const g of [...GOODS].sort((a, b) => b.base - a.base)) {
+    const lot = state.cargo[g.id];
+    if (left <= 0 || !lot || !isBanned(g, faction)) continue;
+    const qty = Math.min(left, lot.qty);
+    lot.qty -= qty;
+    left -= qty;
+    taken.push({ id: g.id, lot, qty });
+  }
+  return {
+    hidden: units - left,
+    restore: () => { for (const { id, lot, qty } of taken) { lot.qty += qty; state.cargo[id] = lot; } },
+  };
+}
+
 function resolveEncounter(state: GameState, choice: EncounterChoice, events: GameEvent[], now: number): boolean {
   const pending = state.pending!;
   const option = encounterOptions(state, pending.kind, pending.to).find((o) => o.id === choice);
@@ -978,6 +1044,7 @@ function resolveEncounter(state: GameState, choice: EncounterChoice, events: Gam
   const success = nextFloat(state.rng.travel) < option.chance;
   let lost: Partial<Record<GoodId, number>> = {};
   let wantedDelta = 0;
+  let hidden = 0;
   const inner: GameEvent[] = [];
   state.wallet.credits -= option.cost;
 
@@ -996,11 +1063,14 @@ function resolveEncounter(state: GameState, choice: EncounterChoice, events: Gam
   } else {
     const faction = factionOf(pending.to);
     if (!success) {
-      // Any failed customs choice ends in a full scan: banned cargo is seized and fined.
+      // Any failed customs choice ends in a full scan: banned cargo is seized and fined. What sits in the stash is not found.
+      const stash = hideCargo(state, faction, rigOf(state.fleet).stash);
+      hidden = stash.hidden;
       const hot = bannedValue(state, faction);
       const stars = state.wanted[faction].level;
       const fine = hot > 0 ? Math.round(hot * e.fineShare * (1 + CONFIG.wanted.fineMult * stars)) : choice === 'submit' ? 0 : e.flatFine;
       lost = loseCargo(state, 1, faction);
+      stash.restore();
       state.wallet.credits -= Math.min(state.wallet.credits, fine);
       if (hot > 0) state.stats.caught += 1;
       wantedDelta = addWanted(state, faction, choice === 'breakThrough' ? 2 : 1, inner);
@@ -1014,10 +1084,20 @@ function resolveEncounter(state: GameState, choice: EncounterChoice, events: Gam
 
   events.push({
     type: 'EncounterResolved', kind: pending.kind, choice, success,
-    creditsDelta: state.wallet.credits - before, lost, wantedDelta,
+    creditsDelta: state.wallet.credits - before, lost, wantedDelta, hidden,
   });
   events.push(...inner);
   arrive(state, pending.to, events, now);
+  return true;
+}
+
+/** Move into another ship you own. Fails if the cargo on board would not fit. */
+function selectShip(state: GameState, ship: ShipId): boolean {
+  const fitted = state.fleet.fitted.slice(0, SHIP_BY_ID.get(ship)!.slots);
+  const next: FleetState = { ...state.fleet, active: ship, fitted };
+  if (cargoUsed(state) > holdCap(state.hold) + rigOf(next).hold) return false;
+  state.fleet = next;
+  state.fuel.amount = Math.min(state.fuel.amount, fuelMax(state));
   return true;
 }
 
@@ -1338,7 +1418,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
     case 'ClaimComeback': {
       if (!state.comeback) return reject('not_claimable');
       state.comeback = false;
-      state.fuel.amount = CONFIG.fuel.max;
+      state.fuel.amount = fuelMax(state);
       state.fuel.updatedAt = now;
       grantReward(state, comebackReward(state), events);
       break;
@@ -1357,7 +1437,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       const viaFence = bannedAt(good, state.location);
       if (viaFence && fenceClosed(state, state.location)) return reject('fence_closed');
       if (viaFence && cmd.qty > state.fence[state.location]) return reject('fence_limit');
-      if (cargoUsed(state) + cmd.qty > holdCap(state.hold)) return reject('no_cargo_space');
+      if (cargoUsed(state) + cmd.qty > cargoCap(state)) return reject('no_cargo_space');
       const cost = quote(marketRow(state, state.location, cmd.goodId, 0), 'buy', cmd.qty);
       if (state.wallet.credits < cost) return reject('not_enough_credits');
       state.wallet.credits -= cost;
@@ -1422,6 +1502,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
     case 'SetSeat': {
       if (!SEATS.includes(cmd.seat)) return reject('unknown_command');
       if (cmd.cardId !== null && !(state.collection[cmd.cardId] && CARD_BY_ID.has(cmd.cardId))) return reject('card_not_owned');
+      if (cmd.cardId !== null && state.convoys.some((c) => c.cards.includes(cmd.cardId!))) return reject('card_busy');
       // A card sits in one seat only: taking a new seat frees the old one.
       if (cmd.cardId) for (const seat of SEATS) if (state.deck[seat] === cmd.cardId) state.deck[seat] = null;
       state.deck[cmd.seat] = cmd.cardId;
@@ -1433,13 +1514,105 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       events.push({ type: 'DeckChanged' });
       break;
     }
+    case 'BuyShip': {
+      const def = SHIP_BY_ID.get(cmd.ship);
+      if (!def) return reject('unknown_command');
+      if (state.fleet.owned.includes(def.id)) return reject('already_owned');
+      if (state.profile.level < def.level) return reject('level_too_low');
+      if (state.wallet.credits < def.price) return reject('not_enough_credits');
+      state.wallet.credits -= def.price;
+      state.fleet.owned.push(def.id);
+      events.push({ type: 'ShipBought', ship: def.id });
+      // Move in right away when the cargo fits.
+      if (selectShip(state, def.id)) events.push({ type: 'ShipSelected', ship: def.id });
+      break;
+    }
+    case 'SelectShip': {
+      if (!SHIP_BY_ID.has(cmd.ship)) return reject('unknown_command');
+      if (!state.fleet.owned.includes(cmd.ship)) return reject('not_owned');
+      if (state.fleet.active === cmd.ship) return reject('invalid_choice');
+      if (!selectShip(state, cmd.ship)) return reject('no_cargo_space');
+      events.push({ type: 'ShipSelected', ship: cmd.ship });
+      break;
+    }
+    case 'BuyModule': {
+      const def = MODULE_BY_ID.get(cmd.module);
+      if (!def) return reject('unknown_command');
+      const level = state.fleet.modules[def.id] ?? 0;
+      if (level >= MODULE_MAX) return reject('max_level');
+      const price = def.prices[level]!;
+      if (state.wallet.credits < price) return reject('not_enough_credits');
+      state.wallet.credits -= price;
+      state.fleet.modules[def.id] = level + 1;
+      if (!state.fleet.fitted.includes(def.id) && state.fleet.fitted.length < rigOf(state.fleet).slots) state.fleet.fitted.push(def.id);
+      events.push({ type: 'ModuleBought', module: def.id, level: level + 1 });
+      break;
+    }
+    case 'FitModule': {
+      if (!MODULE_BY_ID.has(cmd.module)) return reject('unknown_command');
+      if (!state.fleet.modules[cmd.module]) return reject('not_owned');
+      if (state.fleet.fitted.includes(cmd.module)) return reject('invalid_choice');
+      if (state.fleet.fitted.length >= rigOf(state.fleet).slots) return reject('no_free_slot');
+      state.fleet.fitted.push(cmd.module);
+      events.push({ type: 'ModulesChanged' });
+      break;
+    }
+    case 'UnfitModule': {
+      if (!state.fleet.fitted.includes(cmd.module)) return reject('invalid_choice');
+      const fitted = state.fleet.fitted.filter((m) => m !== cmd.module);
+      if (cargoUsed(state) > holdCap(state.hold) + rigOf({ ...state.fleet, fitted }).hold) return reject('no_cargo_space');
+      state.fleet.fitted = fitted;
+      state.fuel.amount = Math.min(state.fuel.amount, fuelMax(state));
+      events.push({ type: 'ModulesChanged' });
+      break;
+    }
+    case 'SendConvoy': {
+      const offer = state.daily.convoys[cmd.offer];
+      if (!offer || offer.taken) return reject('no_such_contract');
+      if (state.convoys.length >= CONFIG.convoy.slots) return reject('no_free_slot');
+      const seated = new Set<string>(SEATS.map((seat) => state.deck[seat]).filter((id): id is string => !!id));
+      const away = new Set(state.convoys.flatMap((c) => c.cards));
+      const team = cmd.cards;
+      if (team.length < 1 || team.length > CONFIG.convoy.crew || new Set(team).size !== team.length) return reject('invalid_team');
+      for (const id of team) {
+        if (!state.collection[id] || !CARD_BY_ID.has(id)) return reject('card_not_owned');
+        if (seated.has(id) || away.has(id)) return reject('card_busy');
+      }
+      offer.taken = true;
+      const chance = convoyChance(offer, team, state.cardLevels);
+      state.convoys.push({ offer: { ...offer }, cards: [...team], endsAt: now + offer.hours * 3_600_000, chance });
+      events.push({ type: 'ConvoySent', hours: offer.hours, chance });
+      break;
+    }
+    case 'ClaimConvoy': {
+      const convoy = state.convoys[cmd.slot];
+      if (!convoy) return reject('no_such_slot');
+      if (convoy.endsAt > now) return reject('slot_not_ready');
+      state.convoys.splice(cmd.slot, 1);
+      const success = nextFloat(state.rng.convoy) < convoy.chance;
+      const { reward, xp } = convoyPayout(convoy.offer, success);
+      events.push({ type: 'ConvoyReturned', success, reward, xp });
+      grantReward(state, reward, events);
+      addXp(state, xp, events, now);
+      break;
+    }
+    case 'RushConvoy': {
+      const convoy = state.convoys[cmd.slot];
+      if (!convoy) return reject('no_such_slot');
+      if (convoy.endsAt <= now) return reject('not_claimable');
+      const cost = minutesCost(convoy.endsAt - now);
+      if (state.wallet.quanta < cost) return reject('not_enough_quanta');
+      state.wallet.quanta -= cost;
+      convoy.endsAt = now;
+      break;
+    }
     case 'UpgradeHold': {
       if (state.hold >= CONFIG.hold.maxLevel) return reject('max_level');
       const cost = holdCost(state.hold);
       if (state.wallet.credits < cost) return reject('not_enough_credits');
       state.wallet.credits -= cost;
       state.hold += 1;
-      events.push({ type: 'HoldUpgraded', level: state.hold, cap: holdCap(state.hold) });
+      events.push({ type: 'HoldUpgraded', level: state.hold, cap: cargoCap(state) });
       break;
     }
     case 'PayOff': {
@@ -1474,7 +1647,8 @@ export function toClientView(state: GameState, now: number): ClientView {
   settleCalendar(s, now);
   s.blockade = weekendActive(now);
   if (dayIndex(now) - s.lastActiveDay >= CONFIG.comeback.days) s.comeback = true;
-  const { max, regenMs } = CONFIG.fuel;
+  const max = fuelMax(s);
+  const regenMs = fuelRegen(s);
   const here = s.location;
   const hereFaction = factionOf(here);
   const deck = deckInfo(s.deck, s.cardLevels);
@@ -1649,13 +1823,21 @@ export function toClientView(state: GameState, now: number): ClientView {
       daily: s.daily.missions.filter((m) => !m.claimed && m.progress >= m.target).length + (chestClaimable ? 1 : 0) + (calendarClaimable ? 1 : 0)
         + (s.daily.wheelSpun ? 0 : 1) + manifests.filter((m) => !m.done && m.have >= m.need).length
         + (charterClaimable > 0 ? 1 : 0) + (s.league.last ? 1 : 0) + (weekendClaimable > 0 ? 1 : 0) + (s.comeback ? 1 : 0),
-      deck: FACTION_IDS.filter((f) => albums[f].claimable).length,
+      deck: FACTION_IDS.filter((f) => albums[f].claimable).length + s.convoys.filter((c) => c.endsAt <= now).length,
     },
     deck: { seats: deck.seats, chem: deck.chem },
     crew: deck.bonus,
     location: here,
-    cargo: { cap: holdCap(s.hold), used: cargoUsed(s), items: s.cargo },
-    holdUpgrade: s.hold < CONFIG.hold.maxLevel ? { level: s.hold + 1, cost: holdCost(s.hold), cap: holdCap(s.hold + 1) } : null,
+    cargo: { cap: cargoCap(s), used: cargoUsed(s), items: s.cargo },
+    holdUpgrade: s.hold < CONFIG.hold.maxLevel ? { level: s.hold + 1, cost: holdCost(s.hold), cap: cargoCap(s) + CONFIG.hold.perLevel } : null,
+    fleet: { active: s.fleet.active, owned: s.fleet.owned, modules: s.fleet.modules, fitted: s.fleet.fitted, rig: rigOf(s.fleet) },
+    convoys: {
+      slots: CONFIG.convoy.slots,
+      crew: CONFIG.convoy.crew,
+      running: s.convoys.map((c) => ({ ...c, done: c.endsAt <= now, rushCost: c.endsAt <= now ? 0 : minutesCost(c.endsAt - now) })),
+      offers: s.daily.convoys,
+      busy: s.convoys.flatMap((c) => c.cards),
+    },
     market,
     fence: { left: s.fence[here], cap: CONFIG.smuggling.fenceCap, closed: fenceClosed(s, here) },
     event: s.event,
@@ -1699,6 +1881,20 @@ export function parseCommand(input: unknown): Command | null {
     case 'ClaimWeekend':
     case 'ClaimComeback':
       return { type: c.type };
+    case 'BuyShip':
+    case 'SelectShip':
+      return typeof c.ship === 'string' && SHIP_BY_ID.has(c.ship as ShipId) ? { type: c.type, ship: c.ship as ShipId } : null;
+    case 'BuyModule':
+    case 'FitModule':
+    case 'UnfitModule':
+      return typeof c.module === 'string' && MODULE_BY_ID.has(c.module as ModuleId) ? { type: c.type, module: c.module as ModuleId } : null;
+    case 'SendConvoy':
+      return Number.isInteger(c.offer) && Array.isArray(c.cards) && c.cards.length <= 8 && c.cards.every((x: unknown) => typeof x === 'string' && x.length < 16)
+        ? { type: 'SendConvoy', offer: c.offer as number, cards: c.cards as string[] }
+        : null;
+    case 'ClaimConvoy':
+    case 'RushConvoy':
+      return Number.isInteger(c.slot) ? { type: c.type, slot: c.slot as number } : null;
     case 'PlaceBid':
       return typeof c.lot === 'string' && /^\d:-?\d{1,9}$/.test(c.lot) && typeof c.max === 'number' ? { type: 'PlaceBid', lot: c.lot, max: c.max } : null;
     case 'BuyNow':

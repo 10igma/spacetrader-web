@@ -130,7 +130,7 @@ export const CONFIG = {
     weeks: 6,
     names: ['Blockade von Kessin', 'Der Helix-Riss', 'Zenit unter Verdacht', 'Glut über Varn'],
     tiers: 40,
-    xpPerTier: 1_500,
+    xpPerTier: 1_800,
     /** The premium track is bought with quanta you earn by playing. */
     premiumPrice: 500,
   },
@@ -154,6 +154,28 @@ export const CONFIG = {
     points: { jump: 1, fightWin: 2, smuggled: 3 },
     milestones: [10, 25, 45, 70],
     rewards: [{ credits: 3_000 }, { shards: 150 }, { quanta: 25 }, { crate: 'premium' }] as const,
+  },
+  /**
+   * Convoys: crew that is not on the bridge flies timed contracts. Four contracts a day, two at a time.
+   * `need` is the team strength for certain success. Three ordinary cards bring about 165, so the long
+   * contracts want strong crew of the right faction and role.
+   */
+  convoy: {
+    slots: 2,
+    crew: 3,
+    daily: [0, 0, 1, 2],
+    kinds: [
+      { hours: 1, need: 170, credits: 300, creditsPerLevel: 90, shards: 0, quanta: 0, xp: 30 },
+      { hours: 4, need: 250, credits: 900, creditsPerLevel: 260, shards: 30, quanta: 0, xp: 80 },
+      { hours: 8, need: 330, credits: 1_600, creditsPerLevel: 450, shards: 0, quanta: 6, xp: 150 },
+    ],
+    /** Every captain level raises what a contract asks for. Levelling up reserve crew keeps pace. */
+    needPerLevel: 0.035,
+    factionBonus: 1.25,
+    roleBonus: 1.15,
+    minChance: 0.15,
+    /** Share of credits and experience a failed convoy still brings home. */
+    failShare: 0.3,
   },
   /** Welcome-back gift after this many days away. */
   comeback: { days: 3, creditsPerLevel: 1_500, quanta: 20 },

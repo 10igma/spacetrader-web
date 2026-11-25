@@ -1,3 +1,4 @@
+import { MODULE_BY_ID, SHIP_BY_ID } from '@nova/core';
 import type { ClientView, Command, GameEvent, GameService, Pull, RejectReason, Reward, SalvageKind, StationId } from '@nova/core';
 import { create } from 'zustand';
 import { audio } from './audio/engine.ts';
@@ -49,7 +50,13 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   too_many_bids: 'Zu viele offene Gebote',
   too_many_listings: 'Alle Angebotsplätze sind belegt',
   no_spare_copy: 'Davon hast du kein Duplikat',
-  already_owned: 'Diese Karte hast du schon',
+  already_owned: 'Das hast du schon',
+  level_too_low: 'Deine Stufe reicht dafür noch nicht',
+  not_owned: 'Das besitzt du nicht',
+  no_free_slot: 'Kein freier Platz',
+  card_busy: 'Diese Karte ist gerade im Einsatz',
+  invalid_team: 'Diese Crew kann so nicht los',
+  no_such_contract: 'Dieser Auftrag ist vergeben',
 };
 
 interface AppState {
@@ -59,6 +66,8 @@ interface AppState {
   clockOffset: number;
   started: boolean;
   tab: Tab;
+  hangarMode: 'crates' | 'yard';
+  deckMode: 'bridge' | 'convoys';
   muted: boolean;
   busy: boolean;
   reveal: Pull[] | null;
@@ -75,6 +84,8 @@ interface AppState {
   send(cmd: Command): Promise<GameEvent[]>;
   begin(): void;
   setTab(tab: Tab): void;
+  setHangarMode(mode: 'crates' | 'yard'): void;
+  setDeckMode(mode: 'bridge' | 'convoys'): void;
   toggleMute(): void;
   closeReveal(): void;
   endTravel(): void;
@@ -95,6 +106,8 @@ export const useApp = create<AppState>((set, get) => ({
   clockOffset: 0,
   started: false,
   tab: 'station',
+  hangarMode: 'crates',
+  deckMode: 'bridge',
   muted: false,
   busy: false,
   reveal: null,
@@ -122,7 +135,7 @@ export const useApp = create<AppState>((set, get) => ({
       set({ view, clockOffset: view.serverTime - Date.now() });
       // Wheel and salvage show their own result: no toast may give it away early.
       // A charter claim sums up many rewards in one line.
-      const staged = events.some((e) => e.type === 'WheelSpun' || e.type === 'SalvageOpened' || e.type === 'CharterClaimed');
+      const staged = events.some((e) => e.type === 'WheelSpun' || e.type === 'SalvageOpened' || e.type === 'CharterClaimed' || e.type === 'ConvoyReturned');
       for (const ev of events) {
         if (staged && (ev.type === 'RewardGranted' || ev.type === 'CrateEarned')) continue;
         if (ev.type === 'WheelSpun') set({ wheel: { index: ev.index, reward: ev.reward } });
@@ -135,6 +148,13 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'AuctionBought') { audio.reveal(2); get().showToast('Gekauft: Karte ist in deiner Sammlung', 'good'); }
         if (ev.type === 'CardListed') get().showToast('Angebot läuft', 'good');
         if (ev.type === 'CharterClaimed') { audio.coins(2000); get().showToast([rewardText(ev.total), ev.crates > 0 ? `${ev.crates} Container` : ''].filter(Boolean).join(' + ') || `${ev.rewards} Belohnungen abgeholt`, 'good'); }
+        if (ev.type === 'ShipBought') { audio.reveal(3); get().showToast(`${SHIP_BY_ID.get(ev.ship)!.name} gehört dir`, 'good'); }
+        if (ev.type === 'ModuleBought') { audio.coins(800); get().showToast(`${MODULE_BY_ID.get(ev.module)!.name} Stufe ${ev.level}`, 'good'); }
+        if (ev.type === 'ConvoySent') get().showToast(`Konvoi unterwegs · Chance ${Math.round(ev.chance * 100)} %`, 'good');
+        if (ev.type === 'ConvoyReturned') {
+          if (ev.success) audio.coins(ev.reward.credits ?? 500);
+          get().showToast(ev.success ? `Konvoi erfolgreich: ${rewardText(ev.reward)}` : `Konvoi gescheitert: nur ${rewardText(ev.reward)}`, ev.success ? 'good' : 'bad');
+        }
         if (ev.type === 'CharterBought') { audio.reveal(3); get().showToast('Premium-Charter aktiv', 'good'); }
         if (ev.type === 'LeagueClaimed' && ev.moved !== 0) get().showToast(ev.moved > 0 ? 'Aufgestiegen' : 'Abgestiegen', ev.moved > 0 ? 'good' : 'bad');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls });
@@ -183,6 +203,8 @@ export const useApp = create<AppState>((set, get) => ({
     set({ started: true });
   },
   setTab(tab) { set({ tab }); },
+  setHangarMode(hangarMode) { set({ hangarMode }); },
+  setDeckMode(deckMode) { set({ deckMode }); },
   toggleMute() {
     const muted = !get().muted;
     audio.setMuted(muted);

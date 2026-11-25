@@ -1579,6 +1579,76 @@ button.lot:active { transform: scale(0.98); }
 .table__row.is-you .table__name { font-weight: 700; }
 .daily:has(.season), .daily:has(.league) { overflow: hidden; }
 
+/* ---------------------------------------------------------------------------
+   Shipyard and convoys
+   --------------------------------------------------------------------------- */
+.chip--ship { cursor: pointer; color: #cfe9ff; border-color: rgba(59, 227, 255, 0.5); background: rgba(59, 227, 255, 0.12); }
+.yard, .convoys { display: flex; flex-direction: column; gap: 6px; padding-bottom: 18px; }
+.convoys { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.convoys::-webkit-scrollbar { display: none; }
+.shipart { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--tone) 60%, transparent)); }
+.shipart.is-locked { filter: grayscale(1) brightness(0.55); }
+.shipart__flame { fill: var(--tone); opacity: 0.85; filter: blur(1.6px); transform-origin: center top; transform-box: fill-box; animation: flame 0.9s ease-in-out infinite alternate; }
+.shipart.is-locked .shipart__flame { display: none; }
+@keyframes flame { from { transform: scaleY(0.7); opacity: 0.6; } to { transform: scaleY(1.15); opacity: 0.95; } }
+@media (prefers-reduced-motion: reduce) { .shipart__flame { animation: none; } }
+
+.yard__hero { display: grid; grid-template-columns: 132px 1fr; gap: 6px; align-items: center; padding: 10px 12px 10px 4px; border-radius: var(--radius-m); background: radial-gradient(120% 140% at 0% 50%, rgba(59, 227, 255, 0.2), var(--glass-strong) 62%); border: 1px solid rgba(59, 227, 255, 0.4); }
+.yard__hero .shipart { height: 132px; animation: float 5s ease-in-out infinite; }
+.yard__info { min-width: 0; }
+.yard__info h3 { font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.05; margin: 1px 0 2px; }
+.yard__info p { font-size: 12px; color: var(--ink-dim); margin: 0 0 8px; }
+.yard__info .chips { margin-top: 8px; }
+.yard__stats { display: flex; gap: 14px; }
+.yard__stats span { display: flex; flex-direction: column; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim); font-family: var(--font-display); }
+.yard__stats b { font-size: 20px; font-weight: 800; letter-spacing: 0; color: var(--ink); }
+.yard__slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
+.slotbox { display: flex; flex-direction: column; justify-content: center; gap: 1px; min-height: 46px; padding: 6px 10px; border-radius: 12px; text-align: left; border: 1px dashed var(--stroke-strong); color: var(--ink-faint); }
+.slotbox.is-filled { border: 1px solid var(--cyan); background: rgba(59, 227, 255, 0.12); color: var(--ink); box-shadow: inset 0 0 14px -6px var(--cyan); }
+.slotbox b { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.04em; }
+.slotbox small { font-size: 10px; color: var(--ink-dim); }
+
+.gear, .hull, .convoy { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-m); text-align: left; background: var(--glass-strong); border: 1px solid var(--stroke); }
+.gear.is-fitted { border-color: rgba(59, 227, 255, 0.45); }
+.gear__main, .hull__main, .convoy__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.gear__main b, .hull__main b, .convoy__main b { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 15px; letter-spacing: 0.02em; }
+.gear__main small, .hull__main small, .convoy__main small { font-size: 11px; color: var(--ink-dim); line-height: 1.3; }
+.gear__next { color: var(--ink-faint) !important; }
+.gear__pips { display: inline-flex; gap: 3px; }
+.gear__pips i { width: 12px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.16); }
+.gear__pips i.on { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.gear__actions { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.gear__state { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); white-space: nowrap; }
+.gear__state svg { width: 12px; height: 12px; }
+.price--btn { cursor: pointer; padding: 6px 11px; font-family: var(--font-display); font-weight: 700; font-size: 14px; color: #021018; background: var(--amber); box-shadow: 0 0 14px -4px var(--amber); transition: transform 0.14s var(--out); white-space: nowrap; }
+.price--btn svg { color: #021018; }
+.price--btn:active { transform: scale(0.95); }
+.price--btn:disabled { color: var(--ink-dim); background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+.price--btn:disabled svg { color: var(--ink-dim); }
+.price--btn.price--quanta { color: #021018; background: var(--cyan); box-shadow: 0 0 14px -4px var(--cyan); font-size: 12px; }
+.hull { padding-left: 4px; }
+.hull .shipart { width: 58px; height: 58px; flex: none; }
+.hull.is-active { border-color: var(--cyan); background: linear-gradient(90deg, rgba(59, 227, 255, 0.18), var(--glass-strong)); }
+.hull.is-locked .hull__main { opacity: 0.55; }
+.hull__perks { color: var(--ok) !important; }
+
+.convoys__intro { margin: 0 2px 2px; font-size: 12px; line-height: 1.4; color: var(--ink-dim); }
+.convoy--empty { justify-content: center; min-height: 52px; border-style: dashed; background: none; color: var(--ink-faint); font-size: 12px; }
+.convoy.is-done { border-color: var(--ok); box-shadow: inset 0 0 18px -8px var(--ok); }
+.convoy .mission__bar { margin-top: 5px; }
+.convoy--offer { --faction: var(--cyan); width: 100%; border-left: 3px solid var(--faction); transition: transform 0.14s var(--out); }
+.convoy--offer:active { transform: scale(0.98); }
+.convoy--offer.is-taken { opacity: 0.45; }
+.convoy--offer:disabled { cursor: default; }
+.convoy__hours { flex: none; width: 46px; display: flex; flex-direction: column; align-items: center; font-family: var(--font-display); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim); }
+.convoy__hours b { font-size: 24px; font-weight: 800; letter-spacing: 0; color: var(--ink); line-height: 1; }
+.odds { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; margin-bottom: 10px; padding: 9px 12px; border-radius: var(--radius-m); background: rgba(0, 0, 0, 0.28); border: 1px solid var(--stroke); }
+.odds > b { font-family: var(--font-display); font-size: 30px; font-weight: 800; color: var(--amber); font-variant-numeric: tabular-nums; }
+.odds.is-good > b { color: var(--ok); }
+.odds.is-risky > b { color: var(--danger); }
+.odds small { font-size: 11px; color: var(--ink-dim); }
+.pick:disabled { opacity: 0.4; }
+
 .toast {
   position: fixed;
   z-index: 60;

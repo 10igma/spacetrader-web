@@ -2,6 +2,7 @@ import { CARD_BY_ID, FACTIONS, RARITIES, ROLES, type CrateTier, type SlotView } 
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
+import { Shipyard } from './Shipyard.tsx';
 import { countdown, duration, num, RARITY_LABEL } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { Credits, Quanta } from './icons.tsx';
@@ -65,6 +66,30 @@ export function Hangar() {
   const { free, tiers, pityElite, pityLegend } = view.crates;
   const anyUnlocking = view.slots.some((s) => s.state === 'unlocking' && (s.readyAt ?? 0) > now);
   const full = view.slots.length >= view.slotCap;
+  const mode = useApp((s) => s.hangarMode);
+  const setMode = useApp((s) => s.setHangarMode);
+  const segment = (
+    <div className="segment" role="tablist">
+      {([['crates', 'Container'], ['yard', 'Werft']] as const).map(([id, label]) => (
+        <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? 'is-active' : ''} onClick={() => { audio.tap(); setMode(id); }}>
+          {label}{id === 'crates' && mode !== 'crates' && view.badges.hangar > 0 && <i className="dot" />}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (mode === 'yard') {
+    return (
+      <section className="hangar">
+        <header className="screenhead">
+          <span className="eyebrow">Hangar</span>
+          <h2>Werft</h2>
+        </header>
+        {segment}
+        <Shipyard />
+      </section>
+    );
+  }
 
   return (
     <section className="hangar">
@@ -73,6 +98,7 @@ export function Hangar() {
         <h2>Container</h2>
         <button className="link" onClick={() => { audio.tap(); setOdds(true); }}>Quoten</button>
       </header>
+      {segment}
 
       <div className="free">
         <Crate />

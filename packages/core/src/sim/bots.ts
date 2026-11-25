@@ -6,6 +6,7 @@
 import { cardValue } from '../auction.ts';
 import { CONFIG } from '../config.ts';
 import { CARD_BY_ID, CARDS_BY_FACTION, FACTIONS, rarityRank, type FactionId } from '../content.ts';
+import { convoyChance, convoyStrength, MODULE_BY_ID, MODULE_MAX, SHIPS, type ModuleId } from '../fleet.ts';
 import { applyCommand, createInitialState, quote, toClientView, type ClientView, type Command, type GameState } from '../game.ts';
 import { GOOD_BY_ID, isBanned, STATION_BY_ID, type GoodId } from '../world.ts';
 
@@ -13,7 +14,7 @@ export type Policy = 'legal' | 'smuggler';
 
 const HOUR = 3_600_000;
 
-export interface DaySample { league: number; charter: number; charterPremium: boolean; posts: number; day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
+export interface DaySample { ship: number; modules: number; league: number; charter: number; charterPremium: boolean; posts: number; day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
 
 interface Ctx { state: GameState; now: number; policy: Policy; log: Record<string, number> }
 
@@ -22,6 +23,7 @@ function act(ctx: Ctx, cmd: Command): ClientView {
   ctx.state = res.state;
   for (const ev of res.events) {
     ctx.log[ev.type] = (ctx.log[ev.type] ?? 0) + 1;
+    if (ev.type === 'ConvoyReturned') ctx.log[ev.success ? 'convoy:ok' : 'convoy:fail'] = (ctx.log[ev.success ? 'convoy:ok' : 'convoy:fail'] ?? 0) + 1;
     if (ev.type === 'CommandRejected') ctx.log[`rejected:${ev.reason}`] = (ctx.log[`rejected:${ev.reason}`] ?? 0) + 1;
     if (ev.type === 'EncounterResolved') ctx.log[`${ev.kind}:${ev.choice}:${ev.success ? 'ok' : 'fail'}`] = (ctx.log[`${ev.kind}:${ev.choice}:${ev.success ? 'ok' : 'fail'}`] ?? 0) + 1;
   }
@@ -121,6 +123,44 @@ function decideEncounter(view: ClientView): Command {
 const FACTION_LIST = Object.keys(FACTIONS) as FactionId[];
 
 /** Everything a diligent player collects when opening the app. */
+/** Which modules a player of this style wants, most wanted first. */
+const MODULE_WISH: Record<Policy, ModuleId[]> = {
+  legal: ['pods', 'charger', 'shield', 'drive', 'jammer', 'stash'],
+  smuggler: ['pods', 'charger', 'jammer', 'stash', 'drive', 'shield'],
+};
+
+/** Shipyard: the next hull once it is comfortably affordable, then modules, most wanted in the slots. */
+function shipyard(ctx: Ctx, view: ClientView): ClientView {
+  const next = SHIPS.find((s) => !view.fleet.owned.includes(s.id));
+  if (next && view.profile.level >= next.level && view.wallet.credits > next.price * 1.15) view = act(ctx, { type: 'BuyShip', ship: next.id });
+  const wish = MODULE_WISH[ctx.policy];
+  for (const id of wish) {
+    const level = view.fleet.modules[id] ?? 0;
+    if (level < MODULE_MAX && view.wallet.credits > MODULE_BY_ID.get(id)!.prices[level]! * 3) view = act(ctx, { type: 'BuyModule', module: id });
+  }
+  const want = wish.filter((id) => view.fleet.modules[id]).slice(0, view.fleet.rig.slots);
+  // Only rebuild with an empty hold, so cargo pods can always come out.
+  if (view.cargo.used === 0) for (const id of view.fleet.fitted) if (!want.includes(id)) view = act(ctx, { type: 'UnfitModule', module: id });
+  for (const id of want) if (!view.fleet.fitted.includes(id) && view.fleet.fitted.length < view.fleet.rig.slots) view = act(ctx, { type: 'FitModule', module: id });
+  return view;
+}
+
+/** Convoys: collect what is back, then send the strongest free crew on every contract that looks good. */
+function convoys(ctx: Ctx, view: ClientView): ClientView {
+  for (let i = view.convoys.running.length - 1; i >= 0; i--) if (view.convoys.running[i]!.done) view = act(ctx, { type: 'ClaimConvoy', slot: i });
+  // Longest contract first: it pays best and the slot is busy while the player is away anyway.
+  for (const offer of [...view.convoys.offers].sort((a, b) => b.hours - a.hours)) {
+    if (offer.taken || view.convoys.running.length >= view.convoys.slots) continue;
+    const seated = new Set(Object.values(view.deck.seats).map((s) => s?.cardId));
+    const team = Object.keys(view.collection)
+      .filter((id) => !seated.has(id) && !view.convoys.busy.includes(id))
+      .sort((a, b) => convoyStrength(offer, b, view.cardLevels[b] ?? 1) - convoyStrength(offer, a, view.cardLevels[a] ?? 1))
+      .slice(0, view.convoys.crew);
+    if (team.length > 0 && convoyChance(offer, team, view.cardLevels) >= 0.5) view = act(ctx, { type: 'SendConvoy', offer: offer.id, cards: team });
+  }
+  return view;
+}
+
 function housekeeping(ctx: Ctx, view: ClientView): ClientView {
   if (view.comeback) view = act(ctx, { type: 'ClaimComeback' });
   if (view.league.last) view = act(ctx, { type: 'ClaimLeague' });
@@ -166,6 +206,7 @@ function housekeeping(ctx: Ctx, view: ClientView): ClientView {
     if (i >= 0) view = act(ctx, { type: 'StartUnlock', slot: i });
   }
   if (opened) view = act(ctx, { type: 'AutoDeck' });
+  view = convoys(ctx, view);
   // Put shards into whoever sits on the bridge, cheapest upgrade first.
   for (let guard = 0; guard < 20; guard++) {
     const seated = Object.values(view.deck.seats).filter((s): s is NonNullable<typeof s> => !!s)
@@ -201,7 +242,10 @@ function session(ctx: Ctx): void {
       const offer = view.crates.tiers[tier];
       // Credits: only when it barely dents the trading capital. Quanta: keep a reserve for a streak freeze.
       // Quanta are saved for the charter first.
-      const ok = offer.currency === 'credits' ? view.wallet.credits > offer.price * 3 : view.season.premium && view.wallet.quanta >= offer.price + CONFIG.streak.freezePrice;
+      // Someone saving for a ship stops at two crates a day.
+      const nextShip = SHIPS.find((s) => !view.fleet.owned.includes(s.id));
+      const saving = !!nextShip && view.profile.level >= nextShip.level && offer.currency === 'credits' && offer.leftToday <= 2;
+      const ok = saving ? false : offer.currency === 'credits' ? view.wallet.credits > offer.price * 3 : view.season.premium && view.wallet.quanta >= offer.price + CONFIG.streak.freezePrice;
       if (offer.leftToday > 0 && ok) { view = act(ctx, { type: 'BuyCrate', tier }); view = act(ctx, { type: 'AutoDeck' }); }
     }
     if (view.payOff !== null && view.wanted[STATION_BY_ID.get(view.location)!.faction] >= 3 && view.wallet.credits > view.payOff * 5) {
@@ -214,6 +258,7 @@ function session(ctx: Ctx): void {
     if (view.salvage && view.wallet.credits > view.salvage.price * 25) view = act(ctx, { type: 'BuySalvage' });
     // Reinvest: a bigger hold pays for itself.
     if (view.holdUpgrade && view.wallet.credits > view.holdUpgrade.cost * 1.6) view = act(ctx, { type: 'UpgradeHold' });
+    view = shipyard(ctx, view);
     if (view.fuel.amount < 1) return;
     const p = plan(ctx, view);
     if (!p) return;
@@ -249,6 +294,8 @@ export function simulate(seed: string, policy: Policy, days: number, sessionsPer
       quanta: view.wallet.quanta,
       posts: view.posts.list.reduce((sum, p) => sum + p.level, 0),
       league: view.league.tier,
+      ship: SHIPS.findIndex((s) => s.id === view.fleet.active),
+      modules: Object.values(view.fleet.modules).reduce((sum, l) => sum + (l ?? 0), 0),
       charter: view.season.tier,
       charterPremium: view.season.premium,
       shards: view.wallet.shards,

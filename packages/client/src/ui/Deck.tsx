@@ -2,6 +2,7 @@ import { CARD_BY_ID, CARDS, FACTIONS, rarityRank, ROLES, seatStat, SEATS, type B
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
+import { Convoys } from './Convoys.tsx';
 import { HoloCard } from './HoloCard.tsx';
 import { BONUS_LABEL, FACTION_COLOR, num, RARITY_LABEL, rewardText } from './format.ts';
 import { Shard } from './icons.tsx';
@@ -36,14 +37,15 @@ function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
           {owned.length === 0 && <p className="trade__note">Noch keine Crew. Öffne einen Container im Hangar.</p>}
           {owned.map(({ card, value }) => {
             const elsewhere = seatOf(card.id);
+            const away = view.convoys.busy.includes(card.id);
             return (
-              <button key={card.id} className={`pick pick--${card.rarity}${card.id === current ? ' is-current' : ''}`} style={{ ['--faction' as string]: FACTION_COLOR[card.faction] }} onClick={set(card.id)}>
+              <button key={card.id} disabled={away} className={`pick pick--${card.rarity}${card.id === current ? ' is-current' : ''}`} style={{ ['--faction' as string]: FACTION_COLOR[card.faction] }} onClick={set(card.id)}>
                 <span className="pick__value">{value}</span>
                 <span className="pick__main">
                   <b>{card.name}</b>
                   <small>{ROLES[card.role].name} · {RARITY_LABEL[card.rarity]}{card.role !== seat ? ' · fremde Rolle' : ''}</small>
                 </span>
-                <span className="pick__state">{card.id === current ? 'Sitzt hier' : elsewhere ? `Wechselt von ${ROLES[elsewhere].short}` : ''}</span>
+                <span className="pick__state">{away ? 'Im Konvoi' : card.id === current ? 'Sitzt hier' : elsewhere ? `Wechselt von ${ROLES[elsewhere].short}` : ''}</span>
               </button>
             );
           })}
@@ -68,6 +70,31 @@ export function Deck() {
   const owned = cards.filter((c) => view.collection[c.id]);
   const missing = cards.filter((c) => !view.collection[c.id]);
   const need = album.next ? Math.ceil(album.total * album.next.pct) : album.total;
+  const mode = useApp((s) => s.deckMode);
+  const setMode = useApp((s) => s.setDeckMode);
+  const back = view.convoys.running.filter((c) => c.done).length;
+  const segment = (
+    <div className="segment" role="tablist">
+      {([['bridge', 'Brücke'], ['convoys', 'Konvois']] as const).map(([id, label]) => (
+        <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? 'is-active' : ''} onClick={() => { audio.tap(); setMode(id); }}>
+          {label}{id === 'convoys' && back > 0 && <i className="dot" />}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (mode === 'convoys') {
+    return (
+      <section className="deck">
+        <header className="screenhead">
+          <span className="eyebrow">Reserve</span>
+          <h2>Konvois</h2>
+        </header>
+        {segment}
+        <Convoys />
+      </section>
+    );
+  }
 
   return (
     <section className="deck">
@@ -76,6 +103,7 @@ export function Deck() {
         <h2>Crew</h2>
         <span className="pill pill--chem">Chemie <b>{view.deck.chem}</b></span>
       </header>
+      {segment}
 
       <div className="bridge">
         {SEATS.map((seat) => {

@@ -146,6 +146,7 @@ export function Travel({ travel }: { travel: TravelState }) {
             {(Object.entries(travel.outcome.lost) as [GoodId, number][]).map(([id, qty]) => (
               <li key={id} className="is-down">−{qty} {GOOD_BY_ID.get(id)!.name}</li>
             ))}
+            {travel.outcome.hidden > 0 && <li className="is-up">Schmuggelfach: {travel.outcome.hidden} Einheiten unentdeckt</li>}
             {travel.outcome.wantedDelta > 0 && <li className="is-down">Fahndung +{travel.outcome.wantedDelta} · {FACTIONS[dest.faction].short}</li>}
             {travel.outcome.creditsDelta === 0 && Object.keys(travel.outcome.lost).length === 0 && travel.outcome.wantedDelta === 0 && <li>Fracht und Kasse unberührt</li>}
           </ul>
