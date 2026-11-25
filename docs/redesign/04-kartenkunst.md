@@ -17,6 +17,14 @@ Zwei Dinge für die nächsten Bilder:
 
 Die Holo-Folie spart bei gemalten Karten das Gesicht aus, damit die Hautfarbe nicht verfärbt wird.
 
+## Stand der Porträts
+
+Eingebaut sind fünf von zehn: Vesper Nakai (`c21`), Marisol Kade (`c29`), Sera Quill (`c27`), ECHO-9 (`c24`) und MUTTER (`c30`). Übersicht in `preview/42-painted-legends.jpg`. Der Stil hält über alle fünf.
+
+Bei gemalten Singularitäten wandert nur die Folie durch das Farbspektrum, das Bild selbst behält seine Farben.
+
+Offen: Okon Rhee (`c28`), Ilse Marrow (`c25`), Kazimir Voss (`c22`), Dax Verhoeven (`c26`) und Oriel Santhe (`c23`).
+
 ## So funktioniert es technisch
 
 - Datei nach `packages/client/src/assets/cards/<Karten-ID>.webp` legen, zum Beispiel `c21.webp`. Mehr braucht es nicht.

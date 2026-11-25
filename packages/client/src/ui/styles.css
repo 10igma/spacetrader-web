@@ -622,6 +622,13 @@ button.tile:active { transform: scale(0.96); }
 .holo.is-locked { --rar: #3a4760; --foil: 0; }
 .holo.is-locked .holo__art { filter: grayscale(1) brightness(0.5); }
 .holo.is-locked .avatar { filter: brightness(0.12); }
+/* A painted Singularity keeps its own colours: only the foil cycles through the spectrum, not the artwork. */
+.holo--singularity.holo--painted .holo__body { animation: none; }
+.holo--singularity.holo--painted .holo__foil { animation: hue-foil 6s linear infinite; }
+@keyframes hue-foil {
+  from { filter: brightness(0.62) contrast(1.5) saturate(1.25) hue-rotate(0deg); }
+  to { filter: brightness(0.62) contrast(1.5) saturate(1.25) hue-rotate(360deg); }
+}
 /* On a painted portrait the foil plays around the figure and spares the face, so skin keeps its colour. */
 .holo--painted .holo__foil {
   -webkit-mask-image: radial-gradient(58% 42% at 58% 36%, transparent 35%, #000 100%);
