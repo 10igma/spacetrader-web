@@ -9,7 +9,7 @@ Das bestehende Repo ist ein originalgetreuer Web-Port von Space Trader (Palm OS,
 Für den Neustart heisst das zwei Dinge:
 
 1. **Neues, eigenes Spiel statt Port.** Wir übernehmen das Genre (Weltraumhandel), aber keine Namen, Schiffe, Quests, Systemdaten oder Tabellen des Originals. Das ist inhaltlich gewollt (neues Erlebnis) und rechtlich nötig: Wer GPL-Code oder aus dem C-Quelltext portierte Daten weiterverwendet, muss das ganze Spiel unter GPL offenlegen. Für ein Spiel mit Shop und Live-Betrieb ist das ein Problem.
-2. **Sauberer Schnitt im Repo.** Der heutige Stand wird als `v1-classic` getaggt und bleibt abrufbar. Der neue Code startet in einer leeren Struktur ohne Übernahme.
+2. **Sauberer Schnitt im Repo.** Der bisherige Port liegt unverändert in `legacy/classic`. Der neue Code startet in einer leeren Struktur ohne Übernahme.
 
 ## 2. Was das Spiel technisch wirklich braucht
 
@@ -81,23 +81,24 @@ Der wichtigste Vorteil dieser Wahl: Ich kann jeden Screen bauen, in einem 390 x 
 │  Karten, Güter, Sektoren,    │  IndexedDB lokal, versionierte │
 │  Loot-Tabellen, Quoten       │  Saves, später Cloud-Sync      │
 └──────────────────────────────┴───────────────────────────────┘
-        später: Backend (Zeit, Ranglisten, Events, Kauf-Validierung)
+        GameService-Grenze: dahinter autoritativer Server (Abschnitt 6)
 ```
 
 ### Repo-Struktur (pnpm-Workspace)
 
 ```
 packages/
-  core/       Spielkern: Regeln, Zustand, Commands, Events, RNG
-  content/    Datendefinitionen und Schemas (Karten, Güter, Sektoren, Quoten)
-  stage/      PixiJS-Szenen, Shader, Partikel
-  audio/      Musik- und SFX-Engine
-  ui/         Design-System und Screens
-  app/        Vite-App, PWA-Manifest, Capacitor-Projekt
+  core/       Spielkern: Regeln, Zustand, Commands, Events, RNG, Content. Kein DOM
+  server/     Autoritativer Server. Importiert core, hält Zustand, Uhr und Würfel
+  client/     Vite-App: stage/ (PixiJS, Shader), audio/, ui/, net/ (Service-Schicht)
 tools/
-  balance/    Bot-Spieler und Monte-Carlo-Simulationen für Ökonomie und Quoten
   shots/      Playwright-Skripte für Screenshots in Geräte-Auflösungen
+  balance/    (ab Phase 2) Bot-Spieler und Monte-Carlo-Simulationen
+legacy/
+  classic/    Der bisherige Space-Trader-Port, unverändert, nicht Teil des Builds
 ```
+
+Stage, Audio und UI sind vorerst Ordner im Client statt eigene Pakete. Getrennt wird, sobald ein zweiter Abnehmer existiert.
 
 ## 5. Schlüsselentscheide
 
@@ -113,11 +114,55 @@ tools/
 
 **Content als Daten.** Karten, Güter, Sektoren, Loot-Tabellen und Shop-Angebote sind validierte Datendateien. Neue Saisons und Events sind Datenänderungen, keine Programmierarbeit. Das ist die Voraussetzung für einen Live-Betrieb.
 
-**Lokal zuerst, Server später.** Bis und mit Phase 3 läuft alles offline auf dem Gerät. Tagesangebote entstehen aus einem Datums-Seed und sind für alle gleich, ohne Server. Ein Backend kommt erst, wenn es etwas gibt, das Vertrauen braucht: Ranglisten, Spieler-Markt, echtes Geld. Kandidat: Cloudflare Workers mit D1 oder Supabase.
+**Autoritativer Server von Anfang an in der Architektur.** Details in Abschnitt 6. Kurz: Der Client ist nur Anzeige und Eingabe. Er spricht ausschliesslich über die Schnittstelle `GameService` mit dem Spiel. Dahinter läuft entweder der echte Server oder, für Entwicklung und Vorschau, derselbe Kern im Browser.
 
 **State im Client.** Zustand als schlanker Store, der den Kern-Zustand spiegelt. Die UI abonniert gezielt einzelne Ausschnitte.
 
-## 6. Art Direction und Design-System
+## 6. Autoritativer Server
+
+**Ziel:** Das Handy ist nur Client. Alles, was zählt, entscheidet der Server. Ein manipulierter Client kann sich höchstens selbst falsche Bilder zeigen.
+
+### Wie es gebaut ist
+
+```
+Client (Handy)                          Server
+┌──────────────────────┐   Command    ┌───────────────────────────────┐
+│ UI, Bühne, Ton       │ ───────────▶ │ prüft Sitzung und Befehlsform  │
+│                      │              │ applyCommand(state, cmd, now)  │
+│ kennt: ClientView    │ ◀─────────── │ hält: Zustand, Uhr, Seed, RNG  │
+│ kennt nicht: Seed,   │ View+Events  │ sendet: gefilterte Sicht       │
+│ RNG, fremde Daten    │              └───────────────────────────────┘
+└──────────────────────┘
+```
+
+- **Eine Schnittstelle.** `GameService` hat zwei Methoden: `connect()` und `send(command)`. Kein Screen ruft Regeln direkt auf.
+- **Ein Regelwerk.** `packages/core` läuft unverändert auf dem Server. Es gibt keine zweite Implementierung, die auseinanderlaufen könnte.
+- **Würfel bleiben auf dem Server.** Seed und Zufallszustand sind Teil des Server-Zustands. `toClientView` entfernt sie, ein Test stellt das sicher. Der Client erfährt den Inhalt eines Containers erst als Ergebnis.
+- **Die Uhr gehört dem Server.** Timer, Energie und Fristen rechnen mit Server-Zeit. Die Geräte-Uhr zu verstellen bringt nichts.
+- **Inszenierung ist getrennt.** Der Reveal spielt nur ab, was der Server bereits entschieden hat.
+
+### Was schon läuft
+
+`packages/server` ist ein lauffähiges Skelett (Node, ohne Abhängigkeiten ausser dem Kern). Geprüft: Sitzung anlegen, Container öffnen, zweiten Gratis-Container ablehnen, erfundene Befehle ablehnen, Anfragen ohne Sitzung ablehnen. Der Client läuft im Browser gegen diesen Server (`?server=http://...`) und schreibt dabei keinen lokalen Spielstand.
+
+### Was für den Produktivbetrieb noch fehlt
+
+| Baustein | Zweck | Phase |
+|---|---|---|
+| Konten und Anmeldung (Geräte-Konto, später Apple, Google, E-Mail) | Spielstand gehört einer Person, nicht einem Gerät | 4 |
+| Datenbank (Postgres) mit Transaktionen pro Befehl | Zustand überlebt Neustarts, kein Doppel-Ausgeben | 4 |
+| Idempotenz-Schlüssel pro Befehl | Wiederholte Anfrage bei schlechtem Netz zählt nur einmal | 4 |
+| Rate-Limits und Anomalie-Erkennung | Bots und Skripte bremsen | 4 |
+| Kaufbeleg-Prüfung gegen Apple und Google | Kein Guthaben ohne bestätigte Zahlung | 6 |
+| Betrieb: Hosting, TLS, Backups, Monitoring | Verfügbarkeit | 4 |
+
+### Ehrliche Grenzen
+
+- **Online-Pflicht.** Ein autoritativer Server heisst: ohne Verbindung kein Fortschritt, wie bei FUT. Der Offline-Modus bleibt als Entwicklungs- und Vorschau-Werkzeug, nicht als Spielmodus mit Wert.
+- **Nicht hackbar gibt es nicht, nur: Hacken bringt nichts.** Der Server verhindert gefälschte Ergebnisse, Guthaben und Zeiten. Er verhindert nicht, dass jemand den Client automatisiert (Bots). Dagegen helfen Limits und Auswertung, nie vollständig.
+- **Latenz.** Jede Aktion braucht eine Antwort. Darum ist die Inszenierung so gebaut, dass sie die Wartezeit überdeckt (der Riss lädt, während die Antwort kommt).
+
+## 7. Art Direction und Design-System
 
 Was "state of the art" hier konkret heisst, und was ich ohne Grafikteam liefern kann:
 
@@ -130,14 +175,14 @@ Was "state of the art" hier konkret heisst, und was ich ohne Grafikteam liefern 
 - **Haptik als dritte Ebene.** Eigenes Vokabular: leichter Tick bei Auswahl, doppelter Schlag bei Gewinn, anschwellendes Muster bei Reveal.
 - **Illustrationen (Crew-Porträts).** Die einzige Lücke: Gesichter und Figuren kann ich nicht per Shader erzeugen. Optionen: stilisierte prozedurale Avatare (Silhouetten, Helme, Hologramm-Look), KI-generierte Porträts, oder ein Illustrator. Empfehlung für den Start: prozedurale Hologramm-Avatare, weil sie zum Stil passen und rechtlich sauber sind.
 
-## 7. Audio
+## 8. Audio
 
 - **Adaptive Musik in Schichten.** Vier Zustände in derselben Tonart: Hub (ruhige Flächen), Reise (Puls und Arpeggio), Spannung (Begegnung), Reveal (Riser und Auflösung). Übergänge taktgenau, damit ein Seltenheits-Treffer immer musikalisch auflöst.
 - **Synthese statt Samples.** Musik und Effekte werden zur Laufzeit erzeugt (Web Audio). Kein Lizenzproblem, wenige Kilobyte, unendlich variierbar.
 - **Sounddesign als Belohnungssystem.** Jede Seltenheit hat ein eigenes Klangmotiv, das man nach drei Packs wiedererkennt. Münzen, Tick beim Hochzählen, satter Schlag bei Abschluss.
 - **Ehrliche Grenze.** Generative Synth-Musik (Ambient, Synthwave, elektronisch) kann ich auf gutem Niveau liefern. Einen orchestralen oder gesungenen Titeltrack nicht. Die Engine ist so gebaut, dass sich später komponierte oder lizenzierte Stems einsetzen lassen.
 
-## 8. Weg aufs Handy
+## 9. Weg aufs Handy
 
 | Stufe | Was | Hinweis |
 |---|---|---|
@@ -146,7 +191,7 @@ Was "state of the art" hier konkret heisst, und was ich ohne Grafikteam liefern 
 | 3 | Capacitor-Hülle für iOS | **Braucht einen Mac mit Xcode und einen Apple-Developer-Account.** Das kann ich in dieser Cloud-Umgebung nicht bauen |
 | 4 | Native Plugins: Haptik, Push, Käufe | iOS-Safari kennt keine Vibration und nur eingeschränkt Push, darum sind diese Funktionen an die App-Hülle gebunden |
 
-## 9. Risiken und Grenzen
+## 10. Risiken und Grenzen
 
 | Risiko | Einschätzung | Gegenmassnahme |
 |---|---|---|
@@ -154,5 +199,5 @@ Was "state of the art" hier konkret heisst, und was ich ohne Grafikteam liefern 
 | Audio-Start auf iOS | Bekannt: Ton erst nach erster Berührung | Start-Screen "Tippen zum Starten" als Teil der Inszenierung |
 | Visuelle Qualität ohne Grafikteam | Der grösste Hebel und das grösste Risiko | Stil konsequent um Prozedurales bauen. Vertical Slice in Phase 1 beweist das Niveau, bevor Inhalt in die Breite geht |
 | Balancing einer Ökonomie mit Zufall | Hoch, ohne Werkzeuge nicht beherrschbar | Bot-Simulationen von Tag 1 bis Tag 90 als fester Teil der Pipeline |
-| Manipulation (Uhr, Speicherstand) | Lokal nicht verhinderbar | Akzeptiert bis zum Backend. Ab Ranglisten oder Echtgeld zwingend serverseitig |
+| Manipulation (Uhr, Speicherstand) | Im Offline-Modus nicht verhinderbar | Gelöst durch den autoritativen Server (Abschnitt 6). Offline bleibt Entwicklungswerkzeug |
 | Ich kann nur in Chromium prüfen | Safari-Eigenheiten sehe ich hier nicht | Früh und regelmässig auf deinem echten iPhone gegentesten |

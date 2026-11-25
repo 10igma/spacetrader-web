@@ -2,6 +2,23 @@
 
 Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechanik-Katalog (Dokument 02).
 
+## Stand (25.11.2026)
+
+**Phase 0 ist umgesetzt, dazu ein erster Teil von Phase 1 als Grafik-Beweis.**
+
+| Baustein | Stand | Geprüft durch |
+|---|---|---|
+| Workspace, Kern mit Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 10 Unit-Tests (Determinismus, Quoten über 200'000 Container, Pity, Ablehnungen, Treibstoff) |
+| Autoritativer Server (Skelett) und Service-Schicht im Client | fertig | Manuelle Anfragen und Browser-Lauf gegen den Server |
+| Bühne: Weltraum-Shader mit Nebel, Sternen, Planet, Reveal-Riss | fertig | Screenshots in 390 x 844 |
+| Design-System, Hub, Hangar, Sammlung, Holo-Karten, Reveal | fertig | Automatischer Durchlauf ohne Konsolenfehler |
+| Generative Musik und Effekte | fertig | Pegelmessung im Browser (spielt, übersteuert nicht) |
+| Produktions-Build | fertig | Durchlauf gegen den Build, rund 240 kB JavaScript komprimiert |
+
+**Nicht geprüft, weil hier nicht prüfbar:** wie die Musik klingt, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
+
+**Platzhalter in der Vorschau:** Markt-Laufband und Stationsname sind fester Text. Handel, Sprünge und Begegnungen existieren noch nicht.
+
 ## Prinzipien
 
 1. **Zuerst das Gefühl, dann die Breite.** Phase 1 liefert fünf Minuten Spiel auf Endniveau. Erst wenn das überzeugt, wird Inhalt skaliert.
@@ -26,7 +43,7 @@ Grössenangaben sind relativ (S, M, L, XL) und keine Kalenderzusage. Eine belast
 ## Phase 0: Fundament (S)
 
 **Inhalt**
-- Bestehenden Stand als `v1-classic` taggen, neue Workspace-Struktur anlegen
+- Bestehenden Port nach `legacy/classic` verschieben, neue Workspace-Struktur anlegen
 - Kern-Gerüst: Command- und Event-System, PRNG mit Seeds, Zeit als Eingabe, Save mit Versionierung
 - Bühne: PixiJS-Setup, Shader-Pipeline, Qualitätsstufen
 - Audio: Engine mit Zuständen, Entsperren auf iOS
@@ -142,8 +159,8 @@ Hier kommt der grösste Teil des Katalogs.
 
 | # | Frage | Meine Empfehlung | Blockiert |
 |---|---|---|---|
-| 1 | Stack: Web (PixiJS, React, Capacitor) oder doch Bevy oder Godot? | Web, Begründung in Dokument 01 | Phase 0 |
-| 2 | Altes Spiel: taggen und im Repo neu beginnen? | Ja, als `v1-classic` | Phase 0 |
+| 1 | Stack | Entschieden: Web (PixiJS, React, Capacitor) mit autoritativem Server | nichts |
+| 2 | Altes Spiel | Erledigt: liegt unverändert in `legacy/classic`, `main` ist unberührt | nichts |
 | 3 | Name des Spiels | Arbeitstitel behalten, Namensfindung nach Phase 1 | nichts |
 | 4 | Crew-Porträts: prozedural, KI-generiert oder illustriert? | Prozedurale Hologramm-Avatare für den Start | Phase 3 |
 | 5 | Backend und echte Mitspieler? | Entscheid nach Phase 3 | Phase 4 |
@@ -151,4 +168,4 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-Phase 0 und direkt anschliessend Phase 1. Sobald Entscheid 1 und 2 bestätigt sind, beginne ich mit dem Fundament und liefere als erstes sichtbares Ergebnis den Stations-Hub mit Musik in der Handy-Ansicht.
+Rest von Phase 1: der erste komplette Sprung (Routenwahl, Laden, Warp-Tunnel, Begegnung, Verkauf mit hochzählendem Gewinn) und Partikel für den Reveal. Danach Phase 2 mit dem Warenkatalog und der Schmuggel-Mechanik aus Dokument 02.

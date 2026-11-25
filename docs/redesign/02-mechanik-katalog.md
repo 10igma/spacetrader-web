@@ -36,7 +36,51 @@ Arbeitstitel: **PROJEKT NOVA**. Dieses Dokument beschreibt zuerst kurz das Spiel
 
 **Kern-Spannung im Mikro-Loop (Push your luck):** Schmuggelware bringt ein Vielfaches, aber jeder weitere Sprung ohne Verkauf erhöht Multiplikator und Risiko. "Noch ein Sprung" ist damit schon in der Grundmechanik angelegt, ganz ohne Monetarisierung.
 
-## 2. Bewertungsschema
+## 2. Warenkatalog und Schmuggel
+
+Handel ist das Herz. Die Vielfalt entsteht aus vier Legalitätsstufen, die je nach Fraktion verschieden gelten. Was im Helix-Kartell frei über den Tresen geht, bringt dich beim Zenit-Konsortium in Haft.
+
+| Stufe | Bedeutung | Marge | Risiko |
+|---|---|---|---|
+| **Frei** | Überall handelbar | klein, stabil | keines |
+| **Lizenziert** | Nur mit Handelslizenz der Fraktion | mittel | Busse ohne Lizenz |
+| **Sanktioniert** | In manchen Fraktionen verboten | hoch | Beschlagnahmung, Ruf sinkt |
+| **Geächtet** | Überall verboten, nur über Hehler | sehr hoch, stark schwankend | Beschlagnahmung, Fahndung, Schiff in Gefahr |
+
+### Waren (erstes Set, rund 50 Güter)
+
+| Kategorie | Frei und lizenziert | Sanktioniert und geächtet |
+|---|---|---|
+| **Grundgüter** | Wasser, Hydrokultur, Erze, Treibstoffzellen, Baustoffe | Rationsmarken (gefälscht) |
+| **Technik** | Maschinen, Reaktorteile, Navigationskerne, Drohnen | Militärische Zielrechner, Störsender |
+| **Cyberware** | Prothesen, Sinnesimplantate, Neuro-Schnittstellen | Kampfimplantate, entsperrte Reflexbooster, Identitäts-Chips, gebrauchte Implantate ohne Herkunft |
+| **Daten** | Sternkarten, Marktdaten, Unterhaltung | Schwarzcode (Schadsoftware), gestohlene Firmengeheimnisse, erwachte KI-Kerne |
+| **Waffen** | Jagdwaffen, Schiffsgeschütze (lizenziert) | Plasmagewehre, Minen, Kriegsdrohnen, EMP-Sprengköpfe |
+| **Drogen** | Medikamente, Stimulanzien (lizenziert) | Neurostaub, Lumen, Schlaftau, Roter Faden (durchwegs erfundene Substanzen) |
+| **Luxus** | Gewürze, Kunst, Spirituosen | Xeno-Artefakte, gefälschte Kunst, geschützte Tiere |
+| **Dienste** | Passagiere, Kurierpost | Flüchtige, Überläufer, versiegelte Fracht ohne Fragen |
+
+### Schmuggel-Mechanik
+
+| Baustein | Funktion |
+|---|---|
+| **Scan-Risiko** | Jede Zollbegegnung würfelt gegen Tarnwert des Schiffs. Quote ist vor dem Sprung sichtbar |
+| **Verstecke** | Module mit getarnten Laderäumen. Begrenzte Kapazität, senken das Scan-Risiko |
+| **Papiere** | Verbrauchskarte "Gefälschte Frachtbriefe": eine Kontrolle wird zur Formsache |
+| **Bestechung** | Preis hängt von Fraktion, Ruf und Ladungswert ab. Kann scheitern |
+| **Fahndungsstufe** | 0 bis 5 Sterne pro Fraktion. Steigt bei Erwischtwerden, sinkt mit Zeit oder Schmiergeld. Hohe Stufe: mehr Kontrollen, Kopfgeldjäger |
+| **Hehler** | Geächtete Ware geht nur an Hehler. Jeder hat Vorlieben, Tageslimit und Laune |
+| **Heisse Fracht** | Multiplikator steigt pro Sprung ohne Verkauf (Katalog A10) |
+| **Razzia und Knappheit** | Ereignisse treiben Schwarzmarktpreise in die Höhe. Wer liefert, während alle anderen sich ducken, verdient am meisten |
+| **Veredelung** | Labor- und Werkstatt-Module: Ware strecken, Implantate entsperren, Seriennummern entfernen. Mehr Wert, mehr Risiko |
+| **Crew-Rollen** | Schmuggler senken Scan-Risiko, Händler verbessern Hehlerpreise, Kanoniere machen Flucht möglich |
+
+### Zwei Hinweise zur Umsetzung
+
+- **Erfundene Substanzen statt echter Drogennamen.** Das ändert nichts am Spielgefühl, ist aber entscheidend für die Altersfreigabe: Echte Drogen mit Belohnung führen in einzelnen Ländern zur Verweigerung der Einstufung. Mit Drogen- und Waffenhandel landen wir realistisch bei 16 oder 17 Jahren aufwärts. Das passt auch zur Monetarisierung, weil Minderjährige damit ausserhalb der Zielgruppe sind.
+- **Keine Menschen als Ware.** Flüchtige und Überläufer transportieren ja, Menschenhandel nein. Das kostet nichts an Vielfalt und erspart Ärger mit den Stores.
+
+## 3. Bewertungsschema
 
 Jede Mechanik hat eine Ampel. Sie sagt nichts über die Wirksamkeit, sondern über Risiko und Fairness.
 
@@ -44,11 +88,11 @@ Jede Mechanik hat eine Ampel. Sie sagt nichts über die Wirksamkeit, sondern üb
 |---|---|
 | 🟢 Grün | Üblicher Engagement-Baustein. Unproblematisch, macht das Spiel besser |
 | 🟡 Gelb | Manipulativ im engeren Sinn, legal und Branchenstandard. Bauen wir, mit Leitplanken |
-| 🔴 Rot | Täuschung oder klares Rechtsrisiko. Empfehlung: nicht bauen, Begründung in Abschnitt 5 |
+| 🔴 Rot | Täuschung oder klares Rechtsrisiko. Empfehlung: nicht bauen, Begründung in Abschnitt 6 |
 
 "Phase" verweist auf die Roadmap (Dokument 03).
 
-## 3. Katalog
+## 4. Katalog
 
 ### A. Variable Belohnungen und Gacha
 
@@ -149,7 +193,7 @@ Jede Mechanik hat eine Ampel. Sie sagt nichts über die Wirksamkeit, sondern üb
 | G9 | **Beschämung und Hürden** | Ablehnen wird unangenehm gemacht | "Nein, ich will keine Belohnung", versteckter Schliessen-Knopf, Abo-Kündigung über Umwege | 🔴 | nicht bauen |
 | G10 | **Verdeckte oder falsche Quoten** | Hoffnung ohne Grundlage | Quoten nicht zeigen oder anders würfeln als angegeben | 🔴 | nicht bauen |
 
-## 4. Die zwölf wichtigsten für den Start
+## 5. Die zwölf wichtigsten für den Start
 
 Wenn wir priorisieren müssen, tragen diese den Loop. In dieser Reihenfolge bauen:
 
@@ -166,7 +210,7 @@ Wenn wir priorisieren müssen, tragen diese den Loop. In dieser Reihenfolge baue
 11. **F5 Manifeste**
 12. **D6 Saison-Charter** und **E1 Ligen**
 
-## 5. Leitplanken und meine Linie
+## 6. Leitplanken und meine Linie
 
 Du hast ausdrücklich nach den harten Tricks gefragt, und der Katalog enthält sie. Drei Punkte dazu, kurz und ohne Predigt:
 

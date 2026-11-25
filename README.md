@@ -1,46 +1,35 @@
-# 🚀 Space Trader Web
+# Projekt Nova
 
-A faithful web port of **Space Trader** (Palm OS, 2002) by Pieter Spronck.
+Arbeitstitel. Ein eigenständiges Weltraum-Handelsspiel für Mobilgeräte: handeln, schmuggeln, Crew sammeln.
 
-Trade goods, fight pirates, upgrade ships, and explore 120 solar systems — all in your browser.
+Der frühere Space-Trader-Port liegt unverändert unter `legacy/classic` und ist nicht Teil des Builds.
 
-## Tech Stack
+## Dokumente
 
-- **React 19** + **TypeScript** + **Vite**
-- **Tailwind CSS** for styling
-- **Zustand** for state management
-- Pure game logic — no heavy game framework needed
+- [Architektur](docs/redesign/01-architektur.md)
+- [Spielkonzept und Mechanik-Katalog](docs/redesign/02-mechanik-katalog.md)
+- [Roadmap und Stand](docs/redesign/03-roadmap.md)
 
-## Development
+## Aufbau
+
+```
+packages/core     Spielregeln, Zustand, Zufall. Läuft im Server und im Offline-Modus
+packages/server   Autoritativer Server (Skelett)
+packages/client   Vite-App: Bühne (PixiJS, Shader), Audio, UI
+tools/shots       Screenshot-Durchlauf in Handy-Auflösung
+```
+
+## Entwickeln
 
 ```bash
-npm install
-npm run dev     # Start dev server
-npm run build   # Production build
+pnpm install
+pnpm dev          # Client im Offline-Modus, http://localhost:5173
+pnpm dev:server   # Server auf Port 8787
+pnpm test         # Tests des Spielkerns
+pnpm typecheck
+pnpm build        # Produktions-Build nach packages/client/dist
 ```
 
-## Project Structure
+Client gegen den Server: `http://localhost:5173/?server=http://localhost:8787`
 
-```
-src/
-  data/         — Game constants, tables, and static data (from original C source)
-  models/       — TypeScript interfaces for all game entities
-  engine/       — Core game logic (TODO)
-  state/        — Zustand store (TODO)
-  ui/           — React components for each game screen (TODO)
-  utils/        — Helpers (TODO)
-```
-
-## Status
-
-- ✅ All game data faithfully ported from C source
-- ✅ TypeScript types for all game entities
-- ⬜ Game engine (trading, combat, travel, encounters)
-- ⬜ Game state management
-- ⬜ UI screens
-- ⬜ Save/Load
-
-## Credits
-
-- Original game: **Pieter Spronck** (GPL v2)
-- Web port: 2026
+Weitere URL-Parameter für die Entwicklung: `?q=high` oder `?q=low` legt die Grafikqualität fest, `?seed=abc` startet im Offline-Modus ein reproduzierbares Spiel.
