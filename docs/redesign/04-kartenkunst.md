@@ -19,11 +19,11 @@ Die Holo-Folie spart bei gemalten Karten das Gesicht aus, damit die Hautfarbe ni
 
 ## Stand der Porträts
 
-Eingebaut sind fünf von zehn: Vesper Nakai (`c21`), Marisol Kade (`c29`), Sera Quill (`c27`), ECHO-9 (`c24`) und MUTTER (`c30`). Übersicht in `preview/42-painted-legends.jpg`. Der Stil hält über alle fünf.
+Alle zehn Legenden und Singularitäten haben ein gemaltes Porträt aus Gemini: `c21` bis `c30`. Übersicht in `preview/42-painted-legends.jpg`. Der Stil hält über alle zehn, die Lichtfarbe trennt die Fraktionen auf einen Blick (cyan, orange, magenta, weissblau).
 
 Bei gemalten Singularitäten wandert nur die Folie durch das Farbspektrum, das Bild selbst behält seine Farben.
 
-Offen: Okon Rhee (`c28`), Ilse Marrow (`c25`), Kazimir Voss (`c22`), Dax Verhoeven (`c26`) und Oriel Santhe (`c23`).
+Die 120 übrigen Karten zeigen weiter den prozeduralen Avatar. Sinnvoller nächster Schritt wären die 20 Elite-Karten. Standard und Selten können bei den Helmen bleiben: Der Abstand macht die hohen Seltenheiten begehrter.
 
 ## So funktioniert es technisch
 
