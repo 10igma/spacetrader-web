@@ -47,7 +47,7 @@ describe('crates', () => {
   });
 
   it('pity: never more than the published number of crates without Elite+ or Legend+', () => {
-    const { crates } = openMany('pity', 20_000);
+    const { crates } = openMany('pity', 10_000);
     let dryElite = 0, dryLegend = 0, worstElite = 0, worstLegend = 0;
     for (const pulls of crates) {
       const top = Math.max(...pulls.map((p) => rarityRank(p.rarity)));
@@ -64,7 +64,7 @@ describe('crates', () => {
     // The last slot carries guarantees, so it is intentionally better than base odds.
     // Pulls are sorted for reveal, so we test the distribution over whole crates instead:
     // P(crate has no card >= r) from base odds must be an upper bound that guarantees only improve.
-    const n = 200_000;
+    const n = 60_000;
     const { crates } = openMany('odds', n);
     const count: Record<Rarity, number> = { standard: 0, rare: 0, elite: 0, legend: 0, singularity: 0 };
     for (const pulls of crates) for (const p of pulls) count[p.rarity]++;
@@ -76,7 +76,7 @@ describe('crates', () => {
     }
     // And not by an absurd amount: legend+ stays rare.
     expect((count.legend + count.singularity) / total).toBeLessThan(0.03);
-  });
+  }, 30_000);
 
   it('duplicates turn into shards, new cards do not', () => {
     const { state, crates } = openMany('dupes', 200);

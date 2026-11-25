@@ -4,20 +4,27 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 
 ## Stand (25.11.2026)
 
-**Phase 0 ist umgesetzt, dazu ein erster Teil von Phase 1 als Grafik-Beweis.**
+**Phase 0 und Phase 1 (Vertical Slice) sind umgesetzt.** Der Kern-Loop ist einmal komplett spielbar: kaufen, Route wählen, springen, Begegnung entscheiden, ankommen, verkaufen, Container öffnen.
 
 | Baustein | Stand | Geprüft durch |
 |---|---|---|
-| Workspace, Kern mit Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 10 Unit-Tests (Determinismus, Quoten über 200'000 Container, Pity, Ablehnungen, Treibstoff) |
-| Autoritativer Server (Skelett) und Service-Schicht im Client | fertig | Manuelle Anfragen und Browser-Lauf gegen den Server |
-| Bühne: Weltraum-Shader mit Nebel, Sternen, Planet, Reveal-Riss | fertig | Screenshots in 390 x 844 |
-| Design-System, Hub, Hangar, Sammlung, Holo-Karten, Reveal | fertig | Automatischer Durchlauf ohne Konsolenfehler |
-| Generative Musik und Effekte | fertig | Pegelmessung im Browser (spielt, übersteuert nicht) |
-| Produktions-Build | fertig | Durchlauf gegen den Build, rund 240 kB JavaScript komprimiert |
+| Kern: Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 25 Unit-Tests |
+| Container mit Quoten, Garantie, Pity, Splitter | fertig | Monte Carlo über 60'000 Container, Pity über 10'000 |
+| Handel: 10 Waren (4 davon Schmuggelware), 8 Stationen, Preisdrift, Laderaum | fertig | Tests zu Preisen, Laderaum, Geld, Gewinnrechnung |
+| Sprung: Routen mit Preis-Hinweisen, Treibstoff, Stufenaufstieg füllt den Tank | fertig | Tests und Browser-Durchlauf |
+| Begegnungen: Piraten und Zoll, Quoten sichtbar, Crew verbessert Quoten | fertig | Test: angezeigte Quote stimmt mit 3'000 Würfen überein |
+| Autoritativer Server (Skelett) | fertig | Browser-Durchlauf gegen den Server. Vier manipulierte Befehle abgewiesen, ein untergeschobener Preis ignoriert |
+| Bühne: Nebel, Sterne, eigene Welt pro Station, Warp-Tunnel, Reveal-Riss | fertig | Screenshots in 390 x 844 |
+| UI: Hub, Markt, Handelsblatt, Routenwahl, Reise-Szene, Hangar, Sammlung, Reveal | fertig | Automatische Durchläufe ohne Konsolenfehler, auch im Produktions-Build |
+| Generative Musik und Effekte (Warp, Alarm, Münzen, Reveal) | fertig | Pegelmessung im Browser (spielt, übersteuert nicht) |
 
-**Nicht geprüft, weil hier nicht prüfbar:** wie die Musik klingt, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
+**Nicht geprüft, weil hier nicht prüfbar:** wie Musik und Effekte klingen, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
 
-**Platzhalter in der Vorschau:** Markt-Laufband und Stationsname sind fester Text. Handel, Sprünge und Begegnungen existieren noch nicht.
+**Bewusst noch roh:**
+- **Balance.** Preise, Quoten und Strafen sind erste Setzungen ohne Bot-Simulation. Schmuggel ist aktuell zu lukrativ.
+- **Crew.** Die besten Werte der Sammlung verbessern die Quoten. Ein Deck mit Plätzen und Chemie fehlt noch.
+- **Porträts.** Einfache prozedurale Helme, der schwächste Teil der Optik.
+- **Speicherstand.** Im Offline-Modus lokal, bei Regeländerungen wird er verworfen. Der Server hält Sitzungen nur im Arbeitsspeicher.
 
 ## Prinzipien
 
@@ -168,4 +175,4 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-Rest von Phase 1: der erste komplette Sprung (Routenwahl, Laden, Warp-Tunnel, Begegnung, Verkauf mit hochzählendem Gewinn) und Partikel für den Reveal. Danach Phase 2 mit dem Warenkatalog und der Schmuggel-Mechanik aus Dokument 02.
+Phase 2: Bot-Simulation für die Balance, voller Warenkatalog mit Legalität pro Fraktion, Heisse Fracht, Fahndungsstufe, Verstecke und Hehler (Dokument 02), dazu das Deck mit Crew-Plätzen und Chemie. Vorher lohnt sich dein Test auf dem Handy: Wenn Optik, Ton oder Spielgefühl nicht treffen, ist jetzt der günstigste Moment zum Korrigieren.

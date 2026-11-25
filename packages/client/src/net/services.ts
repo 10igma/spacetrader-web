@@ -1,9 +1,9 @@
 import {
-  applyCommand, createInitialState, toClientView,
+  applyCommand, createInitialState, STATE_VERSION, toClientView,
   type ClientView, type Command, type CommandResult, type GameService, type GameState,
 } from '@nova/core';
 
-const SAVE_KEY = 'nova.save.v1';
+const SAVE_KEY = 'nova.save';
 const TOKEN_KEY = 'nova.session';
 
 function storageGet(key: string): string | null {
@@ -29,7 +29,7 @@ export class LocalGameService implements GameService {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as GameState;
-        if (parsed.version === 1) state = parsed;
+        if (parsed.version === STATE_VERSION) state = parsed;
       } catch { /* corrupt save: start fresh */ }
     }
     // Dev aid for the offline host only: ?seed=x starts a fresh, reproducible game.

@@ -1,9 +1,34 @@
-import type { ClientView, Command, GameEvent, GameService, Pull } from '@nova/core';
+import type { ClientView, Command, GameEvent, GameService, Pull, RejectReason, StationId } from '@nova/core';
 import { create } from 'zustand';
 import { audio } from './audio/engine.ts';
 import { createGameService } from './net/services.ts';
 
 export type Tab = 'station' | 'market' | 'deck' | 'hangar' | 'league';
+
+/** A jump in progress, as far as the presentation is concerned. */
+export interface Travel {
+  from: StationId;
+  to: StationId;
+  /** Set once the server has resolved an encounter. */
+  outcome: Extract<GameEvent, { type: 'EncounterResolved' }> | null;
+  /** True when we reconnected into a pending encounter and skip the launch. */
+  resumed: boolean;
+}
+
+export interface SalePop { id: number; profit: number; revenue: number }
+
+const REJECT_TEXT: Record<RejectReason, string> = {
+  not_enough_credits: 'Nicht genug Credits',
+  free_crate_not_ready: 'Gratis-Container noch nicht bereit',
+  no_cargo_space: 'Laderaum voll',
+  not_in_cargo: 'Nicht an Bord',
+  no_fuel: 'Tank leer',
+  no_such_route: 'Route nicht verfügbar',
+  encounter_pending: 'Erst die Begegnung klären',
+  no_encounter: 'Keine Begegnung offen',
+  invalid_choice: 'Diese Wahl gibt es hier nicht',
+  unknown_command: 'Aktion nicht möglich',
+};
 
 interface AppState {
   service: GameService;
@@ -15,19 +40,25 @@ interface AppState {
   muted: boolean;
   busy: boolean;
   reveal: Pull[] | null;
+  travel: Travel | null;
+  routesOpen: boolean;
+  sale: SalePop | null;
   inspect: string | null;
-  toast: string | null;
+  toast: { text: string; tone: 'bad' | 'good' } | null;
   connect(): Promise<void>;
   send(cmd: Command): Promise<GameEvent[]>;
   begin(): void;
   setTab(tab: Tab): void;
   toggleMute(): void;
   closeReveal(): void;
+  endTravel(): void;
+  setRoutesOpen(open: boolean): void;
   setInspect(cardId: string | null): void;
-  showToast(text: string): void;
+  showToast(text: string, tone?: 'bad' | 'good'): void;
 }
 
 let toastTimer: number | undefined;
+let saleId = 0;
 
 export const useApp = create<AppState>((set, get) => ({
   service: createGameService(),
@@ -38,12 +69,17 @@ export const useApp = create<AppState>((set, get) => ({
   muted: false,
   busy: false,
   reveal: null,
+  travel: null,
+  routesOpen: false,
+  sale: null,
   inspect: null,
   toast: null,
 
   async connect() {
     const view = await get().service.connect();
     set({ view, clockOffset: view.serverTime - Date.now() });
+    // Reconnected in the middle of an encounter: pick the scene up where it stopped.
+    if (view.encounter) set({ travel: { from: view.location, to: view.encounter.to, outcome: null, resumed: true } });
   },
 
   async send(cmd) {
@@ -54,13 +90,19 @@ export const useApp = create<AppState>((set, get) => ({
       set({ view, clockOffset: view.serverTime - Date.now() });
       for (const ev of events) {
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls });
+        if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false }, routesOpen: false });
+        if (ev.type === 'EncounterResolved') {
+          const travel = get().travel;
+          if (travel) set({ travel: { ...travel, outcome: ev } });
+        }
+        if (ev.type === 'Sold') {
+          audio.coins(ev.revenue);
+          set({ sale: { id: ++saleId, profit: ev.profit, revenue: ev.revenue } });
+        }
+        if (ev.type === 'LevelUp') get().showToast(`Stufe ${ev.level} erreicht · Tank gefüllt`, 'good');
         if (ev.type === 'CommandRejected') {
           audio.deny();
-          get().showToast(
-            ev.reason === 'not_enough_credits' ? 'Nicht genug Credits'
-              : ev.reason === 'free_crate_not_ready' ? 'Gratis-Container noch nicht bereit'
-                : 'Aktion nicht möglich',
-          );
+          get().showToast(REJECT_TEXT[ev.reason]);
         }
       }
       return events;
@@ -83,11 +125,13 @@ export const useApp = create<AppState>((set, get) => ({
     set({ muted });
   },
   closeReveal() { set({ reveal: null }); },
+  endTravel() { set({ travel: null, tab: 'market' }); },
+  setRoutesOpen(open) { set({ routesOpen: open }); },
   setInspect(cardId) { set({ inspect: cardId }); },
-  showToast(text) {
-    set({ toast: text });
+  showToast(text, tone = 'bad') {
+    set({ toast: { text, tone } });
     window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => set({ toast: null }), 2200);
+    toastTimer = window.setTimeout(() => set({ toast: null }), 2600);
   },
 }));
 

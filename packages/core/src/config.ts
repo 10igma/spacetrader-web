@@ -4,7 +4,10 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
 export const CONFIG = {
-  startCredits: 5_000,
+  startCredits: 3_000,
+  startStation: 'meridian' as const,
+  cargoCap: 20,
+  routesOffered: 3,
   startQuanta: 50,
   fuel: { max: 5, regenMs: 20 * MINUTE },
   crate: {
@@ -25,6 +28,34 @@ export const CONFIG = {
     pityElite: 10,
     /** Crates without a Legend+ before one is forced. */
     pityLegend: 60,
+  },
+  travel: {
+    /** Encounter chance per level of the destination (0 to 3). */
+    piratesPerLevel: 0.11,
+    customsPerLevel: 0.13,
+    /** Share of the list price you get when selling, before crew bonus. */
+    sellFactor: 0.92,
+    sellFactorCrew: 0.05,
+    xpPerJump: 15,
+    xpPerProfit: 1 / 40,
+  },
+  /** Base chance plus the part the crew can add (0 to 1 crew bonus). */
+  encounter: {
+    fight: { base: 0.45, crew: 0.30 },
+    flee: { base: 0.50, crew: 0.30 },
+    breakThrough: { base: 0.35, crew: 0.30 },
+    bribe: { base: 0.70, crew: 0.25 },
+    /** Chance that a scan finds contraband. Crew lowers it. */
+    detect: { base: 0.80, crew: 0.45 },
+    fineShare: 0.10,
+    bribeBase: 100,
+    bribeShare: 0.10,
+    tributeShare: 0.12,
+    tributeMin: 100,
+    lossOnLostFight: 0.40,
+    lossOnFailedFlee: 0.25,
+    lootMin: 150,
+    lootRange: 450,
   },
   shardsPerDuplicate: {
     standard: 5,

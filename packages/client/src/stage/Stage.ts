@@ -13,6 +13,18 @@ interface Uniforms {
   uRift: Float32Array;
   uFlash: number;
   uDetail: number;
+  uWarp: number;
+  uSeed: number;
+  uAtmo: Float32Array;
+  uWater: Float32Array;
+  uLand: Float32Array;
+}
+
+export interface WorldLook {
+  seed: number;
+  atmo: [number, number, number];
+  water: [number, number, number];
+  land: [number, number, number];
 }
 
 const QUALITY_STEPS = [1, 0.75, 0.55] as const;
@@ -29,6 +41,7 @@ export class Stage {
   private planet = { cur: [0.3, 0.52, 0.62] as Vec3, target: [0.3, 0.52, 0.62] as Vec3 };
   private rift = { color: [1, 1, 1] as Vec3, cur: 0, target: 0 };
   private flash = 0;
+  private warp = { cur: 0, target: 0 };
   private quality = 0;
   private frameTimes: number[] = [];
   private baseDpr = 1;
@@ -70,6 +83,11 @@ export class Stage {
           uRift: { value: new Float32Array([1, 1, 1, 0]), type: 'vec4<f32>' },
           uFlash: { value: 0, type: 'f32' },
           uDetail: { value: 1, type: 'f32' },
+          uWarp: { value: 0, type: 'f32' },
+          uSeed: { value: 3, type: 'f32' },
+          uAtmo: { value: new Float32Array([0.16, 0.56, 1.0]), type: 'vec3<f32>' },
+          uWater: { value: new Float32Array([0.008, 0.06, 0.11]), type: 'vec3<f32>' },
+          uLand: { value: new Float32Array([0.11, 0.085, 0.07]), type: 'vec3<f32>' },
         },
       },
     });
@@ -94,6 +112,25 @@ export class Stage {
     this.planet.target = [x, y, radius];
   }
 
+  /** Jump the planet to a position without easing (used while it is hidden by warp). */
+  snapPlanet(x: number, y: number, radius: number): void {
+    this.planet.cur = [x, y, radius];
+    this.planet.target = [x, y, radius];
+  }
+
+  /** Swap which world is rendered. Do this while the planet is off screen. */
+  setWorld(look: WorldLook): void {
+    if (!this.u) return;
+    this.u.uSeed = look.seed;
+    this.u.uAtmo.set(look.atmo);
+    this.u.uWater.set(look.water);
+    this.u.uLand.set(look.land);
+  }
+
+  setWarp(amount: number): void {
+    this.warp.target = amount;
+  }
+
   setRift(color: Vec3 | null, intensity: number): void {
     if (color) this.rift.color = color;
     this.rift.target = intensity;
@@ -115,6 +152,8 @@ export class Stage {
     }
     this.rift.cur += (this.rift.target - this.rift.cur) * k(this.rift.target > this.rift.cur ? 5 : 7);
     this.flash *= Math.exp(-dt * 5);
+    this.warp.cur += (this.warp.target - this.warp.cur) * k(this.warp.target > this.warp.cur ? 2.2 : 3.2);
+    this.u.uWarp = this.warp.cur;
 
     this.u.uTime = (performance.now() - this.start) / 1000;
     this.u.uRes[0] = w; this.u.uRes[1] = h;

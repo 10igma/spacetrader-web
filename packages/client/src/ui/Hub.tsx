@@ -1,43 +1,42 @@
-import { CARDS } from '@nova/core';
+import { FACTIONS, GOOD_BY_ID, STATION_BY_ID } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
-import { countdown } from './format.ts';
+import { countdown, FACTION_COLOR } from './format.ts';
 import { useServerNow } from './hooks.ts';
-import { IconDeck, IconFuel, IconHangar } from './icons.tsx';
+import { IconFuel, IconHangar, IconMarket } from './icons.tsx';
 
-// Placeholder flavour until the market simulation exists (Phase 2).
-const TICKER = [
-  ['Cyberware', '+18 %', 'up'],
-  ['Neurostaub', '−6 %', 'down'],
-  ['Razzia auf Kessin Tief', 'Zoll verschärft', 'warn'],
-  ['Plasmagewehre', 'knapp', 'up'],
-  ['Schwarzcode', '+31 %', 'up'],
-  ['Hydrokultur', '−2 %', 'down'],
-] as const;
+const CUSTOMS = ['Kein Zoll', 'Zoll lax', 'Zoll wachsam', 'Zoll streng'];
 
 export function Hub() {
   const view = useApp((s) => s.view)!;
   const setTab = useApp((s) => s.setTab);
+  const openRoutes = useApp((s) => s.setRoutesOpen);
   const now = useServerNow();
+  const station = STATION_BY_ID.get(view.location)!;
   const freeIn = view.crates.nextFreeAt - now;
-  const owned = Object.keys(view.collection).length;
-  const go = (tab: 'hangar' | 'deck') => (): void => { audio.tap(); setTab(tab); };
+  const go = (tab: 'hangar' | 'market') => (): void => { audio.tap(); setTab(tab); };
+
+  // The ticker is the live local market, strongest deviations first.
+  const movers = [...view.market].sort((a, b) => Math.abs(b.level - 1) - Math.abs(a.level - 1));
+  const wanted = [...view.market].sort((a, b) => b.level - a.level)[0]!;
 
   return (
-    <section className="hub">
+    <section className="hub" style={{ ['--faction' as string]: FACTION_COLOR[station.faction] }}>
       <header className="hub__loc">
-        <span className="eyebrow">Sektor Tessera · Freihandelszone</span>
-        <h1>Meridian Hoch</h1>
+        <span className="eyebrow">{FACTIONS[station.faction].name} · {station.tagline}</span>
+        <h1>{station.name}</h1>
         <div className="chips">
-          <span className="chip chip--ok">Zoll lax</span>
-          <span className="chip chip--hot">Cyberware gefragt</span>
+          <span className={`chip ${station.customs >= 2 ? 'chip--hot' : 'chip--ok'}`}>{CUSTOMS[station.customs]}</span>
+          <span className="chip chip--hot">{GOOD_BY_ID.get(wanted.goodId)!.name} gefragt</span>
         </div>
       </header>
 
       <div className="ticker" aria-hidden="true">
         <div className="ticker__track">
-          {[...TICKER, ...TICKER].map(([name, value, kind], i) => (
-            <span key={i} className={`ticker__item ticker__item--${kind}`}><b>{name}</b>{value}</span>
+          {[...movers, ...movers].map((m, i) => (
+            <span key={i} className={`ticker__item ticker__item--${m.level >= 1 ? 'up' : 'down'}`}>
+              <b>{GOOD_BY_ID.get(m.goodId)!.name}</b>{m.level >= 1 ? '+' : '−'}{Math.abs(Math.round((m.level - 1) * 100))} %
+            </span>
           ))}
         </div>
       </div>
@@ -45,30 +44,29 @@ export function Hub() {
       <div className="hub__grow" />
 
       <div className="tiles">
+        <button className="tile" onClick={go('market')}>
+          <span className="tile__icon"><IconMarket /></span>
+          <span className="tile__label">Laderaum</span>
+          <span className="tile__value">{view.cargo.used}<small> / {view.cargo.cap}</small></span>
+        </button>
+        <div className="tile">
+          <span className="tile__icon"><IconFuel /></span>
+          <span className="tile__label">{view.fuel.nextAt ? `+1 in ${countdown(view.fuel.nextAt - now)}` : 'Treibstoff'}</span>
+          <span className="pips">
+            {Array.from({ length: view.fuel.max }, (_, i) => <i key={i} className={i < view.fuel.amount ? 'on' : ''} />)}
+          </span>
+        </div>
         <button className={`tile${freeIn <= 0 ? ' tile--ready' : ''}`} onClick={go('hangar')}>
           <span className="tile__icon"><IconHangar /></span>
           <span className="tile__label">Gratis-Container</span>
           <span className="tile__value">{freeIn <= 0 ? 'Bereit' : countdown(freeIn)}</span>
         </button>
-        <div className="tile">
-          <span className="tile__icon"><IconFuel /></span>
-          <span className="tile__label">Treibstoff</span>
-          <span className="pips">
-            {Array.from({ length: view.fuel.max }, (_, i) => <i key={i} className={i < view.fuel.amount ? 'on' : ''} />)}
-          </span>
-        </div>
-        <button className="tile" onClick={go('deck')}>
-          <span className="tile__icon"><IconDeck /></span>
-          <span className="tile__label">Sammlung</span>
-          <span className="tile__value">{owned}<small> / {CARDS.length}</small></span>
-        </button>
       </div>
 
-      <button className="cta" onClick={go('hangar')}>
-        <span>Zum Hangar</span>
-        <small>Container öffnen</small>
+      <button className="cta" onClick={() => { audio.tap(); openRoutes(true); }}>
+        <span>Route wählen</span>
+        <small>{view.routes.length} Ziele in Reichweite</small>
       </button>
-      <p className="hub__note">Technik-Vorschau · Handel und Sprünge folgen in Phase 1 und 2</p>
     </section>
   );
 }

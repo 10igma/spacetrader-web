@@ -26,6 +26,11 @@ uniform vec3 uPlanet;   // center x, center y, radius (units: screen widths, y u
 uniform vec4 uRift;     // rgb = color, a = intensity 0..1
 uniform float uFlash;
 uniform float uDetail;  // 0 = cheap, 1 = full
+uniform float uWarp;    // 0 = docked, 1 = full warp
+uniform float uSeed;    // world seed: shifts the planet's surface
+uniform vec3 uAtmo;     // atmosphere colour
+uniform vec3 uWater;
+uniform vec3 uLand;
 
 float hash21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -105,13 +110,13 @@ vec3 planet(vec2 p, float t, vec3 bg) {
     vec3 nn = vec3(ca * n.x - sa * n.y, sa * n.x + ca * n.y, n.z);
     float lon = atan(nn.x, nn.z) + t * 0.018;
     float lat = asin(clamp(nn.y, -1.0, 1.0));
-    vec2 sp = vec2(lon * 1.5, lat * 1.9);
+    vec2 sp = vec2(lon * 1.5, lat * 1.9) + uSeed;
     int oct = uDetail > 0.5 ? 6 : 4;
 
     float land = fbm(sp * 2.1 + 3.0, oct);
     float landMask = smoothstep(0.49, 0.55, land);
-    vec3 ocean = mix(vec3(0.004, 0.018, 0.05), vec3(0.008, 0.06, 0.11), fbm(sp * 4.0, 3));
-    vec3 ground = mix(vec3(0.03, 0.04, 0.05), vec3(0.11, 0.085, 0.07), fbm(sp * 6.0 + 9.0, 4));
+    vec3 ocean = mix(uWater * 0.35, uWater, fbm(sp * 4.0, 3));
+    vec3 ground = mix(uLand * 0.3, uLand, fbm(sp * 6.0 + 9.0, 4));
     vec3 surf = mix(ocean, ground, landMask);
     float clouds = smoothstep(0.56, 0.86, fbm(sp * 2.8 + vec2(t * 0.012, 0.0) + 20.0, oct));
 
@@ -121,19 +126,19 @@ vec3 planet(vec2 p, float t, vec3 bg) {
 
     vec3 day = surf * (0.10 + 1.5 * diff) + vec3(0.62, 0.74, 0.86) * clouds * diff * 0.55;
     vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
-    day += vec3(0.6, 0.85, 1.0) * pow(max(dot(n, H), 0.0), 180.0) * (1.0 - landMask) * (1.0 - clouds) * 0.5;
+    day += mix(vec3(1.0), uAtmo, 0.5) * pow(max(dot(n, H), 0.0), 180.0) * (1.0 - landMask) * (1.0 - clouds) * 0.2;
 
     // Night side: city networks. Dense dots along coasts, thinning inland.
     float grid = noise(sp * 120.0) * noise(sp * 230.0 + 4.0);
     float urban = smoothstep(0.42, 0.72, fbm(sp * 5.0 + 50.0, 3));
     float cities = smoothstep(0.16, 0.55, grid) * landMask * urban;
     float lanes = smoothstep(0.012, 0.0, abs(fbm(sp * 9.0 + 80.0, 3) - 0.5)) * landMask * smoothstep(0.3, 0.6, urban);
-    vec3 night = vec3(1.0, 0.60, 0.24) * (cities * 2.4 + lanes * 1.3 + urban * landMask * 0.10) * (1.0 - clouds * 0.75);
+    vec3 night = mix(vec3(1.0, 0.60, 0.24), uAtmo, 0.22) * (cities * 2.4 + lanes * 1.3 + urban * landMask * 0.10) * (1.0 - clouds * 0.75);
     night += vec3(0.0, 0.02, 0.05) * clouds;
 
     vec3 body = mix(night, day, term);
     float fres = pow(1.0 - z, 3.0);
-    body += vec3(0.12, 0.52, 0.95) * fres * (0.18 + 1.3 * term);
+    body += uAtmo * 0.9 * fres * (0.18 + 1.3 * term);
     // Warm scattering along the terminator.
     body += vec3(1.0, 0.42, 0.18) * fres * smoothstep(0.35, 0.0, abs(ndl + 0.02)) * 0.35;
 
@@ -144,7 +149,7 @@ vec3 planet(vec2 p, float t, vec3 bg) {
   float outside = max(dist - 1.0, 0.0);
   float lit = clamp(dot(normalize(d + 1e-5), L.xy) * 0.75 + 0.45, 0.0, 1.0);
   float halo = (exp(-outside * 16.0) + exp(-outside * 4.5) * 0.18) * (1.0 - aa);
-  col += vec3(0.16, 0.56, 1.0) * halo * lit * 0.95;
+  col += uAtmo * halo * lit * 0.95;
   return col;
 }
 
@@ -164,6 +169,39 @@ vec3 rift(vec2 p, float t, vec3 col) {
   return col;
 }
 
+vec3 warp(vec2 p, float t, vec3 col) {
+  float w = uWarp;
+  if (w <= 0.001) return col;
+  float r = length(p) + 1e-4;
+  float a = atan(p.y, p.x);
+  vec3 streaks = vec3(0.0);
+  for (int layer = 0; layer < 2; layer++) {
+    float fl = float(layer);
+    float lanes = 230.0 + fl * 170.0;
+    float lane = a / 6.2831853 * lanes + fl * 0.37;
+    float id = floor(lane);
+    float h = hash21(vec2(id, 7.0 + fl * 13.0));
+    if (h < 0.5) continue;
+    float across = abs(fract(lane) - 0.5);
+    float speed = 1.6 + h * 2.8;
+    // log(r) makes streaks stretch as they fly outward: the tunnel feeling.
+    float along = fract(log(r) * (0.9 + h) - t * speed + h * 17.0);
+    float head = pow(along, mix(16.0, 5.0, w));
+    float line = smoothstep(0.45, 0.05, across);
+    vec3 tint = mix(vec3(0.5, 0.8, 1.0), vec3(1.0, 0.5, 0.85), step(0.93, h));
+    streaks += tint * head * line * (0.5 + h);
+  }
+  // Soft tunnel body behind the streaks.
+  float body = fbm(vec2(a * 9.0, log(r) * 2.5 - t * 2.2), 3);
+  float core = exp(-r * 8.0);
+  float fade = smoothstep(0.03, 0.4, r);
+  col *= mix(1.0, 0.15, w);
+  col += vec3(0.05, 0.16, 0.34) * body * body * fade * w * 1.2;
+  col += streaks * fade * w * 0.95;
+  col += vec3(0.5, 0.78, 1.0) * core * w * 0.55;
+  return col;
+}
+
 void main() {
   float aspect = uRes.y / uRes.x;
   vec2 p = (vUV - 0.5) * vec2(1.0, aspect);
@@ -175,6 +213,7 @@ void main() {
   float sun = length(p - vec2(-0.62, 0.5 * aspect + 0.08));
   col += vec3(0.55, 0.75, 1.0) * (0.012 / (sun * sun + 0.03));
   col = planet(p, t, col);
+  col = warp(p, t, col);
   col = rift(p, t, col);
 
   // Grade: filmic tone map, vignette, grain.

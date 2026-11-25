@@ -226,6 +226,113 @@ export class AudioEngine {
     for (const [i, f] of [196, 147].entries()) this.pluck(f, t + i * 0.09, 0.12, 0.18, this.sfx);
   }
 
+  private noise(seconds: number): AudioBufferSourceNode {
+    const ctx = this.ctx!;
+    const len = Math.floor(ctx.sampleRate * seconds);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    return src;
+  }
+
+  /** Engines spooling up, then the long rush. */
+  warp(seconds = 2.4): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const src = this.noise(seconds + 0.4);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 1.2;
+    bp.frequency.setValueAtTime(180, t);
+    bp.frequency.exponentialRampToValueAtTime(2600, t + 0.7);
+    bp.frequency.exponentialRampToValueAtTime(900, t + seconds);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.2, t + 0.6);
+    gain.gain.setValueAtTime(0.14, t + seconds - 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + seconds + 0.3);
+    src.connect(bp).connect(gain).connect(this.sfx);
+    src.start(t);
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(36.7, t);
+    osc.frequency.exponentialRampToValueAtTime(146.8, t + 0.8);
+    osc.frequency.setValueAtTime(146.8, t + seconds - 0.4);
+    osc.frequency.exponentialRampToValueAtTime(73.4, t + seconds + 0.2);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 500;
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0.0001, t);
+    og.gain.exponentialRampToValueAtTime(0.12, t + 0.5);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + seconds + 0.3);
+    osc.connect(lp).connect(og).connect(this.sfx);
+    osc.start(t);
+    osc.stop(t + seconds + 0.4);
+  }
+
+  /** Two-tone alarm. Pirates get the harsher interval. */
+  alert(kind: 'pirates' | 'customs'): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const [a, b] = kind === 'pirates' ? [311.1, 220] : [392, 293.7];
+    for (let i = 0; i < 3; i++) {
+      for (const [j, f] of [a, b].entries()) {
+        const osc = ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = f;
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 1400;
+        const gain = ctx.createGain();
+        const at = t + i * 0.32 + j * 0.16;
+        gain.gain.setValueAtTime(0, at);
+        gain.gain.linearRampToValueAtTime(0.07, at + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.15);
+        osc.connect(lp).connect(gain).connect(this.sfx);
+        osc.start(at);
+        osc.stop(at + 0.17);
+      }
+    }
+  }
+
+  /** Coins: more of them for a bigger sale, always landing on the root. */
+  coins(amount: number): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const n = Math.max(2, Math.min(9, Math.round(Math.log10(Math.max(10, amount)) * 2)));
+    for (let i = 0; i < n; i++) {
+      const note = i === n - 1 ? 86 : PENTA[(i * 2) % PENTA.length]! + 12;
+      this.pluck(midi(note), t + i * 0.055, 0.07, 0.35, this.sfx);
+    }
+  }
+
+  /** Something went wrong and it cost you. */
+  loss(): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(55, t + 0.7);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(1600, t);
+    lp.frequency.exponentialRampToValueAtTime(200, t + 0.7);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.16, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+    osc.connect(lp).connect(gain).connect(this.sfx);
+    osc.start(t);
+    osc.stop(t + 0.85);
+  }
+
   /** Rising tension while the rift charges. */
   riser(seconds: number): void {
     const ctx = this.ctx;
