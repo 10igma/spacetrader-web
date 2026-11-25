@@ -1,9 +1,10 @@
 import type { ClientView, Command, GameEvent, GameService, Pull, RejectReason, StationId } from '@nova/core';
 import { create } from 'zustand';
 import { audio } from './audio/engine.ts';
+import { rewardText } from './ui/format.ts';
 import { createGameService } from './net/services.ts';
 
-export type Tab = 'station' | 'market' | 'deck' | 'hangar' | 'league';
+export type Tab = 'station' | 'market' | 'deck' | 'hangar' | 'daily';
 
 /** A jump in progress, as far as the presentation is concerned. */
 export interface Travel {
@@ -34,7 +35,15 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   fence_closed: 'Der Hehler hat dichtgemacht: Fahndung zu hoch',
   card_not_owned: 'Karte nicht in der Sammlung',
   not_wanted: 'Hier liegt nichts gegen dich vor',
-  max_level: 'Bereits voll ausgebaut',
+  max_level: 'Bereits am Maximum',
+  no_such_slot: 'Diesen Platz gibt es nicht',
+  slot_busy: 'Es wird schon ein Container entsiegelt',
+  slot_not_ready: 'Noch nicht entsiegelt',
+  not_enough_quanta: 'Nicht genug Quanten',
+  not_enough_shards: 'Nicht genug Splitter',
+  not_claimable: 'Noch nicht abholbar',
+  daily_limit: 'Für heute ausverkauft',
+  already_owned: 'Diese Karte hast du schon',
 };
 
 interface AppState {
@@ -65,6 +74,8 @@ interface AppState {
 }
 
 let toastTimer: number | undefined;
+/** Several things can happen in one command: show them one after another. */
+const toastQueue: { text: string; tone: 'bad' | 'good' }[] = [];
 let saleId = 0;
 
 export const useApp = create<AppState>((set, get) => ({
@@ -113,6 +124,16 @@ export const useApp = create<AppState>((set, get) => ({
           set({ sale: { id: ++saleId, profit: ev.profit, revenue: ev.revenue } });
         }
         if (ev.type === 'LevelUp') get().showToast(`Stufe ${ev.level} erreicht · Tank gefüllt`, 'good');
+        if (ev.type === 'RewardGranted') { audio.coins(500); get().showToast(`Erhalten: ${rewardText(ev.reward)}`, 'good'); }
+        if (ev.type === 'CrateEarned') get().showToast(ev.tier === 'premium' ? 'Premium-Container im Hangar' : 'Container im Hangar', 'good');
+        if (ev.type === 'CrateLost') get().showToast('Hangar voll: Container verloren');
+        if (ev.type === 'CardForged') { audio.reveal(2); get().showToast('Karte geschmiedet', 'good'); }
+        if (ev.type === 'CardUpgraded') { audio.reveal(1); get().showToast(`Aufgewertet auf Stufe ${ev.level}`, 'good'); }
+        if (ev.type === 'StreakChanged') {
+          if (ev.kind === 'lost') get().showToast(`Serie gerissen (war ${ev.previous} Tage)`);
+          else if (ev.kind === 'saved') get().showToast(`Urlaubsschein eingelöst: Serie ${ev.count} Tage`, 'good');
+          else get().showToast(`Serie: ${ev.count} ${ev.count === 1 ? 'Tag' : 'Tage'}`, 'good');
+        }
         if (ev.type === 'CommandRejected') {
           audio.deny();
           get().showToast(REJECT_TEXT[ev.reason]);
@@ -142,9 +163,15 @@ export const useApp = create<AppState>((set, get) => ({
   setRoutesOpen(open) { set({ routesOpen: open }); },
   setInspect(cardId) { set({ inspect: cardId }); },
   showToast(text, tone = 'bad') {
-    set({ toast: { text, tone } });
-    window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => set({ toast: null }), 2600);
+    toastQueue.push({ text, tone });
+    if (get().toast) return;
+    const next = (): void => {
+      const item = toastQueue.shift();
+      set({ toast: item ?? null });
+      window.clearTimeout(toastTimer);
+      if (item) toastTimer = window.setTimeout(next, toastQueue.length > 0 ? 1500 : 2400);
+    };
+    next();
   },
 }));
 

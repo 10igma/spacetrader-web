@@ -12,24 +12,92 @@ export const CONFIG = {
   startQuanta: 50,
   fuel: { max: 5, regenMs: 20 * MINUTE },
   crate: {
-    cards: 3,
-    price: 2_500,
-    freeIntervalMs: 4 * HOUR,
-    /** Base odds per card slot. Published to the player. */
-    odds: {
-      standard: 0.70,
-      rare: 0.22,
-      elite: 0.065,
-      legend: 0.014,
-      singularity: 0.001,
-    } satisfies Record<Rarity, number>,
-    /** At least one card of this rarity or better per crate. */
-    guaranteed: 'rare' as Rarity,
+    freeIntervalMs: 12 * HOUR,
+    /** Free crates wait for you, but only this many: come back or lose the next one. */
+    freeMax: 2,
+    tiers: {
+      standard: {
+        cards: 3,
+        currency: 'credits' as 'credits' | 'quanta',
+        price: 4_000,
+        /** Every purchase on the same day multiplies the price. Wealth buys more, but never the whole set at once. */
+        priceGrowth: 4,
+        dailyLimit: 4,
+        /** At least one card of this rarity or better. */
+        floor: 'rare' as Rarity,
+        /** Base odds per card, before the upgrade moment. */
+        odds: { standard: 0.72, rare: 0.215, elite: 0.056, legend: 0.008, singularity: 0.001 } satisfies Record<Rarity, number>,
+        unlockMs: 30 * MINUTE,
+      },
+      premium: {
+        cards: 5,
+        currency: 'quanta' as 'credits' | 'quanta',
+        price: 150,
+        priceGrowth: 1,
+        dailyLimit: 1,
+        floor: 'elite' as Rarity,
+        odds: { standard: 0.50, rare: 0.34, elite: 0.135, legend: 0.022, singularity: 0.003 } satisfies Record<Rarity, number>,
+        unlockMs: 3 * HOUR,
+      },
+    },
+    /** Upgrade moment: chance that a card (below Legend) lands one rarity higher. Part of the published odds. */
+    bumpChance: 0.04,
     /** Crates without an Elite+ before one is forced. */
     pityElite: 10,
     /** Crates without a Legend+ before one is forced. */
     pityLegend: 60,
+    /** Earned crates wait in slots and must be unsealed. A full hangar loses new loot. */
+    slots: 4,
+    speedUpMinutesPerQuantum: 10,
+    speedUpFreeMs: 3 * MINUTE,
+    /** Chance that a won pirate fight drops a crate. */
+    lootChance: 0.15,
   },
+  cards: {
+    maxLevel: 5,
+    /** Every level above 1 adds this to all of a card's stats. */
+    statPerLevel: 2,
+    upgradeBase: { standard: 20, rare: 50, elite: 150, legend: 500, singularity: 1_500 } satisfies Record<Rarity, number>,
+    /** Cost multiplier for level 2, 3, 4 and 5. */
+    upgradeMult: [1, 2, 3, 5],
+    /** Shards to forge a card you do not own yet: the planned way to finish an album. */
+    forge: { standard: 60, rare: 200, elite: 800, legend: 4_000, singularity: 20_000 } satisfies Record<Rarity, number>,
+  },
+  daily: {
+    /** Days roll over at midnight Central European Time (no daylight saving). */
+    dayOffsetMs: 1 * HOUR,
+    missions: 3,
+    chest: { crate: 'standard', quanta: 10 } as const,
+  },
+  /** Login calendar: one claim per day, seven steps, then it starts again. */
+  calendar: [
+    { credits: 500 },
+    { shards: 40 },
+    { quanta: 10 },
+    { credits: 2_000 },
+    { freeze: 1 },
+    { quanta: 20 },
+    { crate: 'premium' },
+  ] as const,
+  streak: {
+    /** Sale price bonus per day of the streak. */
+    bonusPerDay: 0.01,
+    maxBonus: 0.10,
+    freezePrice: 40,
+    maxFreezes: 2,
+  },
+  album: {
+    milestones: [0.25, 0.5, 0.75, 1] as const,
+    rewards: [
+      { credits: 1_500, shards: 30 },
+      { crate: 'standard' },
+      { quanta: 20, shards: 120 },
+      { crate: 'premium' },
+    ] as const,
+    /** Permanent sale price bonus per completed album. */
+    bonusPerAlbum: 0.02,
+  },
+  levelUpQuanta: 5,
   travel: {
     /** Encounter chance per level of the destination (0 to 3). */
     piratesPerLevel: 0.11,

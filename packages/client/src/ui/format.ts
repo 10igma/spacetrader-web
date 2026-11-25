@@ -1,4 +1,4 @@
-import type { FactionId, Rarity } from '@nova/core';
+import type { FactionId, Mission, Rarity, Reward } from '@nova/core';
 
 const nf = new Intl.NumberFormat('de-CH');
 export const num = (n: number): string => nf.format(n);
@@ -33,6 +33,34 @@ export const FACTION_COLOR: Record<FactionId, string> = {
   asche: '#ff8a3c',
   zenit: '#a9bfff',
 };
+
+export function rewardText(r: Reward): string {
+  const parts: string[] = [];
+  if (r.credits) parts.push(`${num(r.credits)} Credits`);
+  if (r.shards) parts.push(`${num(r.shards)} Splitter`);
+  if (r.quanta) parts.push(`${num(r.quanta)} Quanten`);
+  if (r.freeze) parts.push(r.freeze === 1 ? 'Urlaubsschein' : `${r.freeze} Urlaubsscheine`);
+  if (r.crate) parts.push(r.crate === 'premium' ? 'Premium-Container' : 'Container');
+  return parts.join(' + ');
+}
+
+export function missionText(m: Mission): string {
+  switch (m.kind) {
+    case 'jumps': return `Mache ${m.target} Sprünge`;
+    case 'profit': return `Erziele ${num(m.target)} Credits Gewinn`;
+    case 'sellUnits': return `Verkaufe ${m.target} Einheiten`;
+    case 'buyUnits': return `Kaufe ${m.target} Einheiten`;
+    case 'hotUnits': return `Verkaufe ${m.target} Einheiten heikle Ware`;
+    case 'fightWin': return 'Gewinne einen Kampf gegen Piraten';
+    case 'openCrate': return `Öffne ${m.target} Container`;
+    case 'customsPass': return 'Komm durch eine Zollkontrolle';
+  }
+}
+
+export function duration(ms: number): string {
+  const min = Math.round(ms / 60_000);
+  return min >= 60 ? `${Math.round(min / 60)} Std.` : `${min} Min.`;
+}
 
 export const BONUS_LABEL = { nav: 'NAV', hdl: 'HDL', tec: 'TEC', kmp: 'KMP', smg: 'TARN' } as const;
 

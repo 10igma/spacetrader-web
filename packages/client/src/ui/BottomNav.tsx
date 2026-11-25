@@ -1,23 +1,21 @@
 import type { ReactNode } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp, type Tab } from '../store.ts';
-import { useServerNow } from './hooks.ts';
-import { IconDeck, IconHangar, IconLeague, IconMarket, IconStation } from './icons.tsx';
+import { IconDaily, IconDeck, IconHangar, IconMarket, IconStation } from './icons.tsx';
 
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'station', label: 'Station', icon: <IconStation /> },
   { id: 'market', label: 'Markt', icon: <IconMarket /> },
   { id: 'hangar', label: 'Hangar', icon: <IconHangar /> },
   { id: 'deck', label: 'Deck', icon: <IconDeck /> },
-  { id: 'league', label: 'Liga', icon: <IconLeague /> },
+  { id: 'daily', label: 'Aufträge', icon: <IconDaily /> },
 ];
 
 export function BottomNav() {
   const tab = useApp((s) => s.tab);
   const setTab = useApp((s) => s.setTab);
-  const nextFreeAt = useApp((s) => s.view!.crates.nextFreeAt);
-  const now = useServerNow();
-  const freeReady = now >= nextFreeAt;
+  const badges = useApp((s) => s.view!.badges);
+  const count: Partial<Record<Tab, number>> = { hangar: badges.hangar, daily: badges.daily, deck: badges.deck };
 
   return (
     <nav className="nav" aria-label="Hauptnavigation">
@@ -28,7 +26,7 @@ export function BottomNav() {
           aria-current={tab === t.id ? 'page' : undefined}
           onClick={() => { audio.tap(); setTab(t.id); }}
         >
-          <span className="nav__icon">{t.icon}{t.id === 'hangar' && freeReady && <i className="dot" />}</span>
+          <span className="nav__icon">{t.icon}{(count[t.id] ?? 0) > 0 && <i className="dot" />}</span>
           <span className="nav__label">{t.label}</span>
         </button>
       ))}

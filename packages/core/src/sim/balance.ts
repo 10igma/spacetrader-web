@@ -5,6 +5,7 @@ const seeds = Number(process.argv[2] ?? 200);
 const days = Number(process.argv[3] ?? 14);
 const q = (xs: number[], p: number): number => [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(xs.length * p))]!;
 const fmt = (n: number): string => Math.round(n).toLocaleString('de-CH').padStart(10);
+const dayText = (d: number, horizon: number): string => (Number.isFinite(d) ? `Tag ${d}` : `nach Tag ${horizon}`);
 
 for (const policy of ['legal', 'smuggler'] as Policy[]) {
   const runs: DaySample[][] = [];
@@ -15,13 +16,13 @@ for (const policy of ['legal', 'smuggler'] as Policy[]) {
     for (const [k, v] of Object.entries(r.log)) log[k] = (log[k] ?? 0) + v;
   }
   console.log(`\n=== ${policy} (${seeds} Spieler, ${days} Tage, 3 Sessions pro Tag) ===`);
-  console.log('Tag   Vermögen p10     Median        p90  Gewinn/Sprung  Stufe  Karten  Container  Sprünge  erwischt');
-  for (const d of [1, 2, 3, 5, 7, 10, 14].filter((x) => x <= days)) {
+  console.log('Tag   Vermögen p10     Median        p90  Gewinn/Sprung  Stufe  Karten  Legenden  Container  Quanten  Splitter  Serie  Sprünge  erwischt');
+  for (const d of [1, 2, 3, 5, 7, 10, 14, 21, 30].filter((x) => x <= days)) {
     const at = runs.map((r) => r[d - 1]!);
     console.log(
       `${String(d).padStart(3)} ${fmt(q(at.map((s) => s.worth), 0.1))} ${fmt(q(at.map((s) => s.worth), 0.5))} ${fmt(q(at.map((s) => s.worth), 0.9))}`
       + `  ${fmt(q(at.map((s) => s.profit / Math.max(1, s.jumps)), 0.5)).padStart(13)}`
-      + `  ${String(q(at.map((s) => s.level), 0.5)).padStart(5)}  ${String(q(at.map((s) => s.cards), 0.5)).padStart(6)}  ${String(q(at.map((s) => s.crates), 0.5)).padStart(9)}`
+      + `  ${String(q(at.map((s) => s.level), 0.5)).padStart(5)}  ${String(q(at.map((s) => s.cards), 0.5)).padStart(6)}  ${(at.reduce((a, s) => a + s.legends, 0) / at.length).toFixed(1).padStart(8)}  ${String(q(at.map((s) => s.crates), 0.5)).padStart(9)}  ${String(q(at.map((s) => s.quanta), 0.5)).padStart(7)}  ${String(q(at.map((s) => s.shards), 0.5)).padStart(8)}  ${String(q(at.map((s) => s.streak), 0.5)).padStart(5)}`
       + `  ${String(q(at.map((s) => s.jumps), 0.5)).padStart(7)}  ${(at.reduce((a, s) => a + s.caught, 0) / at.length).toFixed(1).padStart(8)}`,
     );
   }
@@ -31,6 +32,11 @@ for (const policy of ['legal', 'smuggler'] as Policy[]) {
   console.log(`Piraten: ${pick('pirates:')}`);
   console.log(`Zoll: ${pick('customs:')}`);
   console.log(`Abgelehnte Befehle: ${pick('rejected:') || 'keine'}`);
+  const firstLegend = runs.map((r) => r.find((s) => s.legends > 0)?.day ?? Infinity);
+  console.log(`Erste Legende: Median ${dayText(q(firstLegend, 0.5), days)}, frühestes Zehntel ${dayText(q(firstLegend, 0.1), days)}, spätestes Zehntel ${dayText(q(firstLegend, 0.9), days)}`);
+  const album = runs.map((r) => r.find((s) => s.albums > 0)?.day ?? Infinity);
+  console.log(`Erstes volles Album: Median ${dayText(q(album, 0.5), days)}, frühestes Zehntel ${dayText(q(album, 0.1), days)}`);
+  console.log(`Verlorene Container (Hangar voll): ${log.CrateLost ?? 0} bei ${log.CrateEarned ?? 0} verdienten`);
   const broke = runs.filter((r) => r[days - 1]!.worth < 500).length;
   console.log(`Pleite am Ende (unter 500): ${broke} von ${seeds}`);
 }

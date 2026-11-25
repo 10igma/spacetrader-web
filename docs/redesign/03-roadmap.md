@@ -4,46 +4,62 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 
 ## Stand (25.11.2026)
 
-**Phase 0 und 1 sind umgesetzt, Phase 2 zum grössten Teil.** Spielbar sind Handel mit 27 Waren, Schmuggel mit Hehler und Fahndung, Sprünge mit Begegnungen, das Crew-Deck mit Chemie, Container und Laderaum-Ausbau.
+**Phase 0 bis 2 sind umgesetzt, Phase 3 zur Hälfte.** Neu aus Phase 3: grosses Kartenset mit Aufwertung und Schmieden, Container-Stufen mit Slots und Timern, Sammelalben, Tagesaufträge, Login-Kalender und Handelsserie.
 
 | Baustein | Stand | Geprüft durch |
 |---|---|---|
-| Kern: Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 50 Unit-Tests |
-| Container mit Quoten, Garantie, Pity, Splitter | fertig | Monte Carlo über 60'000 Container |
-| Waren: 27 Güter in 8 Kategorien, drei Legalitätsstufen, Verbote pro Fraktion | fertig | Tests zur Rechtslage pro Fraktion |
-| Markt: Preisprofile pro Station, Drift, Preiswirkung grosser Mengen, Knappheits-Ereignisse | fertig | Tests: Hin- und Rückkauf verliert immer, Ereignis-Station ist immer erreichbar |
-| Schmuggel: Hehler mit Tageslimit, Heisse Fracht, Fahndungsstufe mit Abklingen und Freikauf | fertig | Tests zu Limit, Hitze, Sternen, Beschlagnahmung nur verbotener Ware |
-| Deck: fünf Plätze, Rollen-Passung, Fraktions-Chemie, automatische Aufstellung | fertig | Tests: Werte, Chemie, angezeigte Quoten ändern sich mit der Crew |
-| Sprung, Begegnungen, Treibstoff, Stufen, Kurierprämie, Laderaum-Ausbau | fertig | Tests und Browser-Durchläufe |
-| Bot-Simulation für die Balance | fertig | Zwei Spielertypen, je 40 Spieler über 14 Tage, dazu Leitplanken-Test |
-| Autoritativer Server (Skelett) | fertig | Browser-Durchlauf gegen den Server, manipulierte Befehle abgewiesen |
-| Bühne, UI, Musik und Effekte | fertig | Automatische Durchläufe ohne Konsolenfehler, Pegelmessung |
+| Kern: Commands, Events, Seed-RNG, Zeit als Eingabe | fertig | 71 Unit-Tests |
+| Handel, Schmuggel, Sprünge, Begegnungen, Crew-Deck, Laderaum (Phase 1 und 2) | fertig | Tests und Browser-Durchläufe |
+| Kartenset: 130 Karten, je Fraktion und Rolle gleich tief | fertig | Test zur Verteilung |
+| Kartenstufen (Aufwerten mit Splittern) und Schmieden fehlender Karten | fertig | Tests zu Kosten, Wirkung, Obergrenze |
+| Container: Standard und Premium, Aufwertungs-Moment, veröffentlichte Quoten inklusive Aufwertung | fertig | Monte Carlo über 60'000 Container, Aufwertungsrate über 20'000 |
+| Gratis-Container (alle 12 Stunden, höchstens 2 gestaut) | fertig | Test mit einer Woche Abwesenheit |
+| Container-Slots: entsiegeln, einer nach dem andern, mit Quanten beschleunigen, voller Hangar verliert Beute | fertig | Tests zu Reihenfolge, Kosten, Verlust |
+| Kauf: Standard wird pro Tag mit jedem Kauf teurer, Premium kostet Quanten | fertig | Tests zu Preisstufen und Tageslimit |
+| Tagesaufträge mit Tagesbonus, Login-Kalender, Handelsserie mit Urlaubsschein | fertig | Tests über Tagesgrenzen hinweg |
+| Sammelalben pro Fraktion mit Meilensteinen und Dauerbonus | fertig | Tests |
+| Rote Punkte für alles Abholbare | fertig | Tests |
+| Bot-Simulation | fertig | Zwei Spielertypen, je 20 Spieler über 30 Tage, dazu Leitplanken-Test |
+| Autoritativer Server (Skelett) | fertig | Elf Betrugsversuche gegen die neuen Befehle abgewiesen |
+| Bühne, UI, Musik und Effekte | fertig | Vier automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
-Die erste Simulation zeigte, dass die Wirtschaft unbrauchbar war: Stufe 22 und 400'000 Credits an Tag 1, weil jeder Stufenaufstieg den Tank füllte und Margen ohne Grenze skalierten. Nach den Korrekturen (Preiswirkung, engere Preisspannen, steilere Stufenkurve, Laderaum als Investition) sieht der Median so aus:
+Median von je 20 simulierten Spielern, drei Sessions pro Tag, 30 Tage:
 
-| | Tag 1 | Tag 3 | Tag 7 | Tag 14 |
+| | Tag 1 | Tag 7 | Tag 14 | Tag 30 |
 |---|---|---|---|---|
-| Sprünge kumuliert | 25 | 61 | 129 | 242 |
-| Stufe | 4 bis 5 | 7 | 10 | 12 bis 13 |
-| Vermögen legal | 15'000 | 70'000 | 162'000 | 295'000 |
-| Vermögen Schmuggel | 18'000 | 76'000 | 184'000 | 363'000 |
-| Gewinn pro Sprung legal | 1'400 | 2'500 | 3'400 | 3'800 |
-| Gewinn pro Sprung Schmuggel | 1'700 | 3'300 | 4'700 | 5'500 |
-| Beschlagnahmungen Schmuggel | 0.6 | 1.9 | 4.8 | 9.7 |
+| Sprünge kumuliert | 27 | 132 | 244 | 497 |
+| Stufe | 5 | 10 | 13 | 17 |
+| Gewinn pro Sprung legal | 1'700 | 4'500 | 5'500 | 6'300 |
+| Gewinn pro Sprung Schmuggel | 2'000 | 5'700 | 7'100 | 8'600 |
+| Vermögen legal | 24'000 | 184'000 | 296'000 | 527'000 |
+| Karten von 130 | 9 | 79 | 112 | 125 |
+| Legenden von 10 (Durchschnitt) | 0.1 | 1.8 | 3.5 | 6.5 |
+| Container geöffnet | 3 | 38 | 83 | 183 |
+| Beschlagnahmungen Schmuggel | 0.8 | 5.0 | 9.4 | 19.1 |
 
-Lesart: Der erste Tag ist grosszügig (25 Sprünge statt 15, vier Stufen), danach taktet der Treibstoff auf rund 17 Sprünge pro Tag. Schmuggel bringt etwa 1.4-mal so viel wie legaler Handel, mit deutlich breiterer Streuung: Das schwächste Zehntel der Schmuggler steht an Tag 2 bei 2'500 Credits, das der legalen Händler bei 21'000.
+- **Erste Legende:** Median Tag 6, schnellstes Zehntel Tag 2, langsamstes Tag 11. Ziel war Tag 5 bis 10.
+- **Erstes volles Album:** legale Händler im Median an Tag 26, Schmuggler mehrheitlich erst nach Tag 30. Ziel war um Tag 30.
+- **Energie:** erster Tag grosszügig (27 Sprünge), danach rund 16 bis 17 pro Tag.
 
-Die Bots spielen vernünftig, aber nicht klug. Echte Spieler finden bessere Routen. Die Zahlen sind eine Untergrenze für geschicktes Spiel und kein Ersatz für Messung an Menschen.
+Was die Simulation unterwegs aufgedeckt hat:
+
+1. **Erste Fassung der Wirtschaft:** Stufe 22 und 400'000 Credits an Tag 1. Behoben durch Preiswirkung grosser Mengen, engere Preisspannen und eine steilere Stufenkurve.
+2. **Erste Fassung von Phase 3:** erste Legende an Tag 3 bis 4, 120 von 130 Karten nach zwei Wochen. Ein Tageslimit allein half nicht, weil reiche Spieler einfach täglich das Maximum kauften. Jetzt steigt der Standard-Preis pro Tag mit jedem Kauf auf das Vierfache, Premium kostet Quanten, Gratis-Container kommen alle 12 statt 4 Stunden, und Legenden sind seltener.
+3. **Nebeneffekt:** Die steigenden Container-Preise binden überschüssige Credits. Das Vermögen an Tag 30 fiel von 1.7 Millionen auf rund 530'000.
+
+Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lassen Tage aus und kommen langsamer voran, finden dafür bessere Routen. Die Zahlen sind eine Planungsgrundlage und kein Ersatz für Messung an Menschen.
 
 **Nicht geprüft, weil hier nicht prüfbar:** wie Musik und Effekte klingen, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
 
-**Offen aus Phase 2:**
-- **Sammlung zu klein.** 24 Karten sind nach zwei Wochen fast komplett (Median 22). Das grosse Set kommt mit Phase 3.
-- **Geld ohne Ziel im Spätspiel.** Nach dem letzten Laderaum-Ausbau fehlt eine Senke. Schiffe, Module (Verstecke) und teurere Container-Stufen sind geplant.
-- **Lizenzen.** Die Stufe "lizenziert" aus dem Katalog ist noch nicht gebaut, ebenso Veredelung, Versicherung und Bestechungs-Varianten.
-- **Porträts.** Einfache prozedurale Helme, der schwächste Teil der Optik.
+**Offen:**
+- **Rest von Phase 3:** Handelsposten mit Offline-Ertrag, Konvoi-Missionen, Tages-Shop, Glücksrad, Bergungs-Auktion, Auktionshaus, Manifeste, Bauzeiten.
+- **Legenden-Tempo.** 6.5 von 10 nach 30 Tagen passt zu Saisons von sechs Wochen mit neuen Karten (Phase 4). Ohne Saisons wäre es zu schnell.
+- **Tagesgrenze.** Mitternacht nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
+- **Push-Nachrichten fehlen.** Serie in Gefahr und volle Lager wirken erst mit Erinnerung richtig (Phase 5).
+- **Aus Phase 2:** Lizenzen, Verstecke, gefälschte Papiere, Veredelung, Versicherung.
+- **Porträts.** Einfache prozedurale Helme, bei 130 Karten fällt das stärker auf.
 - **Speicherstand.** Im Offline-Modus lokal, bei Regeländerungen wird er verworfen. Der Server hält Sitzungen nur im Arbeitsspeicher.
 
 ## Prinzipien
@@ -195,4 +211,4 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-Phase 3 (Sammeln und Wiederkehr): grosses Kartenset mit Aufwertung, Container-Stufen, Sammelalben, Tagesaufträge, Login-Kalender, Streak, Gratis-Container-Slots mit Timern, Handelsposten mit Offline-Ertrag. Davor steht dein Test auf dem Handy, weil Phase 3 viel Inhalt auf das jetzige Fundament setzt.
+Rest von Phase 3: Handelsposten mit Offline-Ertrag, Auktionshaus mit simulierten Händlern, Manifeste, Tages-Shop, Glücksrad und Bergungs-Auktion. Davor lohnt sich dein Test auf dem Handy, weil jetzt zum ersten Mal ein Tagesrhythmus spielbar ist.

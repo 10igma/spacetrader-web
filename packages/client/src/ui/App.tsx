@@ -1,4 +1,4 @@
-import { CARD_BY_ID, STATION_BY_ID } from '@nova/core';
+import { CARD_BY_ID, CONFIG, STATION_BY_ID, upgradeCost } from '@nova/core';
 import { useEffect } from 'react';
 import { audio } from '../audio/engine.ts';
 import { stage } from '../stage/index.ts';
@@ -8,7 +8,7 @@ import { Deck } from './Deck.tsx';
 import { Hangar } from './Hangar.tsx';
 import { HoloCard } from './HoloCard.tsx';
 import { Hub } from './Hub.tsx';
-import { Locked } from './Locked.tsx';
+import { Daily } from './Daily.tsx';
 import { Market } from './Market.tsx';
 import { num } from './format.ts';
 import { Reveal } from './Reveal.tsx';
@@ -23,7 +23,7 @@ const PLANET: Record<Tab, [number, number, number]> = {
   market: [0.75, 0.2, 0.9],
   deck: [0.62, 1.05, 0.5],
   hangar: [-0.62, 0.95, 0.55],
-  league: [0.0, 1.35, 0.7],
+  daily: [0.0, 1.35, 0.7],
 };
 
 export function App() {
@@ -39,6 +39,8 @@ export function App() {
   const toast = useApp((s) => s.toast);
   const connect = useApp((s) => s.connect);
   const setInspect = useApp((s) => s.setInspect);
+  const send = useApp((s) => s.send);
+  const busy = useApp((s) => s.busy);
 
   useEffect(() => { void connect(); }, [connect]);
   // The planet behind the UI is always the world we are docked at.
@@ -63,16 +65,34 @@ export function App() {
         {tab === 'hangar' && <Hangar />}
         {tab === 'deck' && <Deck />}
         {tab === 'market' && <Market />}
-        {tab === 'league' && <Locked title="Liga" text="Wochenwertung mit Auf- und Abstieg" phase="Phase 4" />}
+        {tab === 'daily' && <Daily />}
       </main>
       <BottomNav />
 
       {inspected && (
         <div className="overlay overlay--dim" onClick={() => { audio.tap(); setInspect(null); }}>
           <div onClick={(e) => e.stopPropagation()}>
-            <HoloCard card={inspected} interactive />
+            <HoloCard card={inspected} interactive={!!view.collection[inspected.id]} locked={!view.collection[inspected.id]} level={view.cardLevels[inspected.id] ?? 1} />
           </div>
-          <p className="overlay__hint">Karte bewegen · Tippen zum Schliessen</p>
+          {(() => {
+            const owned = !!view.collection[inspected.id];
+            const level = view.cardLevels[inspected.id] ?? 1;
+            const cost = owned ? upgradeCost(inspected, level) : CONFIG.cards.forge[inspected.rarity];
+            const act = (): void => { audio.tap(); void send({ type: owned ? 'UpgradeCard' : 'ForgeCard', cardId: inspected.id }); };
+            return (
+              <div className="upcard" onClick={(e) => e.stopPropagation()}>
+                {owned
+                  ? <span>Stufe <b>{level}</b> / {CONFIG.cards.maxLevel} · jede Stufe +{CONFIG.cards.statPerLevel} auf alle Werte</span>
+                  : <span>Fehlt in deiner Sammlung. Du findest sie in Containern oder schmiedest sie aus Splittern.</span>}
+                {cost === null ? <em>Maximal aufgewertet</em> : (
+                  <button className="mission__btn" disabled={busy || view.wallet.shards < cost} onClick={act}>
+                    {owned ? 'Aufwerten' : 'Schmieden'} · {num(cost)} Splitter
+                  </button>
+                )}
+                <small>Du hast {num(view.wallet.shards)} Splitter</small>
+              </div>
+            );
+          })()}
         </div>
       )}
       {routesOpen && !travel && <RouteSheet />}

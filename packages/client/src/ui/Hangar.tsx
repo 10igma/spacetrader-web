@@ -1,35 +1,57 @@
-import { CONFIG, RARITIES } from '@nova/core';
+import { RARITIES, type CrateTier, type SlotView } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
-import { countdown, num, RARITY_LABEL } from './format.ts';
+import { countdown, duration, num, RARITY_LABEL } from './format.ts';
 import { useServerNow } from './hooks.ts';
-import { Credits } from './icons.tsx';
+import { Credits, Quanta } from './icons.tsx';
 
-function Crate() {
+const TIER_NAME: Record<CrateTier, string> = { standard: 'Standard', premium: 'Premium' };
+
+function Crate({ tier = 'standard', small = false }: { tier?: CrateTier; small?: boolean }) {
   return (
-    <div className="crate" aria-hidden="true">
-      <div className="crate__glow" />
+    <div className={`crate crate--${tier}${small ? ' crate--small' : ''}`} aria-hidden="true">
+      {!small && <div className="crate__glow" />}
       <svg viewBox="0 0 240 240">
-        <defs>
-          <linearGradient id="crT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#35486e" /><stop offset="1" stopColor="#16203a" /></linearGradient>
-          <linearGradient id="crL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#1c2946" /><stop offset="1" stopColor="#0a101f" /></linearGradient>
-          <linearGradient id="crR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#111a30" /><stop offset="1" stopColor="#060a14" /></linearGradient>
-        </defs>
-        <path d="M120 22l88 46-88 46-88-46z" fill="url(#crT)" stroke="#6f8cc4" strokeWidth="1.5" />
-        <path d="M32 68l88 46v104l-88-46z" fill="url(#crL)" stroke="#4d6696" strokeWidth="1.5" />
-        <path d="M208 68l-88 46v104l88-46z" fill="url(#crR)" stroke="#3b5080" strokeWidth="1.5" />
-        <g className="crate__seams" fill="none" strokeWidth="2.5" strokeLinecap="round">
+        <path d="M120 22l88 46-88 46-88-46z" className="crate__top" />
+        <path d="M32 68l88 46v104l-88-46z" className="crate__left" />
+        <path d="M208 68l-88 46v104l88-46z" className="crate__right" />
+        <g className="crate__seams" fill="none" strokeWidth={small ? 5 : 2.5} strokeLinecap="round">
           <path d="M120 114v104" />
           <path d="M32 120l88 46 88-46" />
           <path d="M76 45l88 46M164 45l-88 46" />
         </g>
-        <g fill="none" stroke="#8fb0ee" strokeWidth="1" opacity=".5">
-          <path d="M48 92l56 29M48 104l40 21M192 92l-56 29M192 104l-40 21" />
-          <path d="M48 176l56 29M192 176l-56 29" />
-        </g>
-        <circle className="crate__core" cx="120" cy="166" r="9" />
+        <circle className="crate__core" cx="120" cy="166" r={small ? 14 : 9} />
       </svg>
+    </div>
+  );
+}
+
+function SlotCell({ slot, index, busy: anyUnlocking }: { slot: SlotView | undefined; index: number; busy: boolean }) {
+  const send = useApp((s) => s.send);
+  const pending = useApp((s) => s.busy);
+  const quanta = useApp((s) => s.view!.wallet.quanta);
+  const now = useServerNow();
+  if (!slot) return <div className="slot slot--empty"><span>Frei</span></div>;
+  const left = slot.readyAt !== null ? slot.readyAt - now : 0;
+  const ready = slot.state === 'ready' || (slot.state === 'unlocking' && left <= 0);
+  const tap = (type: 'StartUnlock' | 'OpenSlot' | 'SpeedUp') => (): void => { audio.tap(); void send({ type, slot: index }); };
+
+  return (
+    <div className={`slot slot--${ready ? 'ready' : slot.state} slot--${slot.tier}`}>
+      <Crate tier={slot.tier} small />
+      {ready && <button className="slot__btn slot__btn--open" disabled={pending} onClick={tap('OpenSlot')}>Öffnen</button>}
+      {!ready && slot.state === 'sealed' && (
+        <button className="slot__btn" disabled={pending || anyUnlocking} onClick={tap('StartUnlock')}>
+          {anyUnlocking ? 'Wartet' : 'Entsiegeln'}<small>{duration(slot.unlockMs)}</small>
+        </button>
+      )}
+      {!ready && slot.state === 'unlocking' && (
+        <button className="slot__btn slot__btn--speed" disabled={pending || quanta < slot.speedUpCost} onClick={tap('SpeedUp')}>
+          {countdown(left)}
+          <small>{slot.speedUpCost > 0 ? <><Quanta />{slot.speedUpCost} sofort</> : 'Gratis sofort'}</small>
+        </button>
+      )}
     </div>
   );
 }
@@ -40,20 +62,58 @@ export function Hangar() {
   const busy = useApp((s) => s.busy);
   const now = useServerNow();
   const [odds, setOdds] = useState(false);
-  const freeIn = view.crates.nextFreeAt - now;
-  const free = freeIn <= 0;
-  const { pityElite, pityLegend } = view.crates;
-
-  const open = (type: 'ClaimFreeCrate' | 'BuyCrate') => (): void => { audio.tap(); void send({ type }); };
+  const { free, tiers, pityElite, pityLegend } = view.crates;
+  const anyUnlocking = view.slots.some((s) => s.state === 'unlocking' && (s.readyAt ?? 0) > now);
+  const full = view.slots.length >= view.slotCap;
 
   return (
     <section className="hangar">
       <header className="screenhead">
         <span className="eyebrow">Hangar</span>
-        <h2>Frachtcontainer</h2>
+        <h2>Container</h2>
+        <button className="link" onClick={() => { audio.tap(); setOdds(true); }}>Quoten</button>
       </header>
 
-      <Crate />
+      <div className="free">
+        <Crate />
+        <div className="free__info">
+          <span className="eyebrow">Gratis-Lieferung</span>
+          <b>{free.stock} <small>von {free.max} bereit</small></b>
+          <span className="free__timer">
+            {free.nextAt ? `Nächste in ${countdown(free.nextAt - now)}` : 'Lager voll: Es kommt nichts nach, bis du öffnest'}
+          </span>
+          <button className="cta cta--gold" disabled={busy || free.stock < 1} onClick={() => { audio.tap(); void send({ type: 'ClaimFreeCrate' }); }}>
+            <span>{free.stock > 0 ? 'Gratis öffnen' : 'Unterwegs'}</span>
+          </button>
+        </div>
+      </div>
+
+      <h4 className="market__section">
+        Verdiente Container
+        <span className={full ? 'is-down' : ''}>{view.slots.length} von {view.slotCap} Plätzen{full ? ' · voll: neue Beute verfällt' : ''}</span>
+      </h4>
+      <div className="slots">
+        {Array.from({ length: view.slotCap }, (_, i) => <SlotCell key={i} index={i} slot={view.slots[i]} busy={anyUnlocking} />)}
+      </div>
+
+      <h4 className="market__section">Kaufen</h4>
+      <div className="shop">
+        {(Object.keys(tiers) as CrateTier[]).map((tier) => (
+          <button key={tier} className={`shop__item shop__item--${tier}`} disabled={busy || view.wallet[tiers[tier].currency] < tiers[tier].price || tiers[tier].leftToday < 1} onClick={() => { audio.tap(); void send({ type: 'BuyCrate', tier }); }}>
+            <Crate tier={tier} small />
+            <span className="shop__main">
+              <b>{TIER_NAME[tier]}</b>
+              <small>{tiers[tier].cards} Karten · mindestens 1 {RARITY_LABEL[tiers[tier].floor]}</small>
+              <small className={tiers[tier].leftToday < 1 ? 'is-down' : ''}>
+                {tiers[tier].leftToday < 1 ? 'Heute ausverkauft'
+                  : tiers[tier].nextPrice > tiers[tier].price && tiers[tier].leftToday > 1 ? `Heute noch ${tiers[tier].leftToday} · der nächste kostet ${num(tiers[tier].nextPrice)}`
+                    : `Heute noch ${tiers[tier].leftToday}`}
+              </small>
+            </span>
+            <span className={`price price--${tiers[tier].currency}`}>{tiers[tier].currency === 'credits' ? <Credits /> : <Quanta />}{num(tiers[tier].price)}</span>
+          </button>
+        ))}
+      </div>
 
       <div className="pity">
         <div className="meter meter--elite">
@@ -66,42 +126,27 @@ export function Hangar() {
         </div>
       </div>
 
-      {free ? (
-        <button className="cta cta--gold" disabled={busy} onClick={open('ClaimFreeCrate')}>
-          <span>Gratis öffnen</span>
-          <small>{CONFIG.crate.cards} Karten · mindestens 1 Selten</small>
-        </button>
-      ) : (
-        <button className="cta" disabled={busy} onClick={open('BuyCrate')}>
-          <span>Öffnen <i className="price"><Credits />{num(view.crates.price)}</i></span>
-          <small>{CONFIG.crate.cards} Karten · mindestens 1 Selten</small>
-        </button>
-      )}
-      <div className="hangar__sub">
-        {free
-          ? <button className="link" disabled={busy} onClick={open('BuyCrate')}>Kaufen für {num(view.crates.price)} Credits</button>
-          : <span>Nächster Gratis-Container in <b>{countdown(freeIn)}</b></span>}
-        <button className="link" onClick={() => { audio.tap(); setOdds(true); }}>Quoten</button>
-      </div>
-
       {odds && (
         <div className="overlay overlay--dim" onClick={() => setOdds(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <h3>Quoten pro Karte</h3>
             <table>
+              <thead><tr><th /><th>Standard</th><th>Premium</th></tr></thead>
               <tbody>
                 {RARITIES.map((r) => (
                   <tr key={r} className={`odds odds--${r}`}>
                     <td><i />{RARITY_LABEL[r]}</td>
-                    <td>{(CONFIG.crate.odds[r] * 100).toLocaleString('de-CH', { maximumFractionDigits: 1 })} %</td>
+                    {(['standard', 'premium'] as const).map((tier) => (
+                      <td key={tier}>{(tiers[tier].odds[r] * 100).toLocaleString('de-CH', { maximumFractionDigits: 2 })} %</td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
             </table>
             <p>
-              Jeder Container enthält mindestens eine Karte der Stufe Selten. Spätestens jeder {CONFIG.crate.pityElite}. Container
-              enthält eine Elite oder besser, spätestens jeder {CONFIG.crate.pityLegend}. eine Legende oder besser. Doppelte Karten
-              werden zu Splittern.
+              Die Quoten enthalten den Aufwertungs-Moment, bei dem eine Karte eine Stufe steigt. Jeder Container enthält die
+              angegebene Mindest-Seltenheit. Spätestens jeder {pityElite.max}. Container enthält eine Elite oder besser,
+              spätestens jeder {pityLegend.max}. eine Legende oder besser. Doppelte Karten werden zu Splittern.
             </p>
             <button className="cta cta--ghost" onClick={() => setOdds(false)}><span>Schliessen</span></button>
           </div>

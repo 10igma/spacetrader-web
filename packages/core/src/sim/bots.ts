@@ -4,7 +4,7 @@
  * an end-to-end test of rules and view.
  */
 import { CONFIG } from '../config.ts';
-import { FACTIONS } from '../content.ts';
+import { CARD_BY_ID, CARDS_BY_FACTION, FACTIONS, rarityRank, type FactionId } from '../content.ts';
 import { applyCommand, createInitialState, quote, toClientView, type ClientView, type Command, type GameState } from '../game.ts';
 import { GOOD_BY_ID, isBanned, STATION_BY_ID, type GoodId } from '../world.ts';
 
@@ -12,9 +12,9 @@ export type Policy = 'legal' | 'smuggler';
 
 const HOUR = 3_600_000;
 
-export interface DaySample { day: number; worth: number; profit: number; crates: number; level: number; cards: number; jumps: number; caught: number; wantedMax: number }
+export interface DaySample { day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
 
-interface Ctx { state: GameState; now: number; policy: Policy; log: Record<string, number>; boughtToday: number }
+interface Ctx { state: GameState; now: number; policy: Policy; log: Record<string, number> }
 
 function act(ctx: Ctx, cmd: Command): ClientView {
   const res = applyCommand(ctx.state, cmd, ctx.now);
@@ -117,14 +117,59 @@ function decideEncounter(view: ClientView): Command {
   return { type: 'Encounter', choice: bestChoice };
 }
 
+const FACTION_LIST = Object.keys(FACTIONS) as FactionId[];
+
+/** Everything a diligent player collects when opening the app. */
+function housekeeping(ctx: Ctx, view: ClientView): ClientView {
+  if (view.calendar.claimable) view = act(ctx, { type: 'ClaimCalendar' });
+  view.daily.missions.forEach((m, index) => { if (!m.claimed && m.progress >= m.target) view = act(ctx, { type: 'ClaimMission', index }); });
+  if (!view.daily.chest.claimed && view.daily.chest.done === view.daily.chest.total) view = act(ctx, { type: 'ClaimChest' });
+  for (const f of FACTION_LIST) while (view.albums[f].claimable) view = act(ctx, { type: 'ClaimAlbum', faction: f });
+  let opened = false;
+  while (view.crates.free.stock > 0) { view = act(ctx, { type: 'ClaimFreeCrate' }); opened = true; }
+  for (let i = view.slots.length - 1; i >= 0; i--) if (view.slots[i]!.state === 'ready') { view = act(ctx, { type: 'OpenSlot', slot: i }); opened = true; }
+  if (view.slots.length > 0 && !view.slots.some((s) => s.state === 'unlocking')) {
+    const i = view.slots.findIndex((s) => s.state === 'sealed');
+    if (i >= 0) view = act(ctx, { type: 'StartUnlock', slot: i });
+  }
+  if (opened) view = act(ctx, { type: 'AutoDeck' });
+  // Put shards into whoever sits on the bridge, cheapest upgrade first.
+  for (let guard = 0; guard < 20; guard++) {
+    const seated = Object.values(view.deck.seats).filter((s): s is NonNullable<typeof s> => !!s)
+      .map((s) => ({ id: s.cardId, level: view.cardLevels[s.cardId] ?? 1 }))
+      .filter((s) => s.level < CONFIG.cards.maxLevel)
+      .map((s) => ({ ...s, cost: CONFIG.cards.upgradeBase[CARD_BY_ID.get(s.id)!.rarity] * CONFIG.cards.upgradeMult[s.level - 1]! }))
+      .sort((a, b) => a.cost - b.cost);
+    if (!seated[0] || seated[0].cost > view.wallet.shards) break;
+    view = act(ctx, { type: 'UpgradeCard', cardId: seated[0].id });
+  }
+  // Spare shards go into the album that is closest to its next milestone: forge the cheapest missing card.
+  for (let guard = 0; guard < 10; guard++) {
+    const target = FACTION_LIST
+      .map((f) => ({ f, a: view.albums[f] }))
+      .filter((x) => x.a.next)
+      .sort((x, y) => (Math.ceil(x.a.total * x.a.next!.pct) - x.a.owned) - (Math.ceil(y.a.total * y.a.next!.pct) - y.a.owned))[0];
+    if (!target) break;
+    const missing = CARDS_BY_FACTION[target.f].filter((c) => !view.collection[c.id])
+      .sort((a, b) => CONFIG.cards.forge[a.rarity] - CONFIG.cards.forge[b.rarity])[0];
+    if (!missing || CONFIG.cards.forge[missing.rarity] * 2 > view.wallet.shards) break;
+    view = act(ctx, { type: 'ForgeCard', cardId: missing.id });
+  }
+  return view;
+}
+
 function session(ctx: Ctx): void {
-  let view = toClientView(ctx.state, ctx.now);
-  if (ctx.now >= view.crates.nextFreeAt) { view = act(ctx, { type: 'ClaimFreeCrate' }); view = act(ctx, { type: 'AutoDeck' }); }
+  let view = housekeeping(ctx, toClientView(ctx.state, ctx.now));
   for (let guard = 0; guard < 80; guard++) {
     view = sellWhatPays(ctx, view);
     // A typical player: buys a crate when it is comfortably affordable, a couple per day.
-    if (view.wallet.credits > view.crates.price * 4 && ctx.boughtToday < 2) {
-      ctx.boughtToday++; view = act(ctx, { type: 'BuyCrate' }); view = act(ctx, { type: 'AutoDeck' }); }
+    // Buys what the daily limit allows once it is comfortably affordable.
+    for (const tier of ['premium', 'standard'] as const) {
+      const offer = view.crates.tiers[tier];
+      // Credits: only when it barely dents the trading capital. Quanta: keep a reserve for a streak freeze.
+      const ok = offer.currency === 'credits' ? view.wallet.credits > offer.price * 3 : view.wallet.quanta >= offer.price + CONFIG.streak.freezePrice;
+      if (offer.leftToday > 0 && ok) { view = act(ctx, { type: 'BuyCrate', tier }); view = act(ctx, { type: 'AutoDeck' }); }
+    }
     if (view.payOff !== null && view.wanted[STATION_BY_ID.get(view.location)!.faction] >= 3 && view.wallet.credits > view.payOff * 5) {
       view = act(ctx, { type: 'PayOff' });
     }
@@ -140,14 +185,16 @@ function session(ctx: Ctx): void {
   }
 }
 
+const endSession = (ctx: Ctx): void => { housekeeping(ctx, toClientView(ctx.state, ctx.now)); };
+
 export function simulate(seed: string, policy: Policy, days: number, sessionsPerDay = 3): { samples: DaySample[]; log: Record<string, number> } {
   const t0 = 1_800_000_000_000;
-  const ctx: Ctx = { state: createInitialState(seed, t0), now: t0, policy, log: {}, boughtToday: 0 };
+  const ctx: Ctx = { state: createInitialState(seed, t0), now: t0, policy, log: {} };
   const samples: DaySample[] = [];
   for (let day = 1; day <= days; day++) {
-    ctx.boughtToday = 0;
     for (let s = 0; s < sessionsPerDay; s++) {
       session(ctx);
+      endSession(ctx);
       ctx.now += 5 * HOUR;
     }
     ctx.now = t0 + day * 24 * HOUR;
@@ -159,6 +206,11 @@ export function simulate(seed: string, policy: Policy, days: number, sessionsPer
       crates: view.crates.opened,
       level: view.profile.level,
       cards: Object.keys(view.collection).length,
+      legends: Object.keys(view.collection).filter((id) => rarityRank(CARD_BY_ID.get(id)!.rarity) >= rarityRank('legend')).length,
+      quanta: view.wallet.quanta,
+      shards: view.wallet.shards,
+      streak: view.streak.count,
+      albums: FACTION_LIST.filter((f) => view.albums[f].complete).length,
       jumps: view.stats.jumps,
       caught: view.stats.caught,
       wantedMax: Math.max(...(Object.keys(FACTIONS) as (keyof typeof FACTIONS)[]).map((f) => view.wanted[f])),

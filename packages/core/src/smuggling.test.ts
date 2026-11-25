@@ -217,7 +217,7 @@ describe('deck', () => {
     const st = applyCommand(s, { type: 'AutoDeck' }, T0).state;
     const info = deckInfo(st.deck);
     expect(new Set(Object.values(st.deck)).size).toBe(5);
-    for (const seat of ['pilot', 'trader', 'tech', 'gunner'] as const) expect(info.seats[seat]!.value).toBeGreaterThanOrEqual(93);
+    for (const seat of ['pilot', 'trader', 'tech', 'gunner'] as const) expect(info.seats[seat]!.value).toBeGreaterThanOrEqual(97);
   });
 
   it('new cards from a crate take the empty seat of their role', () => {

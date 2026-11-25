@@ -1,9 +1,9 @@
-import { CARD_BY_ID, CARDS, rarityRank, ROLES, seatStat, SEATS, type BonusKey, type RoleId } from '@nova/core';
+import { CARD_BY_ID, CARDS, FACTIONS, rarityRank, ROLES, seatStat, SEATS, type BonusKey, type FactionId, type RoleId } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { HoloCard } from './HoloCard.tsx';
-import { BONUS_LABEL, FACTION_COLOR, num, RARITY_LABEL } from './format.ts';
+import { BONUS_LABEL, FACTION_COLOR, num, RARITY_LABEL, rewardText } from './format.ts';
 import { Shard } from './icons.tsx';
 
 const SORTED = [...CARDS].sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) || b.rating - a.rating);
@@ -22,7 +22,7 @@ function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
   const current = view.deck.seats[seat]?.cardId ?? null;
   const seatOf = (id: string): RoleId | undefined => SEATS.find((s) => view.deck.seats[s]?.cardId === id);
   const owned = CARDS.filter((c) => view.collection[c.id])
-    .map((c) => ({ card: c, value: Math.round(seatStat(c, seat) * (c.role === seat ? 1 : 0.75)) }))
+    .map((c) => ({ card: c, value: Math.round(seatStat(c, seat, view.cardLevels[c.id] ?? 1) * (c.role === seat ? 1 : 0.75)) }))
     .sort((a, b) => b.value - a.value);
   const set = (cardId: string | null) => (): void => { audio.tap(); void send({ type: 'SetSeat', seat, cardId }).then(onClose); };
 
@@ -54,14 +54,20 @@ function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
   );
 }
 
+const FACTION_ORDER: FactionId[] = ['tessera', 'asche', 'helix', 'zenit'];
+
 export function Deck() {
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
   const busy = useApp((s) => s.busy);
   const setInspect = useApp((s) => s.setInspect);
   const [picking, setPicking] = useState<RoleId | null>(null);
-  const owned = SORTED.filter((c) => view.collection[c.id]);
-  const missing = SORTED.filter((c) => !view.collection[c.id]);
+  const [page, setPage] = useState<FactionId>(() => FACTION_ORDER.find((f) => view.albums[f].claimable) ?? 'tessera');
+  const album = view.albums[page];
+  const cards = SORTED.filter((c) => c.faction === page);
+  const owned = cards.filter((c) => view.collection[c.id]);
+  const missing = cards.filter((c) => !view.collection[c.id]);
+  const need = album.next ? Math.ceil(album.total * album.next.pct) : album.total;
 
   return (
     <section className="deck">
@@ -101,20 +107,36 @@ export function Deck() {
         ))}
       </div>
       <div className="deck__actions">
-        <button className="link" disabled={busy || owned.length === 0} onClick={() => { audio.tap(); void send({ type: 'AutoDeck' }); }}>Automatisch aufstellen</button>
-        <span>Gleiche Fraktion: +4 % pro Kollege</span>
+        <button className="link" disabled={busy || Object.keys(view.collection).length === 0} onClick={() => { audio.tap(); void send({ type: 'AutoDeck' }); }}>Automatisch aufstellen</button>
+        <span className="pill pill--shards"><Shard />{num(view.wallet.shards)}</span>
       </div>
 
-      <header className="screenhead screenhead--sub">
-        <h2>{owned.length}<small> / {CARDS.length} gesammelt</small></h2>
-        <span className="pill pill--shards"><Shard />{num(view.wallet.shards)}</span>
-      </header>
-      <div className="deck__bar"><i style={{ width: `${(owned.length / CARDS.length) * 100}%` }} /></div>
+      <div className="albums" role="tablist">
+        {FACTION_ORDER.map((f) => {
+          const a = view.albums[f];
+          return (
+            <button key={f} role="tab" aria-selected={f === page} className={`album${f === page ? ' is-active' : ''}${a.complete ? ' is-complete' : ''}`} style={{ ['--faction' as string]: FACTION_COLOR[f] }} onClick={() => { audio.tap(); setPage(f); }}>
+              <b>{FACTIONS[f].short}</b>
+              <span>{a.owned}/{a.total}</span>
+              <i style={{ width: `${(a.owned / a.total) * 100}%` }} />
+              {a.claimable && <em className="dot" />}
+            </button>
+          );
+        })}
+      </div>
+      <div className="album__goal" style={{ ['--faction' as string]: FACTION_COLOR[page] }}>
+        {album.next ? (
+          <>
+            <span><b>{FACTIONS[page].name}</b>{album.claimable ? 'Meilenstein erreicht' : `Noch ${need - album.owned} bis ${Math.round(album.next.pct * 100)} %`} · {rewardText(album.next.reward)}{album.next.pct === 1 ? ' + 2 % Verkaufspreis auf Dauer' : ''}</span>
+            <button className="mission__btn" disabled={busy || !album.claimable} onClick={() => { audio.tap(); void send({ type: 'ClaimAlbum', faction: page }); }}>{album.claimable ? 'Abholen' : `${album.owned}/${need}`}</button>
+          </>
+        ) : <span><b>{FACTIONS[page].name}</b>Album komplett · +2 % Verkaufspreis auf Dauer</span>}
+      </div>
       <div className="deck__grid">
         {owned.map((c) => (
-          <HoloCard key={c.id} card={c} size="sm" count={view.collection[c.id]} onClick={() => { audio.tap(); setInspect(c.id); }} />
+          <HoloCard key={c.id} card={c} size="sm" count={view.collection[c.id]} level={view.cardLevels[c.id] ?? 1} onClick={() => { audio.tap(); setInspect(c.id); }} />
         ))}
-        {missing.map((c) => <HoloCard key={c.id} card={c} size="sm" locked />)}
+        {missing.map((c) => <HoloCard key={c.id} card={c} size="sm" locked onClick={() => { audio.tap(); setInspect(c.id); }} />)}
       </div>
       {picking && <SeatPicker seat={picking} onClose={() => setPicking(null)} />}
     </section>

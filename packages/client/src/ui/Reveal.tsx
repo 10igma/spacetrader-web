@@ -7,7 +7,7 @@ import { HoloCard } from './HoloCard.tsx';
 import { num, RARITY_LABEL, RARITY_RGB } from './format.ts';
 import { Shard } from './icons.tsx';
 
-type Phase = 'charge' | 'tell' | 'show' | 'summary';
+type Phase = 'charge' | 'tell' | 'bump' | 'show' | 'summary';
 
 const CHARGE_MS = 900;
 /** Higher rarities hold the tension longer before the card lands. */
@@ -49,9 +49,18 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
       audio.riser(CHARGE_MS / 1000);
       timer = window.setTimeout(() => setPhase('tell'), CHARGE_MS);
     } else if (phase === 'tell') {
-      stage.setRift(RARITY_RGB[pull.rarity], 1);
-      audio.tell(rank);
+      // With an upgrade moment the rift first shows the rarity that was rolled, then rises.
+      const shown = pull.upgradedFrom ?? pull.rarity;
+      const shownRank = rarityRank(shown) as Rank;
+      stage.setRift(RARITY_RGB[shown], pull.upgradedFrom ? 0.8 : 1);
+      audio.tell(shownRank);
       buzz(12);
+      timer = window.setTimeout(() => setPhase(pull.upgradedFrom ? 'bump' : 'show'), pull.upgradedFrom ? 700 : TELL_MS[rank]);
+    } else if (phase === 'bump') {
+      stage.setRift(RARITY_RGB[pull.rarity], 1);
+      stage.pulse(0.3);
+      audio.tell(rank);
+      buzz([10, 30, 30]);
       timer = window.setTimeout(() => setPhase('show'), TELL_MS[rank]);
     } else if (phase === 'show') {
       stage.setRift(RARITY_RGB[pull.rarity], 0.62);
@@ -65,7 +74,7 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
   }, [phase, index, pull.rarity, rank]);
 
   const advance = (): void => {
-    if (phase === 'charge' || phase === 'tell') { setPhase('show'); return; }
+    if (phase === 'charge' || phase === 'tell' || phase === 'bump') { setPhase('show'); return; }
     if (phase === 'show') {
       audio.tap();
       if (index + 1 < pulls.length) { setIndex(index + 1); setPhase('charge'); }
@@ -93,9 +102,10 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
   }
 
   return (
-    <div className={`overlay reveal reveal--${phase} reveal--${pull.rarity}`} onClick={advance}>
+    <div className={`overlay reveal reveal--${phase} reveal--${phase === 'tell' && pull.upgradedFrom ? pull.upgradedFrom : pull.rarity}`} onClick={advance}>
       <div className="reveal__count">{index + 1} / {pulls.length}</div>
-      {phase === 'tell' && <div className="reveal__tell">{RARITY_LABEL[pull.rarity]}</div>}
+      {phase === 'tell' && <div className="reveal__tell">{RARITY_LABEL[pull.upgradedFrom ?? pull.rarity]}</div>}
+      {phase === 'bump' && <div className="reveal__tell reveal__tell--bump" key="bump"><small>Aufgewertet</small>{RARITY_LABEL[pull.rarity]}</div>}
       {phase === 'show' && (
         <>
           <div className="reveal__rays" />

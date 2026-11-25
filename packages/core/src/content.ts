@@ -64,7 +64,72 @@ const ROWS: Row[] = [
   ['c23', 'Oriel Santhe', 'Geist von Helix', 'smuggler', 'helix', 'legend', 92, [94, 93, 78, 81]],
   // Singularität
   ['c24', 'ECHO-9', 'Erwachter Schiffsgeist', 'pilot', 'zenit', 'singularity', 99, [99, 96, 99, 92]],
+  // Legende (zweite Welle)
+  ['c25', 'Ilse Marrow', 'Hüterin der Tiefe', 'tech', 'asche', 'legend', 92, [78, 80, 98, 84]],
+  ['c26', 'Dax Verhoeven', 'Der Makler', 'trader', 'zenit', 'legend', 93, [76, 99, 88, 66]],
+  ['c27', 'Sera Quill', 'Nullsignatur', 'smuggler', 'zenit', 'legend', 91, [93, 92, 82, 70]],
+  ['c28', 'Okon Rhee', 'Kometenreiter', 'pilot', 'helix', 'legend', 94, [99, 78, 80, 86]],
+  ['c29', 'Marisol Kade', 'Zunftmeisterin', 'tech', 'tessera', 'legend', 92, [80, 86, 97, 72]],
+  // Singularität (zweite)
+  ['c30', 'MUTTER', 'Die Stimme hinter Helix', 'trader', 'helix', 'singularity', 99, [94, 99, 97, 93]],
 ];
+
+// ---------------------------------------------------------------------------
+// Generated crew. The hand-written cards above are the faces of the set; the
+// rest fills every faction and role to the same depth so albums are regular.
+// Generation is deterministic, so ids and names are stable across builds.
+// ---------------------------------------------------------------------------
+
+const FIRST = ['Ada', 'Bex', 'Calder', 'Dunya', 'Elio', 'Fenna', 'Garrick', 'Hale', 'Imre', 'Juno', 'Kato', 'Lys', 'Maren', 'Nilo', 'Orla', 'Piet', 'Quen', 'Rada', 'Soren', 'Tamsin', 'Ulla', 'Vito', 'Wren', 'Xander', 'Yara', 'Zeno', 'Anouk', 'Bram', 'Cira', 'Dov', 'Esme', 'Falk', 'Greta', 'Hugo', 'Inez', 'Joss', 'Kira', 'Lars', 'Mila', 'Nox'];
+const LAST = ['Ardent', 'Bellweather', 'Corvane', 'Draeger', 'Eskil', 'Farrow', 'Gant', 'Holloway', 'Isaksen', 'Jarrah', 'Kestrel', 'Lindqvist', 'Maddox', 'Navarro', 'Oduya', 'Prenn', 'Quarles', 'Rusk', 'Stroud', 'Tallis', 'Umber', 'Vance', 'Wolcott', 'Yarrow', 'Zabel', 'Ashby', 'Brandl', 'Cato', 'Dessau', 'Eames', 'Frisk', 'Gault', 'Hark', 'Ivers', 'Juhl', 'Korr', 'Lund', 'Mertz', 'Nyberg', 'Oster'];
+const EPITHETS: Record<RoleId, string[]> = {
+  pilot: ['Frachtpilot', 'Kurierfliegerin', 'Schlepperkapitän', 'Lotsin', 'Rennpilot', 'Testfliegerin', 'Sprungnavigator', 'Gleiterass'],
+  trader: ['Zwischenhändler', 'Maklerin', 'Zahlmeister', 'Auktionatorin', 'Feilscher', 'Kontoristin', 'Einkäufer', 'Börsenläuferin'],
+  tech: ['Bordtechniker', 'Reaktorwartin', 'Systemflicker', 'Scannerbauerin', 'Hüllenschweisser', 'Signaltechnikerin', 'Drohnenwart', 'Kühlmeisterin'],
+  gunner: ['Bordschütze', 'Geschützführerin', 'Wachsoldat', 'Entermeisterin', 'Söldner', 'Leibwächterin', 'Kanonenlader', 'Waffenwartin'],
+  smuggler: ['Schieber', 'Kontaktfrau', 'Fälscher', 'Schleuserin', 'Hehlerbote', 'Nachtläuferin', 'Papiermacher', 'Lagergeist'],
+};
+/** Cards per faction and role, by rarity. Legends and singularities are hand-written only. */
+const QUOTA: Partial<Record<Rarity, number>> = { standard: 3, rare: 2, elite: 1 };
+const RATING: Record<Rarity, [number, number]> = { standard: [50, 64], rare: [68, 78], elite: [81, 88], legend: [91, 95], singularity: [99, 99] };
+
+function generateCrew(existing: Row[]): Row[] {
+  let seed = 0x5e71;
+  const rnd = (): number => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const used = new Set(existing.map((r) => r[1]));
+  const out: Row[] = [];
+  let n = 0;
+  for (const faction of ['tessera', 'asche', 'helix', 'zenit'] as FactionId[]) {
+    for (const role of ['pilot', 'trader', 'tech', 'gunner', 'smuggler'] as RoleId[]) {
+      for (const rarity of ['standard', 'rare', 'elite'] as Rarity[]) {
+        const have = existing.filter((r) => r[4] === faction && r[3] === role && r[5] === rarity).length;
+        for (let i = have; i < (QUOTA[rarity] ?? 0); i++) {
+          let name = '';
+          do { name = `${FIRST[Math.floor(rnd() * FIRST.length)]} ${LAST[Math.floor(rnd() * LAST.length)]}`; } while (used.has(name));
+          used.add(name);
+          const [lo, hi] = RATING[rarity];
+          const rating = lo + Math.floor(rnd() * (hi - lo + 1));
+          const main = Math.min(99, rating + 8 + Math.floor(rnd() * 7));
+          const side = (): number => Math.max(30, rating - 5 - Math.floor(rnd() * 20));
+          const stats: [number, number, number, number] =
+            role === 'pilot' ? [main, side(), side(), side()]
+              : role === 'trader' ? [side(), main, side(), side()]
+                : role === 'tech' ? [side(), side(), main, side()]
+                  : role === 'gunner' ? [side(), side(), side(), main]
+                    : [Math.min(99, rating + 3 + Math.floor(rnd() * 5)), Math.min(99, rating + 3 + Math.floor(rnd() * 5)), side(), side()];
+          const epithets = EPITHETS[role];
+          out.push([`g${String(++n).padStart(3, '0')}`, name, epithets[Math.floor(rnd() * epithets.length)]!, role, faction, rarity, rating, stats]);
+        }
+      }
+    }
+  }
+  return out;
+}
+
+ROWS.push(...generateCrew(ROWS));
 
 export const CARDS: readonly CardDef[] = ROWS.map(
   ([id, name, epithet, role, faction, rarity, rating, [nav, hdl, tec, kmp]]) => ({
@@ -73,6 +138,13 @@ export const CARDS: readonly CardDef[] = ROWS.map(
 );
 
 export const CARD_BY_ID: ReadonlyMap<string, CardDef> = new Map(CARDS.map((c) => [c.id, c]));
+
+export const CARDS_BY_FACTION: Record<FactionId, readonly CardDef[]> = {
+  helix: CARDS.filter((c) => c.faction === 'helix'),
+  tessera: CARDS.filter((c) => c.faction === 'tessera'),
+  asche: CARDS.filter((c) => c.faction === 'asche'),
+  zenit: CARDS.filter((c) => c.faction === 'zenit'),
+};
 
 export const CARDS_BY_RARITY: Record<Rarity, readonly CardDef[]> = {
   standard: CARDS.filter((c) => c.rarity === 'standard'),

@@ -10,6 +10,8 @@ interface Props {
   interactive?: boolean;
   locked?: boolean;
   count?: number;
+  /** Upgrade level, shown as pips from level 2. */
+  level?: number;
   onClick?: () => void;
 }
 
@@ -23,7 +25,7 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export function HoloCard({ card, size = 'lg', interactive = false, locked = false, count, onClick }: Props) {
+export function HoloCard({ card, size = 'lg', interactive = false, locked = false, count, level = 1, onClick }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -99,6 +101,7 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
         <div className="holo__glare" />
       </div>
       {count !== undefined && count > 1 && <span className="holo__count">×{count}</span>}
+      {level > 1 && !locked && <span className="holo__level">{Array.from({ length: level - 1 }, (_, i) => <i key={i} />)}</span>}
     </div>
   );
 }
