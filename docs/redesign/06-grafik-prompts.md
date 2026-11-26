@@ -15,6 +15,8 @@ Was das Spiel schon hat: gemalte Porträts für die zehn höchsten Karten (`c21`
 5. In Originalgrösse herunterladen und **exakt nach Tabelle benennen** (zum Beispiel `g008.png`, `leviathan.png`).
 6. Dateien in dieser Sitzung hochladen oder ins Repository nach `art-inbox/<Paket>/` legen. Zuschneiden, Umwandeln in WebP und Einbauen übernehme ich. Jedes Bild hat einen Rückfall: Fehlt eine Datei, zeigt das Spiel das bisherige Bild.
 
+**Stand der Lieferung (26.11.2026):** Pakete A, B, C und D sind geliefert und eingebaut, 35 von 36 Bildern. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
+
 **Reihenfolge und Umfang**
 
 | Paket | Inhalt | Bilder | Wirkung |
@@ -247,7 +249,7 @@ Elite-Karten sollen stark wirken, aber eine Spur bodenständiger als die Legende
 | `c19.png` | Dr. Mirelle Koss, Architektin (Technik) | A brilliant systems architect in her forties, silver bob, thin smart glasses, white lab coat over a grey high-collar suit, a rotating wireframe station model above her palm |
 | `g080.png` | Zeno Lund, Testflieger (Pilot) | A composed test pilot in his thirties, perfect posture, white pressure suit with blue trim, helmet under his arm, faint smile |
 | `g084.png` | Lars Kestrel, Börsenläufer (Händler) | A restless young trader in his twenties, loosened tie, sleeves rolled up on a white shirt, earpiece, three data streams reflected in his eyes |
-| `g094.png` | Elio Maddox, Kanonenlader (Kanonier) | A disciplined corporate gunner in his thirties, clean-shaven, white security armour, an energy cell magazine held ready in both hands |
+| `g094.png` | Elio Maddox, Kanonenlader (Kanonier) | A disciplined corporate gunner in his thirties, clean-shaven, slate-grey padded security uniform with a dark blue armoured vest, high collar and a small silver corporate pin, an energy cell magazine held ready in both hands. Original design, not resembling armour from any film |
 | `g100.png` | Falk Cato, Papiermacher (Schmuggel) | A meticulous forger in his fifties, thin, grey suit, magnifier loupe over one eye, a forged holographic permit glowing between his fingertips |
 
 **Abnahme:** wie Paket C. Zusätzlich: Jede Fraktion ist an Lichtfarbe und Ort sofort erkennbar, keine zwei Figuren sehen sich zum Verwechseln ähnlich.

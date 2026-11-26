@@ -32,6 +32,11 @@ GOODS = ['water', 'hydro', 'ore', 'fuelcells', 'machines', 'reactor', 'drones', 
          'lumen', 'neurostaub', 'schlaftau', 'spices', 'art', 'artifacts']
 STATIONS = ['meridian', 'kessin', 'helixtor', 'zenit', 'varn', 'lumen', 'corvus', 'aurel']
 
+# Delivered files that are held back, with the reason. They stay in art-inbox until replaced.
+HELD = {
+    'cards/g094': 'Rüstung erinnert stark an eine bekannte Film-Rüstung: mit dem neuen Prompt aus Dokument 06 neu erzeugen',
+}
+
 # group -> list of (names or None for any, treatment, settings)
 GROUPS = {
     'ships': [(SHIPS, 'key', dict(size=640))],
@@ -154,6 +159,9 @@ def run(inbox: Path, only: list) -> int:
         seen = set()
         for path in files:
             name = path.stem.lower()
+            if f'{group}/{name}' in HELD:
+                print(f'  -  {path.name}: zurückgehalten. {HELD[f"{group}/{name}"]}')
+                continue
             rule = next(((n, t, s) for n, t, s in rules if n is None or name in n), None)
             if rule is None:
                 print(f'  ?  {path.name}: unbekannter Dateiname, übersprungen')

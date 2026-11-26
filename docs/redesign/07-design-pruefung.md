@@ -45,7 +45,7 @@ Nach Wirkung geordnet. S unter einer halben Stunde, M Stunden, L ein Tag oder me
 
 | # | Thema | Aufwand |
 |---|---|---|
-| 1 | Container ist bei der Enthüllung nicht zu sehen. Er soll erscheinen, wackeln und aufbrechen. Zusammenfassung mit Hervorhebung der besten Karte und "Aufstellen" | M, mit Grafik aus Paket B |
+| 1 | Erledigt am 26.11.: Der Container erscheint, wackelt immer stärker und bricht mit einem Blitz auf, für jeden Container gleich. Die beste Karte ist in der Zusammenfassung hervorgehoben. Offen bleibt der Knopf "Aufstellen" | Rest S |
 | 2 | Begegnungen ohne Spannungsmoment zwischen Wahl und Ergebnis. Rund eine Sekunde Aufbau, ohne Zeiger, der knapp daneben stehen bleibt | M |
 | 3 | Warp ist jedes Mal gleich lang. Ab dem dritten Sprung kürzer und per Tipp überspringbar. Ankunft zeigt Kurierpost, Serie und Wert der Fracht am Ziel | M |
 | 4 | Belohnungen fliegen sichtbar zum Geldbeutel | M |

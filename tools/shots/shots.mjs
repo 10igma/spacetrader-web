@@ -29,6 +29,12 @@ await settle(2500);
 await shot('03-hangar');
 await page.locator('.cta').tap();
 await settle(700);
+await shot('04a-reveal-crate');
+await page.waitForSelector('.reveal__flash', { timeout: 5000 });
+await settle(120);
+await shot('04b-reveal-crack');
+await page.waitForSelector('.reveal__count', { timeout: 5000 });
+await settle(300);
 await shot('04-reveal-charge');
 // Skip through all but the last card, then let the best one play in full.
 // Phases also advance on their own timers, so drive this by observed state.

@@ -3,11 +3,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { audio, type Rank } from '../audio/engine.ts';
 import { stage } from '../stage/index.ts';
 import { useApp } from '../store.ts';
+import { art } from './art.ts';
 import { HoloCard } from './HoloCard.tsx';
 import { num, RARITY_LABEL, RARITY_RGB } from './format.ts';
 import { Shard } from './icons.tsx';
 
-type Phase = 'charge' | 'tell' | 'bump' | 'show' | 'summary';
+type Phase = 'crate' | 'crack' | 'charge' | 'tell' | 'bump' | 'show' | 'summary';
+
+/** The crate shakes harder and harder, then breaks open. */
+const CRATE_MS = 1150;
+const CRACK_MS = 520;
 
 const CHARGE_MS = 900;
 /** Higher rarities hold the tension longer before the card lands. */
@@ -21,8 +26,11 @@ const TELL_MS = [450, 650, 950, 1400, 2000];
  */
 export function Reveal({ pulls }: { pulls: Pull[] }) {
   const close = useApp((s) => s.closeReveal);
+  const tier = useApp((s) => s.revealCrate);
+  const closed = tier ? art('crates', tier) : undefined;
+  const opened = tier ? art('crates', `${tier}-open`) ?? closed : undefined;
   const [index, setIndex] = useState(0);
-  const [phase, setPhase] = useState<Phase>('charge');
+  const [phase, setPhase] = useState<Phase>(closed ? 'crate' : 'charge');
   const pull = pulls[index]!;
   const card = CARD_BY_ID.get(pull.cardId)!;
   const rank = rarityRank(pull.rarity) as Rank;
@@ -43,7 +51,16 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
 
   useEffect(() => {
     let timer = 0;
-    if (phase === 'charge') {
+    if (phase === 'crate') {
+      // Nothing about the contents shows yet: same light, same sound for every crate.
+      stage.setRift(null, 0);
+      audio.riser(CRATE_MS / 1000);
+      timer = window.setTimeout(() => setPhase('crack'), CRATE_MS);
+    } else if (phase === 'crack') {
+      stage.pulse(0.3);
+      audio.warp(0.5);
+      timer = window.setTimeout(() => setPhase('charge'), CRACK_MS);
+    } else if (phase === 'charge') {
       stage.setRift([0.75, 0.85, 1], 0.4);
       audio.riser(CHARGE_MS / 1000);
       timer = window.setTimeout(() => setPhase('tell'), CHARGE_MS);
@@ -70,6 +87,8 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
   }, [phase, index, pull.rarity, rank]);
 
   const advance = (): void => {
+    if (phase === 'crate') { setPhase('crack'); return; }
+    if (phase === 'crack') { setPhase('charge'); return; }
     if (phase === 'charge' || phase === 'tell' || phase === 'bump') { setPhase('show'); return; }
     if (phase === 'show') {
       audio.tap();
@@ -80,12 +99,14 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
 
   if (phase === 'summary') {
     const shards = pulls.reduce((s, p) => s + p.shards, 0);
+    // The best card of the crate stands out. Ties go to the first.
+    const best = pulls.reduce((b, p, i) => (rarityRank(p.rarity) > rarityRank(pulls[b]!.rarity) ? i : b), 0);
     return (
       <div className="overlay overlay--dim reveal reveal--summary">
         <h3 className="reveal__title">Inhalt</h3>
         <div className="reveal__row">
           {pulls.map((p, i) => (
-            <div key={i} className="reveal__slot" style={{ animationDelay: `${i * 90}ms` }}>
+            <div key={i} className={`reveal__slot${i === best ? ' is-best' : ''}`} style={{ animationDelay: `${i * 90}ms`, ['--rar' as string]: `rgb(${RARITY_RGB[p.rarity].map((c) => Math.round(c * 255)).join(' ')})` }}>
               <HoloCard card={CARD_BY_ID.get(p.cardId)!} size="sm" />
               {p.isNew ? <span className="badge badge--new">Neu</span> : <span className="badge"><Shard />+{num(p.shards)}</span>}
             </div>
@@ -93,6 +114,16 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
         </div>
         {shards > 0 && <p className="reveal__shards">Doppelte Karten: +{num(shards)} Splitter</p>}
         <button className="cta" onClick={() => { audio.tap(); close(); }}><span>Weiter</span></button>
+      </div>
+    );
+  }
+
+  if (phase === 'crate' || phase === 'crack') {
+    return (
+      <div className={`overlay reveal reveal--${phase} reveal--${tier}`} onClick={advance}>
+        <img className="reveal__crate" src={phase === 'crate' ? closed : opened} alt="" draggable={false} />
+        {phase === 'crack' && <div className="reveal__flash" />}
+        <p className="overlay__hint">Tippen zum Öffnen</p>
       </div>
     );
   }

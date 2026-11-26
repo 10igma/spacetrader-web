@@ -86,6 +86,8 @@ interface AppState {
   muted: boolean;
   busy: boolean;
   reveal: Pull[] | null;
+  /** The crate the cards come out of, or null when a card arrives on its own. */
+  revealCrate: 'standard' | 'premium' | null;
   travel: Travel | null;
   routesOpen: boolean;
   sale: SalePop | null;
@@ -145,6 +147,7 @@ export const useApp = create<AppState>((set, get) => ({
   muted: false,
   busy: false,
   reveal: null,
+  revealCrate: null,
   travel: null,
   routesOpen: false,
   sale: null,
@@ -204,7 +207,7 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'CharterBought') get().celebrate({ kind: 'charter' });
         if (ev.type === 'LeagueClaimed' && ev.moved > 0) get().celebrate({ kind: 'league', tierName: view.league.tierName, rank: ev.rank });
         if (ev.type === 'LeagueClaimed' && ev.moved < 0) get().showToast('Abgestiegen');
-        if (ev.type === 'CrateOpened') set({ reveal: ev.pulls });
+        if (ev.type === 'CrateOpened') set({ reveal: ev.pulls, revealCrate: ev.source === 'reward' ? null : ev.tier });
         if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0 }, routesOpen: false });
         if (ev.type === 'Arrived') {
           const travel = get().travel;

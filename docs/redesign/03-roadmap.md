@@ -39,7 +39,8 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Mobile-Hülle (Phase 5): Android-Projekt baut zu einer installierbaren App, iOS-Projekt angelegt, Icon und Startbild, Haptik, lokale Erinnerungen mit Opt-in und Nachtruhe, Zurück-Taste, installierbare Web-App. Details in Dokument 05 | fertig bis auf Gerätetest | App hier gebaut und ihr Inhalt geprüft, 7 Tests, Durchlauf im Browser. Nicht auf einem Gerät gestartet |
 | Spielstand übersteht Regeländerungen: Ältere Stände werden übernommen, neue Systeme starten leer | fertig | Tests und Durchlauf mit einem alten Spielstand |
 | Design-Runde 1 nach zwei unabhängigen Prüfungen (Art Direction, UX und Fairness): Lesbarkeit, Farbrollen, Vollbild-Momente, gestufte Verkaufs-Rückmeldung, Zwei-Tipp-Bestätigung für Quanten, Schliessen-Knopf in jedem Fenster, Einstieg für neue Spieler. Details in Dokument 07 | fertig | Eigener Durchlauf mit 12 Prüfungen, dabei einen Fehler gefunden und behoben |
-| Grafik-Auftrag: Stil, Formate, Dateinamen und Prompts für 127 Bilder in 11 Paketen. Dokument 06 | fertig, Bilder stehen aus | |
+| Grafik-Auftrag: Stil, Formate, Dateinamen und Prompts für 127 Bilder in 11 Paketen. Dokument 06 | Pakete A bis D geliefert und eingebaut (35 Bilder): 6 Schiffe, 4 Container, 6 Saison-Karten, 19 Elite-Karten | Import-Werkzeug prüft Name, Format und Hintergrund. Sichtprüfung jedes Bilds im Spiel |
+| Container in der Enthüllung: erscheint, wackelt, bricht auf. Schiffe als Bilder mit Lackierung als Farbschicht | fertig | Durchläufe mit Screenshots |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
 | Bot-Simulation | fertig | Zwei Spielertypen, je 10 Spieler über 90 Tage, dazu Leitplanken-Test |
