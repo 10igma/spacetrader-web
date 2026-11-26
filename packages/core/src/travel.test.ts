@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from './config.ts';
 import { applyCommand, createInitialState, holdCap, parseCommand, quote, toClientView, type GameEvent, type GameState, type MarketRow } from './game.ts';
 import { seedRng } from './rng.ts';
-import { GOODS, STATIONS } from './world.ts';
+import { courseTo, GOODS, hopsBetween, LANES, neighbours, STATIONS } from './world.ts';
 
 const T0 = 1_800_000_000_000;
 const fresh = (seed = 'trade'): GameState => createInitialState(seed, T0);
@@ -89,11 +89,30 @@ describe('trading', () => {
 });
 
 describe('travel', () => {
-  it('offers distinct routes away from the current station', () => {
+  it('the sector is one connected chart, and far corners are several jumps apart', () => {
+    expect(STATIONS).toHaveLength(12);
+    for (const [a, b] of LANES) { expect(a).not.toBe(b); expect(neighbours(a)).toContain(b); expect(neighbours(b)).toContain(a); }
+    const spans = STATIONS.flatMap((a) => STATIONS.map((b) => hopsBetween(a.id, b.id)));
+    expect(Math.max(...spans)).toBe(4);
+    for (const a of STATIONS) {
+      expect(neighbours(a.id).length).toBeGreaterThanOrEqual(2);
+      for (const b of STATIONS) if (a.id !== b.id) expect(hopsBetween(a.id, b.id)).toBeGreaterThan(0);
+    }
+    // A course is a chain of lanes that ends at the target.
+    const course = courseTo('solace', 'varn');
+    expect(course).toHaveLength(4);
+    expect(course[course.length - 1]).toBe('varn');
+    ['solace', ...course].reduce((at, next) => { expect(neighbours(at as never)).toContain(next); return next; });
+    expect(courseTo('meridian', 'meridian')).toEqual([]);
+  });
+
+  it('from a station you can jump along its lanes and nowhere else', () => {
     const s = fresh();
-    expect(s.routes).toHaveLength(CONFIG.routesOffered);
-    expect(new Set(s.routes).size).toBe(CONFIG.routesOffered);
+    expect(s.routes).toEqual([...neighbours(s.location)]);
     expect(s.routes).not.toContain(s.location);
+    const after = applyCommand(s, { type: 'Jump', to: s.routes[0]! }, T0).state;
+    const landed = after.pending ? applyCommand(after, { type: 'Encounter', choice: after.pending.kind === 'pirates' ? 'pay' : 'submit' }, T0).state : after;
+    expect(landed.routes).toEqual([...neighbours(landed.location)]);
   });
 
   it('a jump costs fuel and ends at the destination or in an encounter', () => {
@@ -169,7 +188,7 @@ describe('travel', () => {
       let s = fresh('replay');
       for (let i = 0; i < 12; i++) {
         s = applyCommand(s, { type: 'Buy', goodId: 'hydro', qty: 2 }, T0 + i).state;
-        s = applyCommand(s, { type: 'Jump', to: s.routes[i % 3]! }, T0 + i).state;
+        s = applyCommand(s, { type: 'Jump', to: s.routes[i % s.routes.length]! }, T0 + i).state;
         if (s.pending) s = applyCommand(s, { type: 'Encounter', choice: s.pending.kind === 'pirates' ? 'flee' : 'submit' }, T0 + i).state;
         s = applyCommand(s, { type: 'Sell', goodId: 'hydro', qty: 1 }, T0 + i).state;
         s.fuel.amount = CONFIG.fuel.max;

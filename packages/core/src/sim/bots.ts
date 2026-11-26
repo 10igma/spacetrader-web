@@ -23,6 +23,8 @@ function act(ctx: Ctx, cmd: Command): ClientView {
   ctx.state = res.state;
   for (const ev of res.events) {
     ctx.log[ev.type] = (ctx.log[ev.type] ?? 0) + 1;
+    // Where the money is made: profit by station and good, for finding lanes that pay too well.
+    if (ev.type === 'Sold') ctx.log[`profit:${ctx.state.location}:${ev.goodId}`] = (ctx.log[`profit:${ctx.state.location}:${ev.goodId}`] ?? 0) + ev.profit;
     if (ev.type === 'ConvoyReturned') ctx.log[ev.success ? 'convoy:ok' : 'convoy:fail'] = (ctx.log[ev.success ? 'convoy:ok' : 'convoy:fail'] ?? 0) + 1;
     if (ev.type === 'CommandRejected') ctx.log[`rejected:${ev.reason}`] = (ctx.log[`rejected:${ev.reason}`] ?? 0) + 1;
     if (ev.type === 'EncounterResolved') ctx.log[`${ev.kind}:${ev.choice}:${ev.success ? 'ok' : 'fail'}`] = (ctx.log[`${ev.kind}:${ev.choice}:${ev.success ? 'ok' : 'fail'}`] ?? 0) + 1;

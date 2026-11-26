@@ -1,4 +1,4 @@
-import { MODULE_BY_ID } from '@nova/core';
+import { CATEGORY_NAME, CRISIS_NAME, MODULE_BY_ID, STATION_BY_ID } from '@nova/core';
 import { setHaptics } from './native/haptics.ts';
 import { askForReminders, syncReminders } from './native/reminders.ts';
 import { loadSettings, saveSettings, type DeviceSettings } from './native/settings.ts';
@@ -92,6 +92,9 @@ interface AppState {
   revealCrate: 'standard' | 'premium' | null;
   travel: Travel | null;
   routesOpen: boolean;
+  /** Where the captain is headed, possibly several jumps away. A plan on this device, not a rule. */
+  course: StationId | null;
+  setCourse(target: StationId | null): void;
   sale: SalePop | null;
   milestone: MilestoneMoment | null;
   celebrate(moment: MomentInput): void;
@@ -152,6 +155,8 @@ export const useApp = create<AppState>((set, get) => ({
   revealCrate: null,
   travel: null,
   routesOpen: false,
+  course: null,
+  setCourse(course) { set({ course }); },
   sale: null,
   milestone: null,
   celebrate(moment) {
@@ -181,6 +186,8 @@ export const useApp = create<AppState>((set, get) => ({
       const { view, events } = await get().service.send(cmd);
       set({ view, clockOffset: view.serverTime - Date.now() });
       syncReminders(view, get().settings.reminders);
+      // Arrived where the course led: the plan is done.
+      if (get().course === view.location) set({ course: null });
       // Wheel and salvage show their own result: no toast may give it away early.
       // A charter claim sums up many rewards in one line.
       const staged = events.some((e) => e.type === 'WheelSpun' || e.type === 'SalvageOpened' || e.type === 'CharterClaimed' || e.type === 'ConvoyReturned');
@@ -206,6 +213,8 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'SeasonAlbumClaimed' && ev.complete) get().celebrate({ kind: 'album' });
         if (ev.type === 'PaintBought') { audio.coins(600); get().showToast('Neue Lackierung aufgetragen', 'good'); }
         if (ev.type === 'Prestiged') { set({ tab: 'station', sheet: null }); get().celebrate({ kind: 'prestige', rank: ev.rank }); }
+        if (ev.type === 'MarketEventStarted') get().showToast(`${CRISIS_NAME[ev.event.category]} auf ${STATION_BY_ID.get(ev.event.stationId)!.name}: ${CATEGORY_NAME[ev.event.category]} gefragt`, 'good');
+        if (ev.type === 'MarketEventEnded') get().showToast(ev.byYou ? `Bedarf gedeckt: ${CRISIS_NAME[ev.category]} auf ${STATION_BY_ID.get(ev.stationId)!.name} ist vorbei` : `${CRISIS_NAME[ev.category]} auf ${STATION_BY_ID.get(ev.stationId)!.name} vorbei: Andere haben geliefert`, ev.byYou ? 'good' : 'bad');
         if (ev.type === 'CharterBought') get().celebrate({ kind: 'charter' });
         if (ev.type === 'LeagueClaimed' && ev.moved > 0) get().celebrate({ kind: 'league', tier: view.league.tier, tierName: view.league.tierName, rank: ev.rank });
         if (ev.type === 'LeagueClaimed' && ev.moved < 0) get().showToast('Abgestiegen');

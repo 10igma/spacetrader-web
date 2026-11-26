@@ -187,6 +187,9 @@ export function Market() {
       </div>
       {mode === 'auction' ? <Auction /> : (
         <div className="market__list">
+          {view.events.filter((e) => e.stationId === view.location).map((e) => (
+            <p key={e.category} className="market__event market__event--crisis"><b>{e.name}:</b> {CATEGORY_NAME[e.category]} +{Math.round((e.mult - 1) * 100)} %. Bedarf noch {e.demand} Einheiten, jede verkaufte zählt.</p>
+          ))}
           {view.weekend.active && <p className="market__event">Blockade-Lauf: Hehler zahlen {Math.round(CONFIG.weekend.fenceBonus * 100)} % mehr, der Zoll kontrolliert öfter.</p>}
           {aboard.length > 0 && <h4 className="market__section">An Bord</h4>}
           {list(aboard)}

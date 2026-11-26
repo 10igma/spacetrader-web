@@ -24,7 +24,7 @@ import {
   weekendActive, weekendStartsAt, weekIndex, weekStartsAt, type Standing,
 } from './season.ts';
 import {
-  GOOD_BY_ID, GOODS, isBanned, STATION_BY_ID, STATIONS, stationMod,
+  CRISIS_NAME, GOOD_BY_ID, GOODS, hopsBetween, isBanned, neighbours, STATION_BY_ID, STATIONS, stationMod,
   type Category, type GoodDef, type GoodId, type StationId,
 } from './world.ts';
 
@@ -32,7 +32,7 @@ import {
 // State
 // ---------------------------------------------------------------------------
 
-export const STATE_VERSION = 10;
+export const STATE_VERSION = 11;
 
 export type EncounterKind = 'pirates' | 'customs';
 export type EncounterChoice = 'fight' | 'flee' | 'pay' | 'submit' | 'bribe' | 'breakThrough';
@@ -41,7 +41,18 @@ const FACTION_IDS: readonly FactionId[] = ['helix', 'tessera', 'asche', 'zenit']
 
 /** `heat`: jumps this lot has been carried. Only matters for goods that are banned somewhere. */
 export interface CargoLot { qty: number; avgCost: number; heat: number }
-export interface MarketEvent { stationId: StationId; category: Category; mult: number; jumpsLeft: number }
+/** A crisis: a category sells for more at a station until the demand is met. */
+export interface MarketEvent {
+  stationId: StationId;
+  category: Category;
+  mult: number;
+  /** Units still wanted. The crisis is over when this reaches zero. */
+  demand: number;
+  /** Units other traders deliver with every jump you make. */
+  drain: number;
+}
+/** A crisis as the client sees it: with the way there and what will be left on a direct run. */
+export interface CrisisView extends MarketEvent { name: string; hops: number; onArrival: number }
 
 /** Authoritative state. Lives on the server side of the GameService boundary. */
 export interface GameState {
@@ -102,7 +113,8 @@ export interface GameState {
   market: Record<StationId, Record<GoodId, number>>;
   /** Units each station's fence will still move. */
   fence: Record<StationId, number>;
-  event: MarketEvent | null;
+  /** Crises running in the sector. */
+  events: MarketEvent[];
   wanted: Record<FactionId, { level: number; cool: number }>;
   routes: StationId[];
   pending: { to: StationId; kind: EncounterKind } | null;
@@ -151,7 +163,7 @@ export interface RouteView {
   customsChance: number;
   piratesChance: number;
   wanted: number;
-  event: { category: Category; mult: number; jumpsLeft: number } | null;
+  event: CrisisView | null;
   /** Goods that currently sell there for more than they cost here. */
   hints: { goodId: GoodId; pct: number; fence: boolean }[];
 }
@@ -279,7 +291,8 @@ export interface ClientView {
   holdUpgrade: { level: number; cost: number; cap: number } | null;
   market: MarketRow[];
   fence: { left: number; cap: number; closed: boolean };
-  event: MarketEvent | null;
+  /** Crises running in the sector, nearest first. */
+  events: CrisisView[];
   wanted: Record<FactionId, number>;
   /** Cost to buy one star off at this station, if you are wanted here. */
   payOff: number | null;
@@ -412,6 +425,7 @@ export type GameEvent =
   | { type: 'Arrived'; stationId: StationId; courier: number }
   | { type: 'WantedChanged'; faction: FactionId; level: number }
   | { type: 'MarketEventStarted'; event: MarketEvent }
+  | { type: 'MarketEventEnded'; stationId: StationId; category: Category; byYou: boolean }
   | { type: 'DeckChanged' }
   | { type: 'HoldUpgraded'; level: number; cap: number }
   | { type: 'LevelUp'; level: number }
@@ -461,7 +475,7 @@ export function createInitialState(seed: string, now: number): GameState {
       STATIONS.map((s) => [s.id, Object.fromEntries(GOODS.map((g) => [g.id, 0]))]),
     ) as GameState['market'],
     fence: Object.fromEntries(STATIONS.map((s) => [s.id, CONFIG.smuggling.fenceCap])) as GameState['fence'],
-    event: null,
+    events: [],
     wanted: Object.fromEntries(FACTION_IDS.map((f) => [f, { level: 0, cool: 0 }])) as GameState['wanted'],
     routes: [],
     pending: null,
@@ -813,7 +827,7 @@ const bannedAt = (good: GoodDef, stationId: StationId): boolean => isBanned(good
 /** Local price of a good before drift: base, compressed station profile, running event. */
 function anchorPrice(state: GameState, stationId: StationId, good: GoodDef): number {
   const station = STATION_BY_ID.get(stationId)!;
-  const ev = state.event && state.event.stationId === stationId && state.event.category === good.category ? state.event.mult : 1;
+  const ev = state.events.find((e) => e.stationId === stationId && e.category === good.category)?.mult ?? 1;
   return good.base * Math.pow(stationMod(station, good), CONFIG.market.spread) * ev;
 }
 
@@ -824,7 +838,8 @@ function marketRow(state: GameState, stationId: StationId, goodId: GoodId, heat:
   const banned = bannedAt(good, stationId);
   const hdl = crewOf(state).hdl;
   const s = CONFIG.smuggling;
-  const hot = good.tier === 'free' ? 1 : 1 + s.heatSellBonus * Math.min(heat, s.heatMax);
+  // Hot cargo earns its premium where it is banned and the risk was real. In lawless space nobody pays extra for it.
+  const hot = banned ? 1 + s.heatSellBonus * Math.min(heat, s.heatMax) : 1;
   const extra = saleBonus(state);
   const row = {
     goodId,
@@ -858,19 +873,9 @@ function driftMarkets(state: GameState): void {
   }
 }
 
+/** From a station you can jump along its lanes. Far places take several jumps. */
 function rollRoutes(state: GameState): void {
-  const others = STATIONS.map((s) => s.id).filter((id) => id !== state.location);
-  const routes: StationId[] = [];
-  // A running market event is always reachable: news you cannot act on is no fun.
-  if (state.event && state.event.stationId !== state.location) {
-    routes.push(state.event.stationId);
-    others.splice(others.indexOf(state.event.stationId), 1);
-  }
-  while (routes.length < CONFIG.routesOffered && others.length > 0) {
-    const i = Math.floor(nextFloat(state.rng.travel) * others.length);
-    routes.push(...others.splice(i, 1));
-  }
-  state.routes = routes;
+  state.routes = [...neighbours(state.location)];
 }
 
 // ---------------------------------------------------------------------------
@@ -1034,22 +1039,28 @@ function arrive(state: GameState, to: StationId, events: GameEvent[], now: numbe
   }
   driftMarkets(state);
 
-  // Market events: a shortage somewhere, for a limited number of jumps.
-  if (state.event) {
-    state.event.jumpsLeft -= 1;
-    if (state.event.jumpsLeft <= 0) state.event = null;
-  }
-  if (!state.event && nextFloat(state.rng.market) < CONFIG.marketEvent.chance) {
-    const stations = STATIONS.filter((s) => s.id !== to);
-    const station = pick(state.rng.market, stations);
+  // Crises: other traders deliver too, so the demand drops with every jump.
+  for (const e of state.events) e.demand -= e.drain;
+  for (const e of state.events.filter((x) => x.demand <= 0)) events.push({ type: 'MarketEventEnded', stationId: e.stationId, category: e.category, byYou: false });
+  state.events = state.events.filter((e) => e.demand > 0);
+  const cfg = CONFIG.marketEvent;
+  if (state.events.length < cfg.max && nextFloat(state.rng.market) < cfg.chance) {
+    // Far enough to be a journey, and never two at the same place.
+    const taken = new Set(state.events.map((e) => e.stationId));
+    const far = STATIONS.filter((s) => !taken.has(s.id) && hopsBetween(to, s.id) >= cfg.minHops);
+    const station = pick(state.rng.market, far.length > 0 ? far : STATIONS.filter((s) => s.id !== to && !taken.has(s.id)));
     const categories = [...new Set(GOODS.map((g) => g.category))];
-    state.event = {
+    const drain = cfg.drainMin + Math.floor(nextFloat(state.rng.market) * (cfg.drainRange + 1));
+    const jumps = hopsBetween(to, station.id) + cfg.slackMin + nextFloat(state.rng.market) * cfg.slackRange;
+    const event: MarketEvent = {
       stationId: station.id,
       category: pick(state.rng.market, categories),
-      mult: Math.round((CONFIG.marketEvent.multMin + nextFloat(state.rng.market) * CONFIG.marketEvent.multRange) * 100) / 100,
-      jumpsLeft: CONFIG.marketEvent.jumps,
+      mult: Math.round((cfg.multMin + nextFloat(state.rng.market) * cfg.multRange) * 100) / 100,
+      demand: Math.round(drain * jumps),
+      drain,
     };
-    events.push({ type: 'MarketEventStarted', event: { ...state.event } });
+    state.events.push(event);
+    events.push({ type: 'MarketEventStarted', event: { ...event } });
   }
 
   // Now and then a sealed wreck container is on offer at the dock.
@@ -1528,6 +1539,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
     case 'Sell': {
       const good = GOOD_BY_ID.get(cmd.goodId);
       if (!good || !isQty(cmd.qty)) return reject('unknown_command');
+      let crisisEnded: GameEvent | null = null;
       const lot = state.cargo[cmd.goodId];
       if (!lot || lot.qty < cmd.qty) return reject('not_in_cargo');
       const viaFence = bannedAt(good, state.location);
@@ -1537,12 +1549,22 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       const profit = Math.round(revenue - lot.avgCost * cmd.qty);
       state.wallet.credits += revenue;
       moveMarket(state, state.location, cmd.goodId, -cmd.qty);
+      // Your delivery counts against the demand of a crisis here.
+      const crisis = state.events.find((e) => e.stationId === state.location && e.category === good.category);
+      if (crisis) {
+        crisis.demand -= cmd.qty;
+        if (crisis.demand <= 0) {
+          state.events = state.events.filter((e) => e !== crisis);
+          crisisEnded = { type: 'MarketEventEnded', stationId: crisis.stationId, category: crisis.category, byYou: true };
+        }
+      }
       if (viaFence) state.fence[state.location] -= cmd.qty;
       lot.qty -= cmd.qty;
       if (lot.qty === 0) delete state.cargo[cmd.goodId];
       state.stats.profit += profit;
       if (profit > 0) state.league.score += profit;
       events.push({ type: 'Sold', goodId: cmd.goodId, qty: cmd.qty, revenue, profit });
+      if (crisisEnded) events.push(crisisEnded);
       progress(state, 'sellUnits', cmd.qty);
       progress(state, 'profit', profit);
       if (good.tier !== 'free') progress(state, 'hotUnits', cmd.qty);
@@ -1847,6 +1869,11 @@ export function toClientView(state: GameState, now: number): ClientView {
   const market: MarketRow[] = GOODS.map((g) => marketRow(s, here, g.id, s.cargo[g.id]?.heat ?? 0));
   const lot = CONFIG.market.hintLot;
 
+  const crises: CrisisView[] = s.events.map((e) => {
+    const hops = hopsBetween(here, e.stationId);
+    return { ...e, name: CRISIS_NAME[e.category], hops, onArrival: Math.max(0, e.demand - e.drain * hops) };
+  }).sort((a, b) => a.hops - b.hops);
+
   const routes: RouteView[] = s.routes.map((id) => {
     const dest = STATION_BY_ID.get(id)!;
     const chance = encounterChances(s, id);
@@ -1866,7 +1893,7 @@ export function toClientView(state: GameState, now: number): ClientView {
       customsChance: chance.customs,
       piratesChance: chance.pirates,
       wanted: s.wanted[dest.faction].level,
-      event: s.event && s.event.stationId === id ? { category: s.event.category, mult: s.event.mult, jumpsLeft: s.event.jumpsLeft } : null,
+      event: crises.find((e) => e.stationId === id) ?? null,
       hints,
     };
   });
@@ -2003,7 +2030,7 @@ export function toClientView(state: GameState, now: number): ClientView {
     },
     market,
     fence: { left: s.fence[here], cap: CONFIG.smuggling.fenceCap, closed: fenceClosed(s, here) },
-    event: s.event,
+    events: crises,
     wanted: Object.fromEntries(FACTION_IDS.map((f) => [f, s.wanted[f].level])) as Record<FactionId, number>,
     payOff: s.wanted[hereFaction].level > 0 ? CONFIG.wanted.payOffPerStar * s.wanted[hereFaction].level : null,
     routes,

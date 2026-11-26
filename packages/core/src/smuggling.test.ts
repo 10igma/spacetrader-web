@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from './config.ts';
 import { CARDS } from './content.ts';
 import { applyCommand, createInitialState, deckInfo, parseCommand, toClientView, type GameEvent, type GameState } from './game.ts';
-import { GOOD_BY_ID, GOODS, isBanned, STATIONS } from './world.ts';
+import { CRISIS_NAME, GOOD_BY_ID, GOODS, hopsBetween, isBanned, STATIONS } from './world.ts';
 
 const T0 = 1_800_000_000_000;
 const fresh = (seed = 'smug'): GameState => createInitialState(seed, T0);
@@ -241,24 +241,67 @@ describe('deck', () => {
   });
 });
 
-describe('market events', () => {
-  it('a running event station is always among the routes and raises its category there', () => {
-    let s = fresh('ev');
-    let seen = 0;
-    for (let i = 0; i < 60; i++) {
+describe('crises', () => {
+  const wander = (seed: string, jumps: number, each: (s: GameState, before: GameState) => void): void => {
+    let s = fresh(seed);
+    for (let i = 0; i < jumps; i++) {
       s.fuel.amount = CONFIG.fuel.max;
-      s = applyCommand(s, { type: 'Jump', to: s.routes[i % 3]! }, T0).state;
+      const before = s;
+      s = applyCommand(s, { type: 'Jump', to: s.routes[i % s.routes.length]! }, T0).state;
       if (s.pending) s = applyCommand(s, { type: 'Encounter', choice: s.pending.kind === 'pirates' ? 'pay' : 'submit' }, T0).state;
-      if (s.event && s.event.stationId !== s.location) {
-        seen++;
-        expect(s.routes).toContain(s.event.stationId);
-        const view = toClientView(s, T0);
-        expect(view.routes.find((r) => r.stationId === s.event!.stationId)!.event).toMatchObject({ category: s.event.category });
-        expect(s.event.mult).toBeGreaterThanOrEqual(CONFIG.marketEvent.multMin);
-        expect(s.event.jumpsLeft).toBeGreaterThan(0);
-      }
+      each(s, before);
     }
-    expect(seen).toBeGreaterThan(5);
+  };
+
+  it('start far away, raise their category there and say how long the demand will last', () => {
+    let started = 0;
+    wander('ev', 120, (s, before) => {
+      expect(s.events.length).toBeLessThanOrEqual(CONFIG.marketEvent.max);
+      expect(new Set(s.events.map((e) => e.stationId)).size).toBe(s.events.length);
+      for (const e of s.events) {
+        const fresh = !before.events.some((x) => x.stationId === e.stationId && x.category === e.category);
+        if (!fresh) continue;
+        started++;
+        const hops = hopsBetween(s.location, e.stationId);
+        expect(hops).toBeGreaterThanOrEqual(CONFIG.marketEvent.minHops);
+        expect(e.mult).toBeGreaterThanOrEqual(CONFIG.marketEvent.multMin);
+        // A direct run arrives while there is still demand.
+        expect(e.demand - e.drain * hops).toBeGreaterThan(0);
+        const view = toClientView(s, T0).events.find((x) => x.stationId === e.stationId)!;
+        expect(view).toMatchObject({ hops, onArrival: e.demand - e.drain * hops, name: CRISIS_NAME[e.category] });
+      }
+    });
+    expect(started).toBeGreaterThan(8);
+  });
+
+  it('the demand drops by the announced amount with every jump, and the crisis ends when it is met', () => {
+    let checked = 0;
+    let ended = 0;
+    wander('drain', 120, (s, before) => {
+      for (const old of before.events) {
+        const now = s.events.find((x) => x.stationId === old.stationId && x.category === old.category);
+        if (now) { expect(now.demand).toBe(old.demand - old.drain); checked++; } else { expect(old.demand - old.drain).toBeLessThanOrEqual(0); ended++; }
+      }
+    });
+    expect(checked).toBeGreaterThan(20);
+    expect(ended).toBeGreaterThan(3);
+  });
+
+  it('your own delivery counts against the demand and can end the crisis', () => {
+    const s = fresh('deliver');
+    const good = GOODS.find((g) => g.category === 'waffen' && !isBanned(g, STATIONS.find((x) => x.id === s.location)!.faction))!;
+    s.events = [{ stationId: s.location, category: 'waffen', mult: 1.8, demand: 10, drain: 5 }];
+    s.cargo = { [good.id]: { qty: 20, avgCost: 10, heat: 0 } };
+    const calm = { ...s, events: [] };
+    const price = (st: GameState) => toClientView(st, T0).market.find((r) => r.goodId === good.id)!.sell;
+    expect(price(s) / price(calm)).toBeCloseTo(1.8, 1);
+    const first = applyCommand(s, { type: 'Sell', goodId: good.id, qty: 4 }, T0);
+    expect(first.state.events[0]!.demand).toBe(6);
+    const second = applyCommand(first.state, { type: 'Sell', goodId: good.id, qty: 6 }, T0);
+    expect(second.state.events).toEqual([]);
+    expect(second.events.find((e) => e.type === 'MarketEventEnded')).toMatchObject({ byYou: true, category: 'waffen' });
+    // The next unit sells at the ordinary price again.
+    expect(price(second.state)).toBeLessThan(price(first.state) * 0.75);
   });
 });
 

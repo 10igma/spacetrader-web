@@ -1,4 +1,5 @@
 import { createInitialState, STATE_VERSION, type GameState } from './game.ts';
+import { neighbours, STATION_BY_ID, type StationId } from './world.ts';
 
 /** Saves older than this are too far from today's rules to be worth carrying over. */
 export const OLDEST_UPGRADABLE = 8;
@@ -27,6 +28,13 @@ export function upgradeSave(raw: unknown, now: number): GameState | null {
   // The template is a new game: its values are the natural "nothing yet" for every system.
   const template = createInitialState(`upgrade:${String(saved.createdAt ?? now)}`, now) as unknown as Record<string, unknown>;
   fill(saved, template);
+  // Before version 11 there was one market event and three random routes. The sector has lanes now.
+  if ((raw.version as number) < 11) {
+    delete saved.event;
+    saved.events = [];
+    const at = saved.location as StationId;
+    saved.routes = [...neighbours(STATION_BY_ID.has(at) ? at : 'meridian')];
+  }
   saved.version = STATE_VERSION;
   return saved as unknown as GameState;
 }

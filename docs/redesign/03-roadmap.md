@@ -41,13 +41,16 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Design-Runde 1 nach zwei unabhängigen Prüfungen (Art Direction, UX und Fairness): Lesbarkeit, Farbrollen, Vollbild-Momente, gestufte Verkaufs-Rückmeldung, Zwei-Tipp-Bestätigung für Quanten, Schliessen-Knopf in jedem Fenster, Einstieg für neue Spieler. Details in Dokument 07 | fertig | Eigener Durchlauf mit 12 Prüfungen, dabei einen Fehler gefunden und behoben |
 | Grafik-Auftrag: Stil, Formate, Dateinamen und Prompts für 127 Bilder in 11 Paketen. Dokument 06 | Pakete A bis J geliefert und eingebaut (112 Bilder): 6 Schiffe, 4 Container, 6 Saison-Karten, 19 Elite-Karten, 4 Begegnungen, 27 Waren, 6 Module, 10 Embleme und Abzeichen, 6 Banner und Titelbild, 20 Archetypen, 3 Währungen | Import-Werkzeug prüft Name, Format und Hintergrund. Sichtprüfung jedes Bilds im Spiel |
 | Container in der Enthüllung: erscheint, wackelt, bricht auf. Schiffe als Bilder mit Lackierung als Farbschicht | fertig | Durchläufe mit Screenshots |
+| Sektor mit Raum: zwölf Stationen auf einer Sternkarte, verbunden durch Sprungbahnen. Ein Sprung folgt einer Bahn, ferne Ziele brauchen bis zu vier Sprünge. Ersetzt die drei zufälligen Routen | fertig | Tests: Karte ist zusammenhängend, Kurs ist eine Kette von Bahnen, Sprung nur entlang einer Bahn |
+| Krisen (Krieg, Seuche, Versorgungskrise und weitere): bis zu zwei gleichzeitig, mindestens zwei Sprünge entfernt. Der Bedarf sinkt mit jedem Sprung um eine angezeigte Menge, weil andere liefern, und um jede Einheit, die man selbst dort verkauft | fertig | Tests: Bedarf sinkt genau wie angezeigt, direkte Fahrt kommt rechtzeitig an, eigene Lieferung beendet die Krise |
+| Sternkarte mit Fraktionsgebieten, Kurs über mehrere Stationen, Anzeige "bei Ankunft noch N". Der Hauptknopf folgt dem Kurs | fertig | Eigener Durchlauf mit 13 Prüfungen |
 | Design-Runde 2: Tabs neu geordnet (Hangar: Container, Shop, Werft. Deck: Brücke, Sammlung, Konvois), Einstellungen an einem Ort, Glücksrad überarbeitet, Belohnungen fliegen zum Geldbeutel, Markt mit Waren-Symbolen, Hinweis auf bessere Crew | fertig | Durchläufe an die neue Struktur angepasst |
 | Begegnungen mit Spannungsmoment, kürzerer und überspringbarer Warp, Ankunft mit Kurierpost, Serie und Frachtwert. Währungen als Bilder im Charter | fertig | Durchlauf prüft, dass das Ergebnis erst nach dem Spannungsmoment erscheint |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
 | Bot-Simulation | fertig | Zwei Spielertypen, je 10 Spieler über 90 Tage, dazu Leitplanken-Test |
 | Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus 16 gegen Werft und Konvois und 14 gegen Saison-Album, Titel, Lackierungen und Prestige |
-| Bühne, UI, Musik und Effekte | fertig | Elf automatische Durchläufe ohne Konsolenfehler |
+| Bühne, UI, Musik und Effekte | fertig | Zwölf automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
@@ -92,7 +95,12 @@ Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lasse
 
 **Nicht geprüft, weil hier nicht prüfbar:** wie Musik und Effekte klingen, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
 
+**Nachtrag Sektor (26.11.2026):** Mit festen Sprungbahnen verdienten legale Händler zuerst das Doppelte. Ursache war eine alte Regel: Schmuggelware wurde mit jedem Sprung teurer, auch im Kartellraum ohne Zoll. Der Aufschlag gilt jetzt nur dort, wo die Ware verboten ist. Dazu erholen sich überschwemmte Märkte langsamer, damit Pendeln zwischen zwei Stationen weniger bringt als eine Rundreise. Stand nach 30 Tagen: legal 6'500 Gewinn pro Sprung (vorher 6'600), Schmuggel 7'400 (vorher 9'900). Der Schmuggel-Vorsprung ist mit 14 % kleiner als vorher und sollte wieder wachsen.
+
 **Offen:**
+- **Sektor ist neu und kaum gespielt.** Die Karte hat zwölf Stationen, vier davon neu (Tessera-Kreuz, Eisenfurt, Nimbus-Riff, Solace-Labor). Ihre Preise sind gesetzt, aber nur von Bots geprüft. Die Bots planen keine fernen Krisen an, sie handeln nur von Bahn zu Bahn.
+- **Krisen kennen nur den Bedarf.** Es gibt noch keine Gegenspieler, die sichtbar unterwegs sind, keine Blockaden auf Bahnen und keine Aufträge mit Frist ("liefere 20 Einheiten bis Sprung X").
+- **Entfernung kostet nur Sprünge.** Jede Bahn kostet eine Einheit Treibstoff, lange und kurze gleich.
 - **Auktionshaus und Liga sind simuliert.** Gegenbieter, Käufer und Liga-Rivalen sind Zufallsgrössen mit festen Grenzen, keine echten Spieler. Die Liga sagt das auf dem Bildschirm. Echte Mitspieler brauchen Konten, Datenbank und Schutz gegen Absprachen (zweiter Teil von Phase 4).
 - **Rest von Phase 4:** Telemetrie und alles, was echte Mitspieler braucht (Konten, Datenbank, echte Ranglisten).
 - **Saison-Karten brauchen jede Saison neue Kunst.** "Glut über Varn" hat Porträts für die sechs hohen Karten. Jede weitere Saison braucht wieder sechs, sonst zeigen ihre Karten den Helm oder den Archetyp.

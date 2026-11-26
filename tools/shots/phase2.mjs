@@ -31,7 +31,7 @@ await page.evaluate(() => {
   s.profile = { level: 6, xp: 400 };
   s.cargo = { neurostaub: { qty: 6, avgCost: 640, heat: 3 }, meds: { qty: 5, avgCost: 300, heat: 0 } };
   s.wanted.tessera = { level: 2, cool: 3 };
-  s.event = { stationId: s.routes[0], category: 'medizin', mult: 1.72, jumpsLeft: 3 };
+  s.events = [{ stationId: s.routes[0], category: 'medizin', mult: 1.72, demand: 30, drain: 6 }];
   localStorage.setItem('nova.save', JSON.stringify(s));
 });
 await page.goto('http://localhost:5173/?q=high&calm=1');
@@ -40,7 +40,8 @@ await page.locator('.splash').tap(); await settle(1800);
 await shot('20-hub-wanted-news');
 await page.locator('.hub .cta').tap(); await settle(900);
 await shot('21-routes');
-await page.locator('.overlay').tap({ position: { x: 20, y: 20 } }); await settle(400);
+// The chart fills the screen: the way out is the close button.
+await page.locator('.routes .sheet__x').tap(); await settle(400);
 await tab('Markt');
 await shot('22-market');
 await page.locator('.good', { hasText: 'Neurostaub' }).tap(); await settle(700);

@@ -1,10 +1,11 @@
-import { CARD_BY_ID, CATEGORY_NAME, FACTIONS, GOOD_BY_ID, rarityRank, STATION_BY_ID } from '@nova/core';
+import { CARD_BY_ID, CATEGORY_NAME, FACTIONS, GOOD_BY_ID, rarityRank, STATION_BY_ID, courseTo } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { countdown, FACTION_COLOR, longCountdown, num } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFuel, IconHangar, IconMarket } from './icons.tsx';
 import { Emblem } from './Emblem.tsx';
+import { crisisLine } from './RouteSheet.tsx';
 import { ShipArt } from './Shipyard.tsx';
 import { SpendButton } from './Spend.tsx';
 
@@ -18,7 +19,9 @@ export function Hub() {
   const send = useApp((s) => s.send);
   const setSheet = useApp((s) => s.setSheet);
   const stars = view.wanted[STATION_BY_ID.get(view.location)!.faction];
-  const news = view.event && view.event.stationId !== view.location ? view.event : null;
+  const course = useApp((s) => s.course);
+  const setCourse = useApp((s) => s.setCourse);
+  const way = course && course !== view.location ? courseTo(view.location, course) : [];
   const now = useServerNow();
   const station = STATION_BY_ID.get(view.location)!;
   const go = (tab: 'hangar') => (): void => { audio.tap(); setTab(tab); };
@@ -41,6 +44,7 @@ export function Hub() {
     text: `${season.name} endet in ${longCountdown(season.endsAt - now)}${seasonAlbum.complete ? '' : ` · ${seasonAlbum.total - seasonAlbum.owned} Edition-Karten fehlen`}`,
     tone: 'warn',
   });
+  for (const e of view.events) headlines.unshift({ label: e.name, text: `${STATION_BY_ID.get(e.stationId)!.name} · ${CATEGORY_NAME[e.category]} +${Math.round((e.mult - 1) * 100)} % · Bedarf ${e.demand}`, tone: 'warn' });
   if (weekend.active) headlines.push({ label: 'Blockade-Lauf', text: `läuft noch ${longCountdown(weekend.endsAt - now)} · ${weekend.points} Punkte`, tone: 'down' });
   else if (weekend.startsAt - now < 2 * 86_400_000) headlines.push({ label: 'Blockade-Lauf', text: `startet in ${longCountdown(weekend.startsAt - now)}`, tone: 'warn' });
   for (const lot of view.auction.lots) {
@@ -95,12 +99,12 @@ export function Hub() {
             Versiegelter Wrack-Container für {num(view.salvage.price)} Credits. Tippen für Details.
           </button>
         )}
-        {news && (
-          <p className="news">
-            <b>Eilmeldung</b>
-            Knappheit an {CATEGORY_NAME[news.category]} auf {STATION_BY_ID.get(news.stationId)!.name}: Preise +{Math.round((news.mult - 1) * 100)} %, noch {news.jumpsLeft} {news.jumpsLeft === 1 ? 'Sprung' : 'Sprünge'}.
-          </p>
-        )}
+        {view.events.map((e) => (
+          <button key={e.stationId} className="news news--crisis" onClick={() => { audio.tap(); if (e.stationId !== view.location) setCourse(e.stationId); openRoutes(true); }}>
+            <b>{e.name}{e.stationId === view.location ? ' hier' : ` auf ${STATION_BY_ID.get(e.stationId)!.name}`}</b>
+            {crisisLine(e)}{e.stationId === view.location ? '' : ` · ${e.hops} ${e.hops === 1 ? 'Sprung' : 'Sprünge'} entfernt, bei Ankunft noch ${e.onArrival}`}
+          </button>
+        ))}
       </header>
 
       <div className="ticker" aria-hidden="true">
@@ -162,8 +166,11 @@ export function Hub() {
         </>
       ) : (
         <button className="cta" onClick={() => { audio.tap(); openRoutes(true); }}>
-          <span>Route wählen</span>
-          <small>{best ? `Beste Route: ${STATION_BY_ID.get(best.stationId)!.name} · ${GOOD_BY_ID.get(best.goodId)!.name} +${best.pct} %` : `${view.routes.length} Ziele in Reichweite`}</small>
+          <span>{way.length > 0 ? `Weiter nach ${STATION_BY_ID.get(way[0]!)!.name}` : 'Sternkarte'}</span>
+          <small>
+            {way.length > 1 ? `Kurs ${STATION_BY_ID.get(course!)!.name} · noch ${way.length} Sprünge`
+              : best ? `Beste Route: ${STATION_BY_ID.get(best.stationId)!.name} · ${GOOD_BY_ID.get(best.goodId)!.name} +${best.pct} %` : `${view.routes.length} Ziele in Reichweite`}
+          </small>
         </button>
       )}
     </section>

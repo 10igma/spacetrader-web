@@ -251,8 +251,12 @@ export const CONFIG = {
     spread: 0.5,
     /** Each unit traded moves the local price by this share. Large lots pay for their size. */
     impact: 0.010,
-    driftKeep: 0.6,
-    driftNoise: 0.12,
+    /**
+     * How much of a price shift is left after a jump. With fixed lanes a market you have just flooded
+     * stays flooded for a while: shuttling between two stations pays less than a round trip.
+     */
+    driftKeep: 0.85,
+    driftNoise: 0.075,
     driftLimit: 0.5,
     /** Lot size used for the profit hints on routes. */
     hintLot: 10,
@@ -286,7 +290,7 @@ export const CONFIG = {
   smuggling: {
     heatMax: 5,
     /** Hot cargo: every jump carried raises the sale price and the risk. */
-    heatSellBonus: 0.08,
+    heatSellBonus: 0.11,
     heatCustoms: 0.04,
     heatDetect: 0.03,
     /** Fences pay less than the open market and charge more. */
@@ -294,7 +298,7 @@ export const CONFIG = {
     fenceSellCrew: 0.05,
     fenceBuy: 1.15,
     /** Units a fence will move before needing time. */
-    fenceCap: 12,
+    fenceCap: 16,
     fenceRefill: 4,
     fenceClosedAtWanted: 4,
   },
@@ -307,7 +311,26 @@ export const CONFIG = {
     coolJumps: 3,
     payOffPerStar: 400,
   },
-  marketEvent: { chance: 0.25, jumps: 3, multMin: 1.5, multRange: 0.5 },
+  /**
+   * A crisis somewhere in the sector: one category sells for more there until the demand is met.
+   * Other traders deliver too: the demand drops by a fixed, visible amount with every jump you make,
+   * and by every unit you sell there yourself. Nothing about it is hidden or random once it has started.
+   */
+  marketEvent: {
+    chance: 0.3,
+    /** How many can run at once. */
+    max: 2,
+    /** A new crisis starts at least this many jumps from where you are. */
+    minHops: 2,
+    multMin: 1.5,
+    multRange: 0.6,
+    /** Units other traders deliver per jump: between drainMin and drainMin + drainRange. */
+    drainMin: 5,
+    drainRange: 4,
+    /** It lasts as many jumps as the direct way takes, plus this much slack: between slackMin and slackMin + slackRange. */
+    slackMin: 1.5,
+    slackRange: 2,
+  },
   shardsPerDuplicate: {
     standard: 5,
     rare: 20,

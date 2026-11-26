@@ -51,7 +51,7 @@ await page.evaluate(() => {
 });
 await start('');
 await shot('152-hub-best-route');
-check('with cargo on board the main button is the route', await page.locator('.hub > .cta span').first().innerText().then((t) => t.toUpperCase().includes('ROUTE')));
+check('with cargo on board the main button opens the chart', await page.locator('.hub > .cta span').first().innerText().then((t) => t.toUpperCase().includes('STERNKARTE')));
 
 // Sale feedback in three sizes, and a loss
 await tab('Markt');

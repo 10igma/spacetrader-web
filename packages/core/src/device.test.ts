@@ -4,6 +4,7 @@ import { CARDS } from './content.ts';
 import { applyCommand, createInitialState, SEATS, STATE_VERSION, toClientView, type GameState } from './game.ts';
 import { afterQuiet, planReminders, REMINDER_DEFAULTS } from './reminders.ts';
 import { OLDEST_UPGRADABLE, upgradeSave } from './save.ts';
+import { neighbours } from './world.ts';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -59,6 +60,26 @@ describe('save upgrades', () => {
     expect(SEATS.some((seat) => res.state.deck[seat] !== null)).toBe(true);
     const crate = applyCommand({ ...res.state, crates: { ...res.state.crates, freeStock: 1 } }, { type: 'ClaimFreeCrate' }, NOON);
     expect(crate.events.some((e) => e.type === 'CrateOpened')).toBe(true);
+  });
+
+  it('a save from before the sector chart gets lanes instead of random routes, and its old market event is dropped', () => {
+    const old = JSON.parse(JSON.stringify(played())) as Record<string, any>;
+    old.version = 10;
+    old.location = 'kessin';
+    old.routes = ['aurel', 'corvus', 'zenit'];
+    old.event = { stationId: 'aurel', category: 'luxus', mult: 1.7, jumpsLeft: 2 };
+    delete old.events;
+    for (const id of ['kreuz', 'eisenfurt', 'nimbus', 'solace']) { delete old.market[id]; delete old.fence[id]; }
+    const up = upgradeSave(old, NOON)!;
+    expect(up.version).toBe(STATE_VERSION);
+    expect(up.events).toEqual([]);
+    expect((up as unknown as { event?: unknown }).event).toBeUndefined();
+    expect(up.routes).toEqual([...neighbours('kessin')]);
+    // The four new stations have markets, and the game plays on.
+    expect(Object.keys(up.market)).toHaveLength(12);
+    const jumped = applyCommand(up, { type: 'Jump', to: up.routes[0]! }, NOON);
+    expect(jumped.events.some((e) => e.type === 'CommandRejected')).toBe(false);
+    expect(toClientView(up, NOON).routes.map((r) => r.stationId)).toEqual([...neighbours('kessin')]);
   });
 
   it('refuses what it cannot carry over', () => {

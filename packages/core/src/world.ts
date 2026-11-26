@@ -86,7 +86,9 @@ export function isBanned(good: GoodDef, faction: FactionId): boolean {
   return good.tier === 'outlawed' || (good.tier === 'sanctioned' && good.bannedIn.includes(faction));
 }
 
-export type StationId = 'meridian' | 'kessin' | 'helixtor' | 'zenit' | 'varn' | 'lumen' | 'corvus' | 'aurel';
+export type StationId =
+  | 'meridian' | 'kessin' | 'helixtor' | 'zenit' | 'varn' | 'lumen' | 'corvus' | 'aurel'
+  | 'kreuz' | 'eisenfurt' | 'nimbus' | 'solace';
 
 export interface StationDef {
   id: StationId;
@@ -99,6 +101,8 @@ export interface StationDef {
   pirates: number;
   /** Local price multipliers by good or category. Below 1: produced here. Above 1: in demand. */
   mods: Partial<Record<GoodId | Category, number>>;
+  /** Place on the sector chart: x from 0 to 100, y from 0 to 110. */
+  pos: [number, number];
   /** Parameters for the procedural planet. */
   look: { seed: number; atmo: [number, number, number]; water: [number, number, number]; land: [number, number, number] };
 }
@@ -107,42 +111,75 @@ export const STATIONS: readonly StationDef[] = [
   {
     id: 'meridian', name: 'Meridian Hoch', faction: 'tessera', tagline: 'Freihandelszone', customs: 1, pirates: 1,
     mods: { grund: 0.8, luxus: 1.15, cyber: 1.25, daten: 1.1 },
+    pos: [50, 54],
     look: { seed: 3.0, atmo: [0.16, 0.56, 1.0], water: [0.008, 0.06, 0.11], land: [0.11, 0.085, 0.07] },
   },
   {
     id: 'kessin', name: 'Kessin Tief', faction: 'asche', tagline: 'Werftwelt', customs: 2, pirates: 2,
     mods: { technik: 0.8, ore: 0.75, medizin: 1.3, waffen: 1.35, hydro: 1.3, luxus: 1.1 },
+    pos: [24, 76],
     look: { seed: 17.3, atmo: [1.0, 0.42, 0.16], water: [0.09, 0.03, 0.015], land: [0.15, 0.07, 0.04] },
   },
   {
     id: 'helixtor', name: 'Helix-Tor', faction: 'helix', tagline: 'Kartellhafen', customs: 0, pirates: 3,
-    mods: { drogen: 0.65, daten: 0.8, grund: 1.45, medizin: 1.2, technik: 1.1 },
+    // Weapons are cheap everywhere in cartel space: the money is in getting them out of it.
+    mods: { drogen: 0.65, daten: 0.8, waffen: 0.75, grund: 1.45, medizin: 1.2, technik: 1.1 },
+    pos: [71, 80],
     look: { seed: 41.7, atmo: [1.0, 0.25, 0.7], water: [0.07, 0.01, 0.09], land: [0.10, 0.04, 0.10] },
   },
   {
     id: 'zenit', name: 'Zenit Prime', faction: 'zenit', tagline: 'Konzernwelt', customs: 3, pirates: 0,
     mods: { cyber: 0.72, medizin: 0.78, daten: 1.5, drogen: 1.45, ore: 1.25, luxus: 1.3, waffen: 1.2 },
+    pos: [75, 30],
     look: { seed: 58.2, atmo: [0.7, 0.8, 1.0], water: [0.05, 0.07, 0.11], land: [0.16, 0.17, 0.19] },
   },
   {
     id: 'varn', name: 'Varn-Gürtel', faction: 'asche', tagline: 'Minenkolonie', customs: 1, pirates: 2,
     mods: { ore: 0.6, fuelcells: 0.8, water: 1.4, hydro: 1.25, technik: 1.3, drogen: 1.25, medizin: 1.15 },
+    pos: [42, 97],
     look: { seed: 73.9, atmo: [1.0, 0.6, 0.3], water: [0.05, 0.035, 0.02], land: [0.17, 0.11, 0.06] },
   },
   {
     id: 'lumen', name: 'Lumen-Reede', faction: 'tessera', tagline: 'Handelsreede', customs: 1, pirates: 1,
     mods: { technik: 0.88, luxus: 0.85, grund: 0.95, cyber: 1.12, medizin: 1.1, waffen: 1.15 },
+    pos: [27, 38],
     look: { seed: 92.4, atmo: [0.2, 0.9, 0.8], water: [0.006, 0.08, 0.08], land: [0.06, 0.11, 0.08] },
   },
   {
     id: 'corvus', name: 'Corvus-Schatten', faction: 'helix', tagline: 'Schwarzmarkt', customs: 0, pirates: 3,
     mods: { waffen: 0.65, cyber: 0.8, medizin: 1.4, grund: 1.3, luxus: 1.2, drogen: 0.9 },
+    pos: [90, 66],
     look: { seed: 117.1, atmo: [0.6, 0.3, 1.0], water: [0.03, 0.015, 0.08], land: [0.07, 0.05, 0.11] },
   },
   {
     id: 'aurel', name: 'Aurel-Station', faction: 'zenit', tagline: 'Residenzwelt', customs: 3, pirates: 0,
     mods: { luxus: 1.5, drogen: 1.8, waffen: 1.4, hydro: 1.3, technik: 0.9, grund: 1.15, cyber: 1.1 },
+    pos: [91, 45],
     look: { seed: 134.6, atmo: [1.0, 0.85, 0.5], water: [0.02, 0.07, 0.10], land: [0.16, 0.14, 0.08] },
+  },
+  {
+    id: 'kreuz', name: 'Tessera-Kreuz', faction: 'tessera', tagline: 'Umschlagplatz', customs: 1, pirates: 1,
+    mods: { daten: 0.85, grund: 0.9, technik: 1.2, waffen: 1.1, luxus: 1.05, medizin: 0.95 },
+    pos: [46, 18],
+    look: { seed: 151.3, atmo: [0.3, 0.75, 1.0], water: [0.01, 0.07, 0.12], land: [0.09, 0.1, 0.08] },
+  },
+  {
+    id: 'eisenfurt', name: 'Eisenfurt', faction: 'asche', tagline: 'Flottenbasis', customs: 2, pirates: 1,
+    mods: { waffen: 0.72, technik: 0.92, grund: 1.25, luxus: 1.3, medizin: 1.25, cyber: 1.15 },
+    pos: [9, 57],
+    look: { seed: 168.8, atmo: [1.0, 0.5, 0.22], water: [0.07, 0.03, 0.02], land: [0.13, 0.08, 0.05] },
+  },
+  {
+    id: 'nimbus', name: 'Nimbus-Riff', faction: 'helix', tagline: 'Schmugglernest', customs: 0, pirates: 2,
+    mods: { drogen: 0.75, daten: 0.9, technik: 1.3, waffen: 0.85, grund: 1.2, cyber: 0.9 },
+    pos: [66, 101],
+    look: { seed: 183.4, atmo: [0.85, 0.3, 0.9], water: [0.05, 0.012, 0.09], land: [0.08, 0.045, 0.11] },
+  },
+  {
+    id: 'solace', name: 'Solace-Labor', faction: 'zenit', tagline: 'Forschungswelt', customs: 2, pirates: 0,
+    mods: { medizin: 0.7, cyber: 0.85, daten: 0.82, grund: 1.3, luxus: 1.2, drogen: 1.4, ore: 1.2 },
+    pos: [71, 8],
+    look: { seed: 199.9, atmo: [0.75, 0.9, 1.0], water: [0.04, 0.08, 0.12], land: [0.17, 0.18, 0.2] },
   },
 ];
 export const STATION_BY_ID: ReadonlyMap<StationId, StationDef> = new Map(STATIONS.map((s) => [s.id, s]));
@@ -150,3 +187,60 @@ export const STATION_BY_ID: ReadonlyMap<StationId, StationDef> = new Map(STATION
 /** Authored price profile of a station for a good, before compression. */
 export const stationMod = (station: StationDef, good: GoodDef): number =>
   station.mods[good.id] ?? station.mods[good.category] ?? 1;
+
+// ---------------------------------------------------------------------------
+// The sector: jump lanes between stations. A jump follows one lane.
+// ---------------------------------------------------------------------------
+
+/** A hub with four spokes, a ring around it, and two short cuts. Far corners are four jumps apart. */
+export const LANES: readonly (readonly [StationId, StationId])[] = [
+  ['meridian', 'lumen'], ['meridian', 'kessin'], ['meridian', 'helixtor'], ['meridian', 'zenit'],
+  ['lumen', 'kreuz'], ['kreuz', 'solace'], ['solace', 'zenit'], ['zenit', 'aurel'], ['aurel', 'corvus'],
+  ['corvus', 'helixtor'], ['helixtor', 'nimbus'], ['nimbus', 'varn'], ['varn', 'kessin'], ['kessin', 'eisenfurt'],
+  ['eisenfurt', 'lumen'],
+  ['kreuz', 'zenit'], ['aurel', 'helixtor'],
+];
+
+const NEIGHBOURS = new Map<StationId, StationId[]>(STATIONS.map((s) => [s.id, []]));
+for (const [a, b] of LANES) { NEIGHBOURS.get(a)!.push(b); NEIGHBOURS.get(b)!.push(a); }
+
+/** Stations one jump away. */
+export const neighbours = (id: StationId): readonly StationId[] => NEIGHBOURS.get(id) ?? [];
+
+/** The shortest way from one station to another, without the start. Empty if they are the same. */
+export function courseTo(from: StationId, to: StationId): StationId[] {
+  if (from === to) return [];
+  const prev = new Map<StationId, StationId>();
+  const queue: StationId[] = [from];
+  const seen = new Set<StationId>([from]);
+  while (queue.length > 0) {
+    const at = queue.shift()!;
+    for (const next of neighbours(at)) {
+      if (seen.has(next)) continue;
+      seen.add(next);
+      prev.set(next, at);
+      if (next === to) {
+        const path: StationId[] = [to];
+        while (prev.get(path[0]!) !== from) path.unshift(prev.get(path[0]!)!);
+        return path;
+      }
+      queue.push(next);
+    }
+  }
+  return [];
+}
+
+/** Jumps between two stations. */
+export const hopsBetween = (from: StationId, to: StationId): number => courseTo(from, to).length;
+
+/** What a crisis is called, by what it makes scarce. */
+export const CRISIS_NAME: Record<Category, string> = {
+  grund: 'Versorgungskrise',
+  technik: 'Werftboom',
+  medizin: 'Seuche',
+  cyber: 'Aufrüstung',
+  daten: 'Datenkrieg',
+  waffen: 'Krieg',
+  drogen: 'Rausch-Welle',
+  luxus: 'Festwoche',
+};
