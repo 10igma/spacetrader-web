@@ -111,16 +111,19 @@ await page.evaluate(() => {
 await start('');
 await shot('162-encounter');
 const tapped = Date.now();
-await page.locator('.opt').first().tap(); await settle(350);
-await shot('163-encounter-beat');
+await page.locator('.opt').first().tap(); await settle(300);
+// Check first, then the picture: a large screenshot can take longer than the beat.
 check('the result is not shown during the beat', await page.locator('.enc--result').count() === 0 && await page.locator('.enc--resolve').count() === 1);
+await shot('163-encounter-beat');
 await page.waitForSelector('.enc--result', { timeout: 5000 });
 check('the beat lasts about a second', Date.now() - tapped >= 1000);
 await settle(500);
 await shot('164-encounter-result');
 await page.locator('.travel__tap').tap();
-await page.waitForSelector('.arrive__chip', { timeout: 6000 }); await settle(1500);
-await shot('165-arrival');
+await page.waitForSelector('.arrive__chip', { timeout: 6000 });
+// Check first: the arrival card closes by itself after a few seconds, and a large screenshot takes time.
 check('arrival shows what the cargo is worth here', await page.locator('.arrive__chip', { hasText: 'Deine Fracht hier' }).count() === 1);
+await settle(1100);
+await shot('165-arrival');
 await browser.close();
 console.log(problems.length ? `PROBLEMS:\n${problems.join('\n')}` : 'no console errors');
