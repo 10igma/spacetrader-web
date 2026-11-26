@@ -1860,6 +1860,30 @@ button.lot:active { transform: scale(0.98); }
 .coach__pips i.now { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
 .hub__skip { align-self: center; min-height: 36px; margin-top: -2px; font-size: 12px; color: var(--ink-dim); }
 
+/* Encounter: the beat between choosing and knowing. Arrival: what the jump brought. */
+.enc--resolve { align-items: center; gap: 18px; text-align: center; }
+.enc--resolve .eyebrow { font-size: 15px; letter-spacing: 0.3em; color: var(--ink); }
+.enc__beat { display: flex; gap: 12px; }
+.enc__beat i { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); animation: beat 0.66s ease-in-out infinite; }
+.enc__beat i:nth-child(2) { animation-delay: 0.11s; }
+.enc__beat i:nth-child(3) { animation-delay: 0.22s; }
+@keyframes beat { 0%, 100% { transform: scale(0.6); opacity: 0.35; } 50% { transform: scale(1.25); opacity: 1; } }
+.enc__chance { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+.travel__skip { position: static; margin-top: 14px; opacity: 0.55; }
+.arrive__chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; text-shadow: none; }
+.arrive__chip { display: flex; flex-direction: column; align-items: center; min-width: 96px; padding: 8px 12px; border-radius: 14px; background: rgba(6, 10, 20, 0.86); border: 1px solid var(--stroke); animation: rise 0.45s var(--out) both; }
+.arrive__chip:nth-child(1) { animation-delay: 0.7s; }
+.arrive__chip:nth-child(2) { animation-delay: 0.85s; }
+.arrive__chip:nth-child(3) { animation-delay: 1s; }
+.arrive__chip small { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
+.arrive__chip b { font-family: var(--font-display); font-size: 18px; font-variant-numeric: tabular-nums; }
+.arrive__chip--streak { border-color: rgba(255, 179, 71, 0.6); }
+.arrive__chip--streak b { color: var(--amber); }
+.arrive__chip.is-up b { color: var(--ok); }
+.arrive__chip.is-down b { color: var(--danger); }
+.rtile__icon--art { background: none; }
+.rtile__icon--art img { width: 34px; height: 34px; object-fit: contain; }
+
 .toast {
   position: fixed;
   z-index: 60;

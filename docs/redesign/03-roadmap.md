@@ -41,6 +41,7 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Design-Runde 1 nach zwei unabhängigen Prüfungen (Art Direction, UX und Fairness): Lesbarkeit, Farbrollen, Vollbild-Momente, gestufte Verkaufs-Rückmeldung, Zwei-Tipp-Bestätigung für Quanten, Schliessen-Knopf in jedem Fenster, Einstieg für neue Spieler. Details in Dokument 07 | fertig | Eigener Durchlauf mit 12 Prüfungen, dabei einen Fehler gefunden und behoben |
 | Grafik-Auftrag: Stil, Formate, Dateinamen und Prompts für 127 Bilder in 11 Paketen. Dokument 06 | Pakete A bis D geliefert und eingebaut (35 Bilder): 6 Schiffe, 4 Container, 6 Saison-Karten, 19 Elite-Karten | Import-Werkzeug prüft Name, Format und Hintergrund. Sichtprüfung jedes Bilds im Spiel |
 | Container in der Enthüllung: erscheint, wackelt, bricht auf. Schiffe als Bilder mit Lackierung als Farbschicht | fertig | Durchläufe mit Screenshots |
+| Begegnungen mit Spannungsmoment, kürzerer und überspringbarer Warp, Ankunft mit Kurierpost, Serie und Frachtwert. Währungen als Bilder im Charter | fertig | Durchlauf prüft, dass das Ergebnis erst nach dem Spannungsmoment erscheint |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
 | Bot-Simulation | fertig | Zwei Spielertypen, je 10 Spieler über 90 Tage, dazu Leitplanken-Test |
@@ -259,5 +260,5 @@ Hier kommt der grösste Teil des Katalogs.
 
 1. **Grafiken erzeugen** (deine Seite, Dokument 06): zuerst Schiffe, Container und die Saison-Karten. Ich baue jedes Paket ein, sobald Dateien da sind.
 2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
-3. **Design-Runde 2** (Dokument 07): Container-Enthüllung, Spannungsmoment bei Begegnungen, kürzerer Warp, Markt mit Waren-Symbolen, Glücksrad, Neuordnung der Tabs.
+3. **Design-Runde 2, Rest** (Dokument 07): Markt mit Waren-Symbolen, Glücksrad, Neuordnung der Tabs, Belohnungen fliegen zum Geldbeutel.
 4. Danach zur Wahl: Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.

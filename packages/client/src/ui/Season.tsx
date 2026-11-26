@@ -2,6 +2,7 @@ import { charterReward, CONFIG } from '@nova/core';
 import { useEffect, useRef } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
+import { art } from './art.ts';
 import { longCountdown, num, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import type { Reward } from '@nova/core';
@@ -16,9 +17,13 @@ function RewardTile({ reward, state, premium = false }: { reward: Reward; state:
         : reward.quanta ? { icon: <Quanta />, amount: num(reward.quanta), label: 'Quanten', big: false }
           : { icon: <Shard />, amount: num(reward.shards ?? 0), label: 'Splitter', big: false };
   const extra = (reward.seasonCard || reward.crate) && reward.quanta ? `+ ${reward.quanta} Quanten` : '';
+  // Rendered art where it has been made: crates and currencies.
+  const picture = reward.seasonCard ? undefined
+    : reward.crate ? art('crates', reward.crate)
+      : art('currency', reward.credits ? 'credits' : reward.quanta ? 'quanta' : 'shards');
   return (
     <span className={`rtile rtile--${state}${premium ? ' rtile--premium' : ''}${main.big ? ' rtile--big' : ''}`}>
-      <span className="rtile__icon">{state === 'locked' ? <IconLock /> : main.icon}</span>
+      <span className={`rtile__icon${picture && state !== 'locked' ? ' rtile__icon--art' : ''}`}>{state === 'locked' ? <IconLock /> : picture ? <img src={picture} alt="" draggable={false} /> : main.icon}</span>
       <span className="rtile__main"><b>{main.amount}</b><small>{main.label}{extra ? ` ${extra}` : ''}</small></span>
       {state === 'claimed' && <span className="rtile__check">✓</span>}
     </span>

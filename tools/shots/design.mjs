@@ -100,5 +100,27 @@ await page.locator('.premium').tap(); await settle(400);
 await page.locator('.premium.is-armed').tap(); await settle(1700);
 await shot('161-moment-charter');
 await page.locator('.moment').tap(); await settle(500);
+// The beat between an encounter choice and its result, and the arrival card
+await page.evaluate(() => {
+  const s = JSON.parse(localStorage.getItem('nova.save'));
+  const other = ['kessin', 'lumen', 'helixtor'].find((id) => id !== s.location);
+  s.pending = { to: other, kind: 'pirates' };
+  s.cargo = { water: { qty: 10, avgCost: 20, heat: 0 } };
+  localStorage.setItem('nova.save', JSON.stringify(s));
+});
+await start('');
+await shot('162-encounter');
+const tapped = Date.now();
+await page.locator('.opt').first().tap(); await settle(350);
+await shot('163-encounter-beat');
+check('the result is not shown during the beat', await page.locator('.enc--result').count() === 0 && await page.locator('.enc--resolve').count() === 1);
+await page.waitForSelector('.enc--result', { timeout: 5000 });
+check('the beat lasts about a second', Date.now() - tapped >= 1000);
+await settle(500);
+await shot('164-encounter-result');
+await page.locator('.travel__tap').tap();
+await page.waitForSelector('.arrive__chip', { timeout: 6000 }); await settle(1500);
+await shot('165-arrival');
+check('arrival shows what the cargo is worth here', await page.locator('.arrive__chip', { hasText: 'Deine Fracht hier' }).count() === 1);
 await browser.close();
 console.log(problems.length ? `PROBLEMS:\n${problems.join('\n')}` : 'no console errors');

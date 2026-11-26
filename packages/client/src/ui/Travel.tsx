@@ -1,15 +1,20 @@
-import { FACTIONS, GOOD_BY_ID, STATION_BY_ID, type EncounterChoice, type GoodId } from '@nova/core';
+import { FACTIONS, GOOD_BY_ID, quote, STATION_BY_ID, type EncounterChoice, type GoodId } from '@nova/core';
 import { useEffect, useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { stage } from '../stage/index.ts';
 import { useApp, type Travel as TravelState } from '../store.ts';
 import { FACTION_COLOR, num } from './format.ts';
 
-type Phase = 'launch' | 'encounter' | 'outcome' | 'cruise' | 'arrive';
+type Phase = 'launch' | 'encounter' | 'resolve' | 'outcome' | 'cruise' | 'arrive';
 
-const LAUNCH_MS = 2400;
+/** The first jumps of a session get the full launch. After that it is shorter: jump 200 is not jump 1. */
+const LAUNCH_LONG_MS = 2400;
+const LAUNCH_SHORT_MS = 1400;
+let jumpsThisSession = 0;
+/** The beat between a choice and its result. The result is already decided: this only lets it land. */
+const RESOLVE_MS = 1100;
 const CRUISE_MS = 1100;
-const ARRIVE_MS = 2600;
+const ARRIVE_MS = 3400;
 
 
 const OPTION: Record<EncounterChoice, { label: string; stat?: 'nav' | 'hdl' | 'tec' | 'kmp'; note: (hot: boolean) => string }> = {
@@ -40,26 +45,39 @@ export function Travel({ travel }: { travel: TravelState }) {
   const busy = useApp((s) => s.busy);
   const end = useApp((s) => s.endTravel);
   const [phase, setPhase] = useState<Phase>(travel.resumed ? 'encounter' : 'launch');
+  const [chosen, setChosen] = useState<EncounterChoice | null>(null);
+  /** The chance as it was shown when the choice was made: the encounter is gone from the view once it is resolved. */
+  const [chosenChance, setChosenChance] = useState(1);
+  const [beatOver, setBeatOver] = useState(false);
+  const [launchMs] = useState(() => (jumpsThisSession++ >= 3 ? LAUNCH_SHORT_MS : LAUNCH_LONG_MS));
   const dest = STATION_BY_ID.get(travel.to)!;
   const encounter = view.encounter;
 
   // The server answer for an encounter choice arrives as travel.outcome.
-  useEffect(() => { if (travel.outcome && phase === 'encounter') setPhase('outcome'); }, [travel.outcome, phase]);
+  // It is shown once the beat is over, never before.
+  useEffect(() => {
+    if (travel.outcome && (phase === 'encounter' || (phase === 'resolve' && beatOver))) setPhase('outcome');
+  }, [travel.outcome, phase, beatOver]);
 
   useEffect(() => {
     let timer = 0;
     if (phase === 'launch') {
       audio.duck(true);
-      audio.warp(LAUNCH_MS / 1000);
+      audio.warp(launchMs / 1000);
       stage.setWarp(1);
       stage.setPlanet(-1.6, 0.4, 1.8); // the world slides past as we accelerate
-      timer = window.setTimeout(() => setPhase(encounter ? 'encounter' : 'arrive'), LAUNCH_MS);
+      timer = window.setTimeout(() => setPhase(encounter ? 'encounter' : 'arrive'), launchMs);
     } else if (phase === 'encounter') {
       stage.setWarp(0.3);
       stage.snapPlanet(0, 3, 0.3);
       stage.setRift(encounter?.kind === 'pirates' ? [1, 0.18, 0.2] : [0.25, 0.55, 1], 0.28);
       stage.pulse(0.3);
       audio.alert(encounter?.kind ?? 'customs');
+    } else if (phase === 'resolve') {
+      // One steady pulse for every choice and every result: nothing here hints at how it ends.
+      setBeatOver(false);
+      audio.riser(RESOLVE_MS / 1000);
+      timer = window.setTimeout(() => setBeatOver(true), RESOLVE_MS);
     } else if (phase === 'outcome') {
       const ok = travel.outcome!.success;
       stage.setRift(ok ? [0.3, 1, 0.7] : [1, 0.2, 0.2], 0.4);
@@ -86,15 +104,33 @@ export function Travel({ travel }: { travel: TravelState }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  const choose = (choice: EncounterChoice) => (): void => { audio.tap(); void send({ type: 'Encounter', choice }); };
+  const choose = (choice: EncounterChoice) => (): void => {
+    audio.tap();
+    setChosen(choice);
+    setChosenChance(encounter?.options.find((o) => o.id === choice)?.chance ?? 1);
+    setPhase('resolve');
+    // If the choice is refused there is no result to wait for: back to the decision.
+    void send({ type: 'Encounter', choice }).then((events) => { if (events.some((e) => e.type === 'CommandRejected')) setPhase('encounter'); });
+  };
+  const skip = (): void => {
+    if (phase === 'launch') setPhase(encounter ? 'encounter' : 'arrive');
+    else if (phase === 'cruise') setPhase('arrive');
+  };
+  // What the cargo on board is worth at this market, against what it cost.
+  const cargoHere = phase !== 'arrive' ? null : view.market.reduce<number | null>((sum, row) => {
+    const lot = view.cargo.items[row.goodId];
+    return lot ? (sum ?? 0) + Math.round(quote(row, 'sell', lot.qty) - lot.avgCost * lot.qty) : sum;
+  }, null);
+
 
   return (
-    <div className={`overlay travel travel--${phase}`} style={{ ['--faction' as string]: FACTION_COLOR[dest.faction] }}>
+    <div className={`overlay travel travel--${phase}`} style={{ ['--faction' as string]: FACTION_COLOR[dest.faction] }} onClick={skip}>
       {(phase === 'launch' || phase === 'cruise') && (
         <div className="travel__status">
           <span className="eyebrow">Sprung</span>
           <b>{dest.name}</b>
-          <div className="travel__bar"><i style={{ animationDuration: `${phase === 'launch' ? LAUNCH_MS : CRUISE_MS}ms` }} /></div>
+          <div className="travel__bar"><i style={{ animationDuration: `${phase === 'launch' ? launchMs : CRUISE_MS}ms` }} /></div>
+          <span className="overlay__hint travel__skip">Tippen zum Überspringen</span>
         </div>
       )}
 
@@ -128,6 +164,14 @@ export function Travel({ travel }: { travel: TravelState }) {
         </div>
       )}
 
+      {phase === 'resolve' && (
+        <div className="enc enc--resolve">
+          <span className="eyebrow">{chosen ? OPTION[chosen].label : ''}</span>
+          <div className="enc__beat"><i /><i /><i /></div>
+          {chosenChance < 1 && <small className="enc__chance">Chance {Math.round(chosenChance * 100)} %</small>}
+        </div>
+      )}
+
       {phase === 'outcome' && travel.outcome && (
         <div className={`enc enc--result ${travel.outcome.success ? 'is-win' : 'is-loss'}`}>
           <span className="eyebrow">{travel.outcome.success ? 'Geschafft' : 'Verloren'}</span>
@@ -158,7 +202,22 @@ export function Travel({ travel }: { travel: TravelState }) {
           <span className="eyebrow">{FACTIONS[dest.faction].name} · {dest.tagline}</span>
           <h2>{dest.name}</h2>
           <div className="arrive__line" />
-          <span className="arrive__sub">Andocken{travel.courier > 0 ? ` · Kurierpost +${num(travel.courier)}` : ''}</span>
+          <span className="arrive__sub">Andocken</span>
+          <div className="arrive__chips">
+            {travel.courier > 0 && <span className="arrive__chip"><small>Kurierpost</small><b>+{num(travel.courier)}</b></span>}
+            {travel.streak && (
+              <span className="arrive__chip arrive__chip--streak">
+                <small>{travel.streak.kind === 'saved' ? 'Serie gerettet' : 'Serie'}</small>
+                <b>{travel.streak.count} {travel.streak.count === 1 ? 'Tag' : 'Tage'}</b>
+              </span>
+            )}
+            {cargoHere !== null && (
+              <span className={`arrive__chip ${cargoHere >= 0 ? 'is-up' : 'is-down'}`}>
+                <small>Deine Fracht hier</small>
+                <b>{cargoHere >= 0 ? '+' : '−'}{num(Math.abs(cargoHere))}</b>
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

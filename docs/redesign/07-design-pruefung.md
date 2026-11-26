@@ -46,8 +46,8 @@ Nach Wirkung geordnet. S unter einer halben Stunde, M Stunden, L ein Tag oder me
 | # | Thema | Aufwand |
 |---|---|---|
 | 1 | Erledigt am 26.11.: Der Container erscheint, wackelt immer stärker und bricht mit einem Blitz auf, für jeden Container gleich. Die beste Karte ist in der Zusammenfassung hervorgehoben. Offen bleibt der Knopf "Aufstellen" | Rest S |
-| 2 | Begegnungen ohne Spannungsmoment zwischen Wahl und Ergebnis. Rund eine Sekunde Aufbau, ohne Zeiger, der knapp daneben stehen bleibt | M |
-| 3 | Warp ist jedes Mal gleich lang. Ab dem dritten Sprung kürzer und per Tipp überspringbar. Ankunft zeigt Kurierpost, Serie und Wert der Fracht am Ziel | M |
+| 2 | Erledigt am 26.11.: Zwischen Wahl und Ergebnis liegt gut eine Sekunde mit gleichmässigem Puls, für jede Wahl und jedes Ergebnis gleich. Kein Zeiger, der knapp daneben stehen bleibt | |
+| 3 | Erledigt am 26.11.: Ab dem vierten Sprung einer Sitzung ist der Start kürzer, und ein Tipp überspringt ihn. Die Ankunft zeigt Kurierpost, Serie und was die Fracht am Ziel wert ist | |
 | 4 | Belohnungen fliegen sichtbar zum Geldbeutel | M |
 | 5 | Markt ist reine Schrift. Waren-Symbole und Zeilen in gemeinsamen Flächen statt einzelner Kästen | M, mit Grafik aus Paket F |
 | 6 | Glücksrad: Beschriftung stellenweise kopfüber oder abgeschnitten, kein Ticken beim Drehen | M |

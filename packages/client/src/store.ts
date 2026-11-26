@@ -21,6 +21,8 @@ export interface Travel {
   resumed: boolean;
   /** Courier pay on arrival, once known. */
   courier: number;
+  /** The streak moved on this jump: shown on arrival. */
+  streak: { count: number; kind: 'started' | 'extended' | 'saved' } | null;
 }
 
 export interface SalePop { id: number; profit: number; revenue: number; label: string; size: 's' | 'm' | 'l' }
@@ -169,7 +171,7 @@ export const useApp = create<AppState>((set, get) => ({
     const view = await get().service.connect();
     set({ view, clockOffset: view.serverTime - Date.now() });
     // Reconnected in the middle of an encounter: pick the scene up where it stopped.
-    if (view.encounter) set({ travel: { from: view.location, to: view.encounter.to, outcome: null, resumed: true, courier: 0 } });
+    if (view.encounter) set({ travel: { from: view.location, to: view.encounter.to, outcome: null, resumed: true, courier: 0, streak: null } });
   },
 
   async send(cmd) {
@@ -208,7 +210,7 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'LeagueClaimed' && ev.moved > 0) get().celebrate({ kind: 'league', tierName: view.league.tierName, rank: ev.rank });
         if (ev.type === 'LeagueClaimed' && ev.moved < 0) get().showToast('Abgestiegen');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls, revealCrate: ev.source === 'reward' ? null : ev.tier });
-        if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0 }, routesOpen: false });
+        if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0, streak: null }, routesOpen: false });
         if (ev.type === 'Arrived') {
           const travel = get().travel;
           if (travel) set({ travel: { ...travel, courier: ev.courier } });
@@ -232,8 +234,13 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'CardUpgraded') { audio.reveal(1); get().showToast(`Aufgewertet auf Stufe ${ev.level}`, 'good'); }
         if (ev.type === 'StreakChanged') {
           if (ev.kind === 'lost') get().showToast(`Serie gerissen (war ${ev.previous} Tage)`);
-          else if (ev.kind === 'saved') get().showToast(`Urlaubsschein eingelöst: Serie ${ev.count} Tage`, 'good');
-          else get().showToast(`Serie: ${ev.count} ${ev.count === 1 ? 'Tag' : 'Tage'}`, 'good');
+          else {
+            const travel = get().travel;
+            // On a jump the arrival card shows it. Anywhere else a toast does.
+            if (travel) set({ travel: { ...travel, streak: { count: ev.count, kind: ev.kind } } });
+            else if (ev.kind === 'saved') get().showToast(`Urlaubsschein eingelöst: Serie ${ev.count} Tage`, 'good');
+            else get().showToast(`Serie: ${ev.count} ${ev.count === 1 ? 'Tag' : 'Tage'}`, 'good');
+          }
         }
         if (ev.type === 'CommandRejected') {
           audio.deny();
