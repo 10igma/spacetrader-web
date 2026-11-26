@@ -37,7 +37,9 @@ export function charterReward(tier: number, track: 'free' | 'premium'): Reward {
     if (tier % 2 === 0) return { shards: 40 };
     return { credits: 1_000 + 250 * tier };
   }
-  if (tier === CONFIG.season.tiers) return { crate: 'premium', quanta: 100 };
+  // The premium track ends with the season's legend, and hands out an elite on the way.
+  if (tier === CONFIG.season.tiers) return { seasonCard: 'legend', quanta: 100 };
+  if (tier === CONFIG.season.tiers / 2) return { seasonCard: 'elite', quanta: 30 };
   if (tier % 10 === 0) return { crate: 'premium', quanta: 30 };
   if (tier % 5 === 0) return { crate: 'premium' };
   if (tier % 2 === 0) return { quanta: 15 };

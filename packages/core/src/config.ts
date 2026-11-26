@@ -133,7 +133,21 @@ export const CONFIG = {
     xpPerTier: 1_800,
     /** The premium track is bought with quanta you earn by playing. */
     premiumPrice: 500,
+    /** Share of rare, elite and legend pulls that come from the running season's edition instead of the permanent set. */
+    cardShare: 0.15,
+    /** Edition cards can be forged while their season runs, at this multiple of the usual price. */
+    forgeMult: 1.5,
+    /** Season album: cards of the edition you need, and what each step pays. The last step also gives a title and a paint. */
+    album: {
+      milestones: [4, 8, 12],
+      rewards: [{ shards: 300 }, { crate: 'premium' }, { quanta: 80 }] as const,
+    },
   },
+  /**
+   * Prestige: start over with a small ship and empty pockets, keep crew, cosmetics and league,
+   * and sell a little better for good.
+   */
+  prestige: { level: 22, max: 5, saleBonus: 0.03, quanta: 150, shards: 500, paintPrice: 120 },
   /**
    * Weekly leagues of thirty. The twenty-nine rivals are simulated and say so on screen. Their scores depend
    * only on the league tier and the week, never on what the player does.

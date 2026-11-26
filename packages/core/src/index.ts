@@ -6,5 +6,6 @@ export * from './meta.ts';
 export * from './auction.ts';
 export * from './season.ts';
 export * from './fleet.ts';
+export * from './profile.ts';
 export * from './game.ts';
 export * from './service.ts';

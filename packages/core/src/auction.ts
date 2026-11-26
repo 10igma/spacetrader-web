@@ -4,8 +4,9 @@
  * disagree about what is on offer or how it ends.
  */
 import { CONFIG } from './config.ts';
-import { CARD_BY_ID, CARDS_BY_RARITY, RARITIES, type CardDef, type Rarity } from './content.ts';
+import { CARD_BY_ID, CARDS_BY_RARITY, RARITIES, seasonCards, type CardDef, type Rarity } from './content.ts';
 import { nextFloat, seedRng } from './rng.ts';
+import { seasonIndex } from './season.ts';
 
 const MINUTE = 60_000;
 const RATING: Record<Rarity, [number, number]> = { standard: [50, 64], rare: [68, 78], elite: [81, 88], legend: [91, 95], singularity: [99, 99] };
@@ -52,7 +53,13 @@ function lotOf(seed: string, origin: number, slot: number, index: number, durati
     if (x < 0) { rarity = RARITIES[i]!; break; }
   }
   const pool = CARDS_BY_RARITY[rarity];
-  const card = pool[Math.floor(nextFloat(rng) * pool.length)]!;
+  let card = pool[Math.floor(nextFloat(rng) * pool.length)]!;
+  // Some lots carry a card of the edition that runs when the lot opens. A stream of its own keeps everything else as it was.
+  const edition = seasonCards(seasonIndex(origin + index * duration)).filter((c) => c.rarity === rarity);
+  if (edition.length > 0) {
+    const pickRng = seedRng(`${seed}:lot:${slot}:${index}:edition`);
+    if (nextFloat(pickRng) < CONFIG.season.cardShare) card = edition[Math.floor(nextFloat(pickRng) * edition.length)]!;
+  }
   const estimate = cardValue(card);
   const a = CONFIG.auction;
   return {

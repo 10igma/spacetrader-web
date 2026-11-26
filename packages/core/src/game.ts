@@ -4,7 +4,7 @@ import {
 } from './auction.ts';
 import { CONFIG } from './config.ts';
 import {
-  CARD_BY_ID, CARDS_BY_RARITY, RARITIES, rarityRank,
+  CARD_BY_ID, CARDS_BY_RARITY, EDITION_SIZE, RARITIES, rarityRank, seasonCards, seasonOf,
   type CardDef, type FactionId, type Rarity, type RoleId,
 } from './content.ts';
 import {
@@ -17,6 +17,7 @@ import {
   convoyChance, convoyPayout, MODULE_BY_ID, MODULE_MAX, newFleet, rigOf, rollConvoys, SHIP_BY_ID,
   type Convoy, type ConvoyOffer, type FleetState, type ModuleId, type Rig, type ShipId,
 } from './fleet.ts';
+import { PAINT_BY_ID, PAINTS, titleList, type Facts } from './profile.ts';
 import { nextFloat, pick, seedRng, type RngState } from './rng.ts';
 import {
   charterReward, charterTier, leagueMove, leagueReward, seasonEndsAt, seasonIndex, seasonName, standings, weekEndsAt,
@@ -31,7 +32,7 @@ import {
 // State
 // ---------------------------------------------------------------------------
 
-export const STATE_VERSION = 9;
+export const STATE_VERSION = 10;
 
 export type EncounterKind = 'pirates' | 'customs';
 export type EncounterChoice = 'fight' | 'flee' | 'pay' | 'submit' | 'bribe' | 'breakThrough';
@@ -46,7 +47,7 @@ export interface MarketEvent { stationId: StationId; category: Category; mult: n
 export interface GameState {
   version: typeof STATE_VERSION;
   createdAt: number;
-  rng: { crate: RngState; market: RngState; travel: RngState; daily: RngState; auction: RngState; convoy: RngState };
+  rng: { crate: RngState; market: RngState; travel: RngState; daily: RngState; auction: RngState; convoy: RngState; season: RngState };
   profile: { level: number; xp: number };
   wallet: { credits: number; quanta: number; shards: number };
   fuel: { amount: number; updatedAt: number };
@@ -69,7 +70,11 @@ export interface GameState {
   /** Auction house: the secret seed behind all lots, open bids (lot key to limit, held in escrow), and own listings. */
   auction: { seed: string; bids: Record<string, number>; bought: string[]; listings: Listing[]; results: AuctionResult[] };
   /** Current season: charter progress. Resets when a new season starts. */
-  season: { index: number; xp: number; premium: boolean; claimedFree: number; claimedPremium: number };
+  season: { index: number; xp: number; premium: boolean; claimedFree: number; claimedPremium: number; album: number };
+  /** Times the captain has started over. Each one sells a little better for good. */
+  prestige: number;
+  /** Looks: chosen title and ship paint, bought paints, completed season albums, and the three cards on show. */
+  cosmetics: { title: string; paint: string; owned: string[]; seasons: number[]; showcase: string[] };
   /** Weekly league. `last` is the finished week waiting to be collected. */
   league: {
     seed: string; tier: number; week: number; score: number;
@@ -101,7 +106,7 @@ export interface GameState {
   wanted: Record<FactionId, { level: number; cool: number }>;
   routes: StationId[];
   pending: { to: StationId; kind: EncounterKind } | null;
-  stats: { jumps: number; profit: number; caught: number };
+  stats: { jumps: number; profit: number; caught: number; smuggled: number; convoys: number; bestLeague: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +247,14 @@ export interface ClientView {
     claimable: number;
   };
   comeback: Reward | null;
+  seasonAlbum: { owned: number; total: number; claimed: number; next: { need: number; reward: Reward } | null; claimable: boolean; complete: boolean; cardShare: number };
+  captain: {
+    titleId: string; title: string; paint: string; showcase: string[];
+    titles: { id: string; name: string; hint: string; unlocked: boolean }[];
+    paints: { id: string; name: string; tone: string | null; price: number | null; hint: string; unlocked: boolean }[];
+    prestige: number; prestigeMax: number; prestigeLevel: number; prestigeBonus: number; canPrestige: boolean;
+    facts: Facts;
+  };
   fleet: { active: ShipId; owned: ShipId[]; modules: Partial<Record<ModuleId, number>>; fitted: ModuleId[]; rig: Rig };
   convoys: {
     slots: number; crew: number;
@@ -255,7 +268,7 @@ export interface ClientView {
   streak: { count: number; best: number; bonus: number; status: StreakStatus; freezes: number; maxFreezes: number; freezePrice: number; endsAt: number };
   albums: Record<FactionId, AlbumView>;
   /** Permanent and streak bonuses on every sale, already included in market prices. */
-  saleBonus: { streak: number; album: number };
+  saleBonus: { streak: number; album: number; prestige: number };
   /** Things waiting to be collected, per tab. Drives the red dots. */
   badges: { station: number; market: number; hangar: number; daily: number; deck: number };
   deck: { seats: Record<RoleId, SeatView | null>; chem: number };
@@ -272,7 +285,7 @@ export interface ClientView {
   payOff: number | null;
   routes: RouteView[];
   encounter: { to: StationId; kind: EncounterKind; hasContraband: boolean; options: EncounterOption[] } | null;
-  stats: { jumps: number; profit: number; caught: number };
+  stats: { jumps: number; profit: number; caught: number; smuggled: number; convoys: number; bestLeague: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -281,6 +294,12 @@ export interface ClientView {
 
 export type Command =
   | { type: 'ClaimFreeCrate' }
+  | { type: 'ClaimSeasonAlbum' }
+  | { type: 'SetTitle'; title: string }
+  | { type: 'SetPaint'; paint: string }
+  | { type: 'BuyPaint'; paint: string }
+  | { type: 'SetShowcase'; cards: string[] }
+  | { type: 'Prestige' }
   | { type: 'BuyShip'; ship: ShipId }
   | { type: 'SelectShip'; ship: ShipId }
   | { type: 'BuyModule'; module: ModuleId }
@@ -342,10 +361,10 @@ export type RejectReason =
   | 'no_such_slot' | 'slot_busy' | 'slot_not_ready' | 'not_enough_quanta' | 'not_enough_shards' | 'not_claimable'
   | 'daily_limit' | 'already_owned'
   | 'no_such_lot' | 'bid_too_low' | 'too_many_bids' | 'too_many_listings' | 'no_spare_copy'
-  | 'level_too_low' | 'not_owned' | 'no_free_slot' | 'card_busy' | 'invalid_team' | 'no_such_contract';
+  | 'season_over' | 'level_too_low' | 'not_owned' | 'no_free_slot' | 'card_busy' | 'invalid_team' | 'no_such_contract';
 
 export type GameEvent =
-  | { type: 'CrateOpened'; source: 'free' | 'bought' | 'slot'; tier: CrateTier; pulls: Pull[] }
+  | { type: 'CrateOpened'; source: 'free' | 'bought' | 'slot' | 'reward'; tier: CrateTier; pulls: Pull[] }
   | { type: 'CrateEarned'; tier: CrateTier }
   | { type: 'CrateLost'; tier: CrateTier }
   | { type: 'RewardGranted'; reward: Reward }
@@ -362,6 +381,10 @@ export type GameEvent =
   | { type: 'CardListed'; cardId: string }
   | { type: 'CharterClaimed'; rewards: number; total: Reward; crates: number }
   | { type: 'CharterBought' }
+  | { type: 'SeasonAlbumClaimed'; step: number; complete: boolean }
+  | { type: 'CosmeticsChanged' }
+  | { type: 'PaintBought'; paint: string }
+  | { type: 'Prestiged'; rank: number }
   | { type: 'ShipBought'; ship: ShipId }
   | { type: 'ShipSelected'; ship: ShipId }
   | { type: 'ModuleBought'; module: ModuleId; level: number }
@@ -404,7 +427,7 @@ export function createInitialState(seed: string, now: number): GameState {
   const state: GameState = {
     version: STATE_VERSION,
     createdAt: now,
-    rng: { crate: seedRng(`${seed}:crate`), market: seedRng(`${seed}:market`), travel: seedRng(`${seed}:travel`), daily: seedRng(`${seed}:daily`), auction: seedRng(`${seed}:auction`), convoy: seedRng(`${seed}:convoy`) },
+    rng: { crate: seedRng(`${seed}:crate`), market: seedRng(`${seed}:market`), travel: seedRng(`${seed}:travel`), daily: seedRng(`${seed}:daily`), auction: seedRng(`${seed}:auction`), convoy: seedRng(`${seed}:convoy`), season: seedRng(`${seed}:season`) },
     profile: { level: 1, xp: 0 },
     wallet: { credits: CONFIG.startCredits, quanta: CONFIG.startQuanta, shards: 0 },
     fuel: { amount: CONFIG.fuel.max, updatedAt: now },
@@ -416,7 +439,9 @@ export function createInitialState(seed: string, now: number): GameState {
     deck: { pilot: null, trader: null, tech: null, gunner: null, smuggler: null },
     daily: { day: -1, missions: [], chestClaimed: false, bought: { standard: 0, premium: 0 }, offers: [], manifests: [], wheelSpun: false, convoys: [] },
     auction: { seed: `${seed}:house`, bids: {}, bought: [], listings: [], results: [] },
-    season: { index: seasonIndex(now), xp: 0, premium: false, claimedFree: 0, claimedPremium: 0 },
+    season: { index: seasonIndex(now), xp: 0, premium: false, claimedFree: 0, claimedPremium: 0, album: 0 },
+    prestige: 0,
+    cosmetics: { title: 'kapitaen', paint: 'werk', owned: [], seasons: [], showcase: [] },
     league: { seed: `${seed}:league`, tier: 0, week: weekIndex(now), score: 0, last: null },
     weekend: { week: weekIndex(now), points: 0, claimed: 0 },
     lastActiveDay: dayIndex(now),
@@ -440,7 +465,7 @@ export function createInitialState(seed: string, now: number): GameState {
     wanted: Object.fromEntries(FACTION_IDS.map((f) => [f, { level: 0, cool: 0 }])) as GameState['wanted'],
     routes: [],
     pending: null,
-    stats: { jumps: 0, profit: 0, caught: 0 },
+    stats: { jumps: 0, profit: 0, caught: 0, smuggled: 0, convoys: 0, bestLeague: 0 },
   };
   driftMarkets(state);
   driftMarkets(state);
@@ -528,7 +553,7 @@ function settleCalendar(state: GameState, now: number): void {
   const season = seasonIndex(now);
   if (state.season.index !== season) {
     // Unclaimed charter rewards of the old season are gone.
-    state.season = { index: season, xp: 0, premium: false, claimedFree: 0, claimedPremium: 0 };
+    state.season = { index: season, xp: 0, premium: false, claimedFree: 0, claimedPremium: 0, album: 0 };
   }
   const week = weekIndex(now);
   if (state.league.week !== week) {
@@ -541,6 +566,7 @@ function settleCalendar(state: GameState, now: number): void {
       const moved = leagueMove(rank, l.tier);
       l.last = { week: l.week, tier: l.tier, rank, moved, reward: leagueReward(rank, l.tier) };
       l.tier += moved;
+      state.stats.bestLeague = Math.max(state.stats.bestLeague, l.tier);
     }
     l.week = week;
     l.score = 0;
@@ -641,7 +667,42 @@ function grantReward(state: GameState, reward: Reward, events: GameEvent[]): voi
   if (reward.freeze) state.streak.freezes = Math.min(CONFIG.streak.maxFreezes, state.streak.freezes + reward.freeze);
   events.push({ type: 'RewardGranted', reward });
   if (reward.crate) grantCrate(state, reward.crate, events);
+  if (reward.seasonCard) grantSeasonCard(state, reward.seasonCard, events);
 }
+
+/** A card of the running edition, as a reward. One you lack, if there is one. It arrives like a crate with one card. */
+function grantSeasonCard(state: GameState, rarity: Rarity, events: GameEvent[]): void {
+  const pool = seasonCards(state.season.index).filter((c) => c.rarity === rarity);
+  const missing = pool.filter((c) => !state.collection[c.id]);
+  const card = pick(state.rng.season, missing.length > 0 ? missing : pool);
+  const { isNew, shards } = addCard(state, card.id);
+  events.push({ type: 'CrateOpened', source: 'reward', tier: 'premium', pulls: [{ cardId: card.id, rarity: card.rarity, isNew, shards }] });
+}
+
+function seasonAlbum(state: GameState): { owned: number; total: number; claimed: number; next: { need: number; reward: Reward } | null; claimable: boolean; complete: boolean } {
+  const owned = seasonCards(state.season.index).filter((c) => state.collection[c.id]).length;
+  const { milestones, rewards } = CONFIG.season.album;
+  const claimed = state.season.album;
+  const next = claimed < milestones.length ? { need: milestones[claimed]!, reward: rewards[claimed]! as Reward } : null;
+  return { owned, total: EDITION_SIZE, claimed, next, claimable: next !== null && owned >= next.need, complete: owned >= EDITION_SIZE };
+}
+
+const factsOf = (state: GameState): Facts => ({
+  jumps: state.stats.jumps,
+  profit: state.stats.profit,
+  cards: Object.keys(state.collection).filter((id) => seasonOf(id) === null).length,
+  smuggled: state.stats.smuggled,
+  convoys: state.stats.convoys,
+  bestLeague: Math.max(state.stats.bestLeague, state.league.tier),
+  prestige: state.prestige,
+  ships: state.fleet.owned,
+  seasons: state.cosmetics.seasons,
+});
+
+const paintUnlocked = (state: GameState, id: string): boolean => {
+  const def = PAINT_BY_ID.get(id);
+  return !!def && (def.unlocked(factsOf(state)) || state.cosmetics.owned.includes(id));
+};
 
 /** The first jump of a day keeps the streak alive. */
 function touchStreak(state: GameState, events: GameEvent[]): void {
@@ -665,8 +726,9 @@ function touchStreak(state: GameState, events: GameEvent[]): void {
 const completedAlbums = (state: GameState): number =>
   FACTION_IDS.filter((f) => state.albums[f] >= CONFIG.album.milestones.length).length;
 
-function saleBonus(state: GameState): { streak: number; album: number } {
+function saleBonus(state: GameState): { streak: number; album: number; prestige: number } {
   return {
+    prestige: state.prestige * CONFIG.prestige.saleBonus,
     streak: streakBonus(liveStreak(state.streak, state.daily.day)),
     album: completedAlbums(state) * CONFIG.album.bonusPerAlbum,
   };
@@ -771,7 +833,7 @@ function marketRow(state: GameState, stationId: StationId, goodId: GoodId, heat:
     step: anchor * CONFIG.market.impact,
     buyFactor: banned ? s.fenceBuy : 1,
     sellFactor: (banned ? s.fenceSell + s.fenceSellCrew * hdl + (state.blockade ? CONFIG.weekend.fenceBonus : 0) : CONFIG.travel.sellFactor + CONFIG.travel.sellFactorCrew * hdl)
-      * hot * (1 + extra.streak + extra.album),
+      * hot * (1 + extra.streak + extra.album + extra.prestige),
   };
   return { ...row, buy: quote(row, 'buy', 1), sell: quote(row, 'sell', 1), level: row.list / good.base };
 }
@@ -879,6 +941,10 @@ function encounterOptions(state: GameState, kind: EncounterKind, to: StationId):
   ];
 }
 
+/** Shards to forge a card you lack. Edition cards cost more. */
+export const forgeCost = (card: CardDef): number =>
+  Math.round(CONFIG.cards.forge[card.rarity] * (card.season === undefined ? 1 : CONFIG.season.forgeMult));
+
 // ---------------------------------------------------------------------------
 // Crates
 // ---------------------------------------------------------------------------
@@ -920,7 +986,10 @@ function openCrate(state: GameState, source: 'free' | 'bought' | 'slot', tier: C
   if (best < rarityRank(floor)) rolled[t.cards - 1] = { rarity: rollRarity(rng, t.odds, floor) };
 
   const pulls: Pull[] = rolled.map(({ rarity, upgradedFrom }) => {
-    const card = pick(rng, CARDS_BY_RARITY[rarity]);
+    // The permanent card is always drawn, so the crate stream never depends on the season.
+    const base = pick(rng, CARDS_BY_RARITY[rarity]);
+    const edition = seasonCards(state.season.index).filter((c) => c.rarity === rarity);
+    const card = edition.length > 0 && nextFloat(state.rng.season) < CONFIG.season.cardShare ? pick(state.rng.season, edition) : base;
     const { isNew, shards } = addCard(state, card.id);
     return upgradedFrom ? { cardId: card.id, rarity, isNew, shards, upgradedFrom } : { cardId: card.id, rarity, isNew, shards };
   });
@@ -1076,7 +1145,7 @@ function resolveEncounter(state: GameState, choice: EncounterChoice, events: Gam
       wantedDelta = addWanted(state, faction, choice === 'breakThrough' ? 2 : 1, inner);
     } else {
       progress(state, 'customsPass', 1);
-      if (bannedValue(state, faction) > 0) weekendPoints(state, now, CONFIG.weekend.points.smuggled);
+      if (bannedValue(state, faction) > 0) { state.stats.smuggled += 1; weekendPoints(state, now, CONFIG.weekend.points.smuggled); }
       // Running a blockade is noticed, even when it works.
       if (choice === 'breakThrough') wantedDelta = addWanted(state, faction, 1, inner);
     }
@@ -1196,7 +1265,9 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       const card = CARD_BY_ID.get(cmd.cardId);
       if (!card) return reject('card_not_owned');
       if (state.collection[cmd.cardId]) return reject('already_owned');
-      const cost = CONFIG.cards.forge[card.rarity];
+      // Edition cards can only be made while their season runs.
+      if (card.season !== undefined && card.season !== state.season.index) return reject('season_over');
+      const cost = forgeCost(card);
       if (state.wallet.shards < cost) return reject('not_enough_shards');
       state.wallet.shards -= cost;
       state.collection[cmd.cardId] = 1;
@@ -1375,6 +1446,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
         total.shards = (total.shards ?? 0) + (r.shards ?? 0);
         total.quanta = (total.quanta ?? 0) + (r.quanta ?? 0);
         if (r.crate) grantCrate(state, r.crate, events);
+        if (r.seasonCard) grantSeasonCard(state, r.seasonCard, events);
       };
       for (let t = s.claimedFree + 1; t <= tier; t++) take(charterReward(t, 'free'));
       s.claimedFree = Math.max(s.claimedFree, tier);
@@ -1514,6 +1586,72 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       events.push({ type: 'DeckChanged' });
       break;
     }
+    case 'ClaimSeasonAlbum': {
+      const album = seasonAlbum(state);
+      if (!album.claimable || !album.next) return reject('not_claimable');
+      state.season.album += 1;
+      const complete = state.season.album >= CONFIG.season.album.milestones.length;
+      // A finished album leaves a title and a paint behind for good.
+      if (complete && !state.cosmetics.seasons.includes(state.season.index)) state.cosmetics.seasons.push(state.season.index);
+      events.push({ type: 'SeasonAlbumClaimed', step: state.season.album, complete });
+      grantReward(state, album.next.reward, events);
+      break;
+    }
+    case 'SetTitle': {
+      const title = titleList(factsOf(state), state.season.index).find((x) => x.id === cmd.title);
+      if (!title) return reject('unknown_command');
+      if (!title.unlocked) return reject('not_owned');
+      state.cosmetics.title = title.id;
+      events.push({ type: 'CosmeticsChanged' });
+      break;
+    }
+    case 'SetPaint': {
+      if (!PAINT_BY_ID.has(cmd.paint)) return reject('unknown_command');
+      if (!paintUnlocked(state, cmd.paint)) return reject('not_owned');
+      state.cosmetics.paint = cmd.paint;
+      events.push({ type: 'CosmeticsChanged' });
+      break;
+    }
+    case 'BuyPaint': {
+      const def = PAINT_BY_ID.get(cmd.paint);
+      if (!def || def.price === null) return reject('unknown_command');
+      if (state.cosmetics.owned.includes(def.id)) return reject('already_owned');
+      if (state.wallet.quanta < def.price) return reject('not_enough_quanta');
+      state.wallet.quanta -= def.price;
+      state.cosmetics.owned.push(def.id);
+      state.cosmetics.paint = def.id;
+      events.push({ type: 'PaintBought', paint: def.id });
+      break;
+    }
+    case 'SetShowcase': {
+      const cards = cmd.cards;
+      if (cards.length > 3 || new Set(cards).size !== cards.length) return reject('invalid_choice');
+      if (cards.some((id) => !state.collection[id] || !CARD_BY_ID.has(id))) return reject('card_not_owned');
+      state.cosmetics.showcase = [...cards];
+      events.push({ type: 'CosmeticsChanged' });
+      break;
+    }
+    case 'Prestige': {
+      const p = CONFIG.prestige;
+      if (state.prestige >= p.max) return reject('max_level');
+      if (state.profile.level < p.level) return reject('level_too_low');
+      state.prestige += 1;
+      // Gone: level, credits, cargo, hold, ships, modules, trading posts, wanted levels.
+      // Kept: crew and their levels, quanta, shards, albums, season, league, streak, cosmetics, lifetime numbers.
+      state.profile = { level: 1, xp: 0 };
+      state.wallet.credits = CONFIG.startCredits;
+      state.wallet.quanta += p.quanta;
+      state.wallet.shards += p.shards;
+      state.hold = 0;
+      state.fleet = newFleet();
+      state.posts = {};
+      state.cargo = {};
+      state.salvage = null;
+      for (const f of FACTION_IDS) state.wanted[f] = { level: 0, cool: 0 };
+      state.fuel = { amount: fuelMax(state), updatedAt: now };
+      events.push({ type: 'Prestiged', rank: state.prestige });
+      break;
+    }
     case 'BuyShip': {
       const def = SHIP_BY_ID.get(cmd.ship);
       if (!def) return reject('unknown_command');
@@ -1591,6 +1729,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       state.convoys.splice(cmd.slot, 1);
       const success = nextFloat(state.rng.convoy) < convoy.chance;
       const { reward, xp } = convoyPayout(convoy.offer, success);
+      if (success) state.stats.convoys += 1;
       events.push({ type: 'ConvoyReturned', success, reward, xp });
       grantReward(state, reward, events);
       addXp(state, xp, events, now);
@@ -1649,6 +1788,9 @@ export function toClientView(state: GameState, now: number): ClientView {
   if (dayIndex(now) - s.lastActiveDay >= CONFIG.comeback.days) s.comeback = true;
   const max = fuelMax(s);
   const regenMs = fuelRegen(s);
+  const album = seasonAlbum(s);
+  const facts = factsOf(s);
+  const titles = titleList(facts, s.season.index);
   const here = s.location;
   const hereFaction = factionOf(here);
   const deck = deckInfo(s.deck, s.cardLevels);
@@ -1787,6 +1929,21 @@ export function toClientView(state: GameState, now: number): ClientView {
       claimable: charterClaimable,
       waitingPremium: s.season.premium ? 0 : tier,
     },
+    seasonAlbum: { ...album, cardShare: CONFIG.season.cardShare },
+    captain: {
+      titleId: s.cosmetics.title,
+      title: titles.find((x) => x.id === s.cosmetics.title)?.name ?? 'Kapitän',
+      paint: s.cosmetics.paint,
+      showcase: s.cosmetics.showcase.filter((id) => s.collection[id]),
+      titles,
+      paints: PAINTS.map((p) => ({ id: p.id, name: p.name, tone: p.tone, price: p.price, hint: p.hint, unlocked: paintUnlocked(s, p.id) })),
+      prestige: s.prestige,
+      prestigeMax: CONFIG.prestige.max,
+      prestigeLevel: CONFIG.prestige.level,
+      prestigeBonus: CONFIG.prestige.saleBonus,
+      canPrestige: s.prestige < CONFIG.prestige.max && s.profile.level >= CONFIG.prestige.level,
+      facts,
+    },
     league: {
       tier: s.league.tier, tierName: CONFIG.league.tiers[s.league.tier]!, endsAt: weekEndsAt(now), score: s.league.score,
       rank: table.findIndex((x) => x.you) + 1,
@@ -1823,7 +1980,7 @@ export function toClientView(state: GameState, now: number): ClientView {
       daily: s.daily.missions.filter((m) => !m.claimed && m.progress >= m.target).length + (chestClaimable ? 1 : 0) + (calendarClaimable ? 1 : 0)
         + (s.daily.wheelSpun ? 0 : 1) + manifests.filter((m) => !m.done && m.have >= m.need).length
         + (charterClaimable > 0 ? 1 : 0) + (s.league.last ? 1 : 0) + (weekendClaimable > 0 ? 1 : 0) + (s.comeback ? 1 : 0),
-      deck: FACTION_IDS.filter((f) => albums[f].claimable).length + s.convoys.filter((c) => c.endsAt <= now).length,
+      deck: FACTION_IDS.filter((f) => albums[f].claimable).length + s.convoys.filter((c) => c.endsAt <= now).length + (album.claimable ? 1 : 0),
     },
     deck: { seats: deck.seats, chem: deck.chem },
     crew: deck.bonus,
@@ -1881,6 +2038,18 @@ export function parseCommand(input: unknown): Command | null {
     case 'ClaimWeekend':
     case 'ClaimComeback':
       return { type: c.type };
+    case 'ClaimSeasonAlbum':
+    case 'Prestige':
+      return { type: c.type };
+    case 'SetTitle':
+      return typeof c.title === 'string' && c.title.length < 24 ? { type: 'SetTitle', title: c.title } : null;
+    case 'SetPaint':
+    case 'BuyPaint':
+      return typeof c.paint === 'string' && PAINT_BY_ID.has(c.paint) ? { type: c.type, paint: c.paint } : null;
+    case 'SetShowcase':
+      return Array.isArray(c.cards) && c.cards.length <= 3 && c.cards.every((x: unknown) => typeof x === 'string' && x.length < 16)
+        ? { type: 'SetShowcase', cards: c.cards as string[] }
+        : null;
     case 'BuyShip':
     case 'SelectShip':
       return typeof c.ship === 'string' && SHIP_BY_ID.has(c.ship as ShipId) ? { type: c.type, ship: c.ship as ShipId } : null;

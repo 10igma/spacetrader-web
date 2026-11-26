@@ -1,0 +1,82 @@
+// Captures season edition cards, the season album, the profile with titles, paints and showcase, and prestige.
+// Usage: node tools/shots/season.mjs <outDir> [scale]   (dev server on :5173, offline mode)
+import { createRequire } from 'node:module';
+import { mkdirSync } from 'node:fs';
+const { chromium } = createRequire(import.meta.url)('playwright');
+const out = process.argv[2]; const scale = Number(process.argv[3] ?? 1);
+mkdirSync(out, { recursive: true });
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: scale, hasTouch: true, isMobile: true });
+const problems = [];
+page.on('console', (m) => { if (m.type() === 'error') problems.push(m.text().slice(0, 300)); });
+page.on('pageerror', (e) => problems.push(String(e).slice(0, 300)));
+const shot = (n) => page.screenshot({ path: `${out}/${n}.png` });
+const settle = (ms) => page.waitForTimeout(ms);
+const tab = async (name) => { await page.locator('.nav__item', { hasText: name }).tap(); await settle(1200); };
+const start = async (query) => {
+  await page.goto(`http://localhost:5173/?q=high${query}`);
+  await settle(2000);
+  await page.locator('.splash').tap(); await settle(1500);
+};
+
+await start('&seed=season');
+// The save is written with the first command.
+await tab('Markt');
+await page.locator('.good', { hasText: 'Wasser' }).tap(); await settle(500);
+await page.locator('.trade__actions .cta').first().tap(); await settle(500);
+await page.evaluate(() => {
+  const s = JSON.parse(localStorage.getItem('nova.save'));
+  const e = (n) => `s${s.season.index}-${String(n).padStart(2, '0')}`;
+  s.wallet = { credits: 2_140_000, quanta: 260, shards: 21_400 };
+  s.profile = { level: 23, xp: 900 };
+  s.cargo = {};
+  s.collection = { c01: 2, c02: 1, c03: 1, c05: 2, c08: 1, c12: 3, c15: 2, c17: 2, c19: 1, c20: 1, c21: 1, c22: 1, c24: 1, c28: 1, g001: 1, g004: 1, g011: 1, g017: 2 };
+  for (const n of [1, 2, 3, 4, 5, 7, 8, 9, 11]) s.collection[e(n)] = 1;
+  s.cardLevels = { c21: 3, c24: 2 };
+  s.fleet = { owned: ['sperling', 'kormoran', 'lanze', 'nachtfalter', 'basilisk', 'leviathan'], active: 'leviathan', modules: { pods: 3, shield: 3, drive: 2, charger: 3, jammer: 2 }, fitted: ['pods', 'shield', 'drive', 'charger', 'jammer'] };
+  s.stats = { ...s.stats, jumps: 612, profit: 4_210_000, smuggled: 61, convoys: 37, bestLeague: 2 };
+  s.league = { ...s.league, tier: 2, score: 388_000 };
+  s.cosmetics = { ...s.cosmetics, showcase: ['c24', 'c21'] };
+  localStorage.setItem('nova.save', JSON.stringify(s));
+});
+await start('');
+await shot('120-hub-ticker');
+await tab('Deck');
+await page.locator('.deck .link', { hasText: 'Automatisch' }).tap(); await settle(700);
+await page.locator('.album--season').tap(); await settle(900);
+await shot('121-season-album');
+await page.locator('.album__goal--season .mission__btn').tap(); await settle(900);
+await page.locator('.album__goal--season .mission__btn').tap(); await settle(900);
+await page.locator('.deck__grid .holo.is-locked').first().tap(); await settle(900);
+await shot('122-edition-card-missing');
+await page.locator('.upcard .mission__btn').tap(); await settle(1200);
+await shot('123-edition-card-forged');
+await page.mouse.click(20, 120); await settle(700);
+
+await page.locator('.topbar__me').tap(); await settle(900);
+await shot('124-profile');
+await page.locator('.title', { hasText: 'Grosshändler' }).tap(); await settle(700);
+await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 330)); await settle(400);
+await page.locator('.paint', { hasText: 'Karminrot' }).tap(); await settle(900);
+await shot('125-titles-paints');
+await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 0)); await settle(400);
+await page.locator('.profile__empty').first().tap(); await settle(800);
+await shot('126-showcase-picker');
+await page.locator('.picker .pick').nth(2).tap(); await settle(900);
+await shot('127-profile-painted');
+await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 9999)); await settle(400);
+await page.locator('.prestige .cta').tap(); await settle(600);
+await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 9999)); await settle(400);
+await shot('128-prestige-confirm');
+await page.locator('.prestige__actions .cta--gold').tap(); await settle(1500);
+await shot('129-after-prestige');
+await page.locator('.topbar__me').tap(); await settle(900);
+await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 9999)); await settle(400);
+await shot('130-profile-after-prestige');
+await page.mouse.click(195, 30); await settle(900);
+await tab('Hangar');
+await page.locator('.segment button', { hasText: 'Container' }).tap(); await settle(600);
+await page.locator('.hangar .screenhead .link').tap(); await settle(700);
+await shot('131-odds');
+await browser.close();
+console.log(problems.length ? `PROBLEMS:\n${problems.join('\n')}` : 'no console errors');

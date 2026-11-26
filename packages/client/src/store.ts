@@ -20,7 +20,7 @@ export interface Travel {
 }
 
 export interface SalePop { id: number; profit: number; revenue: number }
-export type Sheet = 'posts' | 'wheel' | 'salvage' | null;
+export type Sheet = 'posts' | 'wheel' | 'salvage' | 'profile' | null;
 
 const REJECT_TEXT: Record<RejectReason, string> = {
   not_enough_credits: 'Nicht genug Credits',
@@ -52,6 +52,7 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   no_spare_copy: 'Davon hast du kein Duplikat',
   already_owned: 'Das hast du schon',
   level_too_low: 'Deine Stufe reicht dafür noch nicht',
+  season_over: 'Diese Karte gab es nur in ihrer Saison',
   not_owned: 'Das besitzt du nicht',
   no_free_slot: 'Kein freier Platz',
   card_busy: 'Diese Karte ist gerade im Einsatz',
@@ -155,6 +156,9 @@ export const useApp = create<AppState>((set, get) => ({
           if (ev.success) audio.coins(ev.reward.credits ?? 500);
           get().showToast(ev.success ? `Konvoi erfolgreich: ${rewardText(ev.reward)}` : `Konvoi gescheitert: nur ${rewardText(ev.reward)}`, ev.success ? 'good' : 'bad');
         }
+        if (ev.type === 'SeasonAlbumClaimed' && ev.complete) { audio.reveal(4); get().showToast('Saison-Edition komplett: Titel und Lack Prisma freigeschaltet', 'good'); }
+        if (ev.type === 'PaintBought') { audio.coins(600); get().showToast('Neue Lackierung aufgetragen', 'good'); }
+        if (ev.type === 'Prestiged') { audio.reveal(4); set({ tab: 'station', sheet: null }); get().showToast(`Prestige ${ev.rank}: Ein neuer Anfang, für immer stärker`, 'good'); }
         if (ev.type === 'CharterBought') { audio.reveal(3); get().showToast('Premium-Charter aktiv', 'good'); }
         if (ev.type === 'LeagueClaimed' && ev.moved !== 0) get().showToast(ev.moved > 0 ? 'Aufgestiegen' : 'Abgestiegen', ev.moved > 0 ? 'good' : 'bad');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls });

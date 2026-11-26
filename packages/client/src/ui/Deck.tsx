@@ -1,10 +1,11 @@
-import { CARD_BY_ID, CARDS, FACTIONS, rarityRank, ROLES, seatStat, SEATS, type BonusKey, type FactionId, type RoleId } from '@nova/core';
+import { CARD_BY_ID, CARDS, FACTIONS, rarityRank, ROLES, seasonCards, seatStat, SEATS, type BonusKey, type FactionId, type RoleId } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { Convoys } from './Convoys.tsx';
 import { HoloCard } from './HoloCard.tsx';
-import { BONUS_LABEL, FACTION_COLOR, num, RARITY_LABEL, rewardText } from './format.ts';
+import { BONUS_LABEL, FACTION_COLOR, longCountdown, num, ownedCards, RARITY_LABEL, rewardText } from './format.ts';
+import { useServerNow } from './hooks.ts';
 import { Shard } from './icons.tsx';
 
 const SORTED = [...CARDS].sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) || b.rating - a.rating);
@@ -22,7 +23,7 @@ function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
   const send = useApp((s) => s.send);
   const current = view.deck.seats[seat]?.cardId ?? null;
   const seatOf = (id: string): RoleId | undefined => SEATS.find((s) => view.deck.seats[s]?.cardId === id);
-  const owned = CARDS.filter((c) => view.collection[c.id])
+  const owned = ownedCards(view)
     .map((c) => ({ card: c, value: Math.round(seatStat(c, seat, view.cardLevels[c.id] ?? 1) * (c.role === seat ? 1 : 0.75)) }))
     .sort((a, b) => b.value - a.value);
   const set = (cardId: string | null) => (): void => { audio.tap(); void send({ type: 'SetSeat', seat, cardId }).then(onClose); };
@@ -64,9 +65,14 @@ export function Deck() {
   const busy = useApp((s) => s.busy);
   const setInspect = useApp((s) => s.setInspect);
   const [picking, setPicking] = useState<RoleId | null>(null);
-  const [page, setPage] = useState<FactionId>(() => FACTION_ORDER.find((f) => view.albums[f].claimable) ?? 'tessera');
-  const album = view.albums[page];
-  const cards = SORTED.filter((c) => c.faction === page);
+  const now = useServerNow(60_000);
+  const [page, setPage] = useState<FactionId | 'season'>(() => (view.seasonAlbum.claimable ? 'season' : FACTION_ORDER.find((f) => view.albums[f].claimable) ?? 'tessera'));
+  const onSeason = page === 'season';
+  const edition = view.seasonAlbum;
+  const album = view.albums[onSeason ? 'tessera' : page];
+  // The season page shows the running edition, then whatever you kept from earlier seasons.
+  const archive = ownedCards(view).filter((c) => c.season !== undefined && c.season !== view.season.index);
+  const cards = onSeason ? [...seasonCards(view.season.index)].sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) || b.rating - a.rating).concat(archive) : SORTED.filter((c) => c.faction === page);
   const owned = cards.filter((c) => view.collection[c.id]);
   const missing = cards.filter((c) => !view.collection[c.id]);
   const need = album.next ? Math.ceil(album.total * album.next.pct) : album.total;
@@ -151,7 +157,25 @@ export function Deck() {
             </button>
           );
         })}
+        <button role="tab" aria-selected={onSeason} className={`album album--season${onSeason ? ' is-active' : ''}${edition.complete ? ' is-complete' : ''}`} onClick={() => { audio.tap(); setPage('season'); }}>
+          <b>SAISON</b>
+          <span>{edition.owned}/{edition.total}</span>
+          <i style={{ width: `${(edition.owned / edition.total) * 100}%` }} />
+          {edition.claimable && <em className="dot" />}
+        </button>
       </div>
+      {onSeason ? (
+        <div className="album__goal album__goal--season">
+          <span>
+            <b>{view.season.name} · Edition</b>
+            {edition.next
+              ? `${edition.claimable ? 'Meilenstein erreicht' : `Noch ${edition.next.need - edition.owned} bis ${edition.next.need} Karten`} · ${rewardText(edition.next.reward)}${edition.next.need === edition.total ? ' + Titel + Lack Prisma' : ''}`
+              : 'Edition komplett · Titel und Lack Prisma gehören dir'}
+            {` · nur noch ${longCountdown(view.season.endsAt - now)}`}
+          </span>
+          {edition.next && <button className="mission__btn" disabled={busy || !edition.claimable} onClick={() => { audio.tap(); void send({ type: 'ClaimSeasonAlbum' }); }}>{edition.claimable ? 'Abholen' : `${edition.owned}/${edition.next.need}`}</button>}
+        </div>
+      ) : (
       <div className="album__goal" style={{ ['--faction' as string]: FACTION_COLOR[page] }}>
         {album.next ? (
           <>
@@ -160,6 +184,7 @@ export function Deck() {
           </>
         ) : <span><b>{FACTIONS[page].name}</b>Album komplett · +2 % Verkaufspreis auf Dauer</span>}
       </div>
+      )}
       <div className="deck__grid">
         {owned.map((c) => (
           <HoloCard key={c.id} card={c} size="sm" count={view.collection[c.id]} level={view.cardLevels[c.id] ?? 1} onClick={() => { audio.tap(); setInspect(c.id); }} />

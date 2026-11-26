@@ -195,6 +195,8 @@ export function Hangar() {
               Die Quoten enthalten den Aufwertungs-Moment, bei dem eine Karte eine Stufe steigt. Jeder Container enthält die
               angegebene Mindest-Seltenheit. Spätestens jeder {pityElite.max}. Container enthält eine Elite oder besser,
               spätestens jeder {pityLegend.max}. eine Legende oder besser. Doppelte Karten werden zu Splittern.
+              Rund {Math.round(view.seasonAlbum.cardShare * 100)} % der seltenen, Elite- und Legenden-Karten stammen aus der
+              Edition der laufenden Saison. Diese Karten gibt es nur, solange die Saison läuft.
             </p>
             <button className="cta cta--ghost" onClick={() => setOdds(false)}><span>Schliessen</span></button>
           </div>

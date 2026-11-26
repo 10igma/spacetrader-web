@@ -14,20 +14,21 @@ const HULL: Record<ShipId, { d: string; engines: number[]; tone: string }> = {
   leviathan: { d: 'M60 6 L76 22 L80 50 L96 58 L96 96 L78 100 L74 114 L46 114 L42 100 L24 96 L24 58 L40 50 L44 22 Z', engines: [50, 57, 63, 70], tone: '#ff8a3c' },
 };
 
-export function ShipArt({ id, locked = false }: { id: ShipId; locked?: boolean }) {
-  const hull = HULL[id];
+export function ShipArt({ id, locked = false, paint = null }: { id: ShipId; locked?: boolean; paint?: string | null }) {
+  const prisma = paint === 'prisma';
+  const hull = { ...HULL[id], tone: paint && !prisma ? paint : HULL[id].tone };
   const base = Number(hull.d.match(/L\d+ (\d+) L\d+ \1 /)?.[1] ?? 104);
   return (
-    <svg className={`shipart${locked ? ' is-locked' : ''}`} viewBox="0 0 120 120" style={{ ['--tone' as string]: hull.tone }} aria-hidden="true">
+    <svg className={`shipart${locked ? ' is-locked' : ''}${prisma ? ' shipart--prisma' : ''}`} viewBox="0 0 120 120" style={{ ['--tone' as string]: hull.tone }} aria-hidden="true">
       <defs>
-        <linearGradient id={`hull-${id}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`hull-${id}-${paint ?? 'werk'}`.replace('#', '')} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#e9f4ff" stopOpacity="0.95" />
           <stop offset="0.5" stopColor={hull.tone} stopOpacity="0.55" />
           <stop offset="1" stopColor="#0a1224" stopOpacity="0.9" />
         </linearGradient>
       </defs>
       {hull.engines.map((x) => <ellipse key={x} className="shipart__flame" cx={x} cy={base + 5} rx="2.6" ry="7" />)}
-      <path d={hull.d} fill={`url(#hull-${id})`} stroke={hull.tone} strokeWidth="1.4" strokeLinejoin="round" />
+      <path d={hull.d} fill={`url(#${`hull-${id}-${paint ?? 'werk'}`.replace('#', '')})`} stroke={hull.tone} strokeWidth="1.4" strokeLinejoin="round" />
       <path d="M60 30 L64 46 L60 56 L56 46 Z" fill="#04101c" stroke={hull.tone} strokeWidth="0.8" opacity="0.9" />
       <path d="M60 58 V92" stroke={hull.tone} strokeWidth="0.7" opacity="0.5" />
     </svg>
@@ -61,7 +62,7 @@ export function Shipyard() {
   return (
     <div className="yard">
       <div className="yard__hero">
-        <ShipArt id={ship.id} />
+        <ShipArt id={ship.id} paint={view.captain.paints.find((p) => p.id === view.captain.paint)?.tone ?? null} />
         <div className="yard__info">
           <span className="eyebrow">{ship.cls}</span>
           <h3>{ship.name}</h3>

@@ -1,4 +1,5 @@
-import type { FactionId, Mission, Rarity, Reward } from '@nova/core';
+import { CARD_BY_ID } from '@nova/core';
+import type { CardDef, FactionId, Mission, Rarity, Reward } from '@nova/core';
 
 const nf = new Intl.NumberFormat('de-CH');
 export const num = (n: number): string => nf.format(n);
@@ -41,6 +42,7 @@ export function rewardText(r: Reward): string {
   if (r.quanta) parts.push(`${num(r.quanta)} Quanten`);
   if (r.freeze) parts.push(r.freeze === 1 ? 'Urlaubsschein' : `${r.freeze} Urlaubsscheine`);
   if (r.crate) parts.push(r.crate === 'premium' ? 'Premium-Container' : 'Container');
+  if (r.seasonCard) parts.push(r.seasonCard === 'legend' ? 'Saison-Legende' : 'Saison-Elite');
   return parts.join(' + ');
 }
 
@@ -79,4 +81,9 @@ export function hashString(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return h >>> 0;
+}
+
+/** Every card in the collection, permanent set and season editions alike. */
+export function ownedCards(view: { collection: Record<string, number> }): CardDef[] {
+  return Object.keys(view.collection).filter((id) => view.collection[id]).map((id) => CARD_BY_ID.get(id)).filter((c): c is CardDef => !!c);
 }

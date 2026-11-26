@@ -12,7 +12,11 @@ const DAY = 86_400_000;
 export type CrateTier = keyof typeof CONFIG.crate.tiers;
 export const CRATE_TIERS: readonly CrateTier[] = ['standard', 'premium'];
 
-export interface Reward { credits?: number; shards?: number; quanta?: number; crate?: CrateTier; freeze?: number }
+export interface Reward {
+  credits?: number; shards?: number; quanta?: number; crate?: CrateTier; freeze?: number;
+  /** A card of the running season's edition, of this rarity. One you lack, if there is one. */
+  seasonCard?: 'elite' | 'legend';
+}
 
 /** An earned crate. `readyAt` is null until the player starts unsealing it. */
 export interface Slot { tier: CrateTier; readyAt: number | null }

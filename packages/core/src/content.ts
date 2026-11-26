@@ -15,6 +15,8 @@ export interface CardDef {
   rating: number;
   /** Navigation, Handel, Technik, Kampf */
   stats: { nav: number; hdl: number; tec: number; kmp: number };
+  /** Season edition cards carry the index of their season. They only drop while it runs. */
+  season?: number;
 }
 
 export const FACTIONS: Record<FactionId, { name: string; short: string }> = {
@@ -137,7 +139,93 @@ export const CARDS: readonly CardDef[] = ROWS.map(
   }),
 );
 
-export const CARD_BY_ID: ReadonlyMap<string, CardDef> = new Map(CARDS.map((c) => [c.id, c]));
+// ---------------------------------------------------------------------------
+// Season editions. Every season brings twelve cards of its own. They are
+// generated from the season index alone, so a new season needs no new data,
+// and every client and server agrees on them.
+// ---------------------------------------------------------------------------
+
+/** How many cards of each rarity an edition has. */
+export const EDITION: Partial<Record<Rarity, number>> = { rare: 6, elite: 4, legend: 2 };
+export const EDITION_SIZE = 12;
+/** Edition cards sit at the top of their rarity, never above it: stronger, but no new tier. */
+const EDITION_RATING: Partial<Record<Rarity, [number, number]>> = { rare: [74, 80], elite: [85, 90], legend: [93, 96] };
+/** One list of epithets per season theme, in the order of the season names. */
+const EDITION_EPITHETS: string[][] = [
+  ['Sperrbrecherin', 'Kessin-Veteran', 'Minenlegerin', 'Sperrfeuer-Ass', 'Konvoiführerin', 'Lotse der Blockade', 'Wachhabende', 'Enterkommandant', 'Prisenmeisterin', 'Funkstille', 'Eisenhand', 'Admiral der Sperre'],
+  ['Rissgängerin', 'Kartell-Abtrünniger', 'Spleisserin', 'Schattenbuchhalter', 'Helix-Erbin', 'Kurier im Riss', 'Doppelagentin', 'Tresorknacker', 'Gencodiererin', 'Der Schuldeneintreiber', 'Seidenstimme', 'Stimme im Riss'],
+  ['Ermittlerin', 'Kronzeuge', 'Revisorin', 'Whistleblower', 'Aktenläuferin', 'Sonderermittler', 'Protokollführerin', 'Der Gutachter', 'Datenforensikerin', 'Verbindungsmann', 'Die Unbestechliche', 'Der Generalrevisor'],
+  ['Glutläuferin', 'Aschepilot', 'Brandwache', 'Schlackenbaron', 'Feuerspringerin', 'Hochofenmeister', 'Russfängerin', 'Der Schmelzer', 'Funkenleserin', 'Kesselwart', 'Die Unverbrannte', 'Herr der Glut'],
+];
+
+const editionCache = new Map<number, readonly CardDef[]>();
+
+export function seasonCards(index: number): readonly CardDef[] {
+  const hit = editionCache.get(index);
+  if (hit) return hit;
+  let seed = (0x9e3779b1 ^ Math.imul(index + 1, 0x85ebca6b)) >>> 0;
+  const rnd = (): number => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const epithets = EDITION_EPITHETS[((index % EDITION_EPITHETS.length) + EDITION_EPITHETS.length) % EDITION_EPITHETS.length]!;
+  const factions: FactionId[] = ['tessera', 'asche', 'helix', 'zenit'];
+  const roles: RoleId[] = ['pilot', 'trader', 'tech', 'gunner', 'smuggler'];
+  const rarities = (Object.entries(EDITION) as [Rarity, number][]).flatMap(([r, n]) => Array.from({ length: n }, () => r));
+  const names = new Set<string>();
+  const offset = Math.floor(rnd() * 20);
+  const cards: CardDef[] = rarities.map((rarity, i) => {
+    let name = '';
+    do { name = `${FIRST[Math.floor(rnd() * FIRST.length)]} ${LAST[Math.floor(rnd() * LAST.length)]}`; } while (names.has(name));
+    names.add(name);
+    const role = roles[(i + offset) % roles.length]!;
+    const [lo, hi] = EDITION_RATING[rarity]!;
+    const rating = lo + Math.floor(rnd() * (hi - lo + 1));
+    const main = Math.min(99, rating + 6 + Math.floor(rnd() * 5));
+    const side = (): number => Math.max(40, rating - 4 - Math.floor(rnd() * 16));
+    const [nav, hdl, tec, kmp] =
+      role === 'pilot' ? [main, side(), side(), side()]
+        : role === 'trader' ? [side(), main, side(), side()]
+          : role === 'tech' ? [side(), side(), main, side()]
+            : role === 'gunner' ? [side(), side(), side(), main]
+              : [Math.min(99, rating + 4), Math.min(99, rating + 4), side(), side()];
+    return {
+      id: `s${index}-${String(i + 1).padStart(2, '0')}`,
+      name,
+      epithet: epithets[i]!,
+      role,
+      faction: factions[(i + offset) % factions.length]!,
+      rarity,
+      rating,
+      stats: { nav: nav!, hdl: hdl!, tec: tec!, kmp: kmp! },
+      season: index,
+    };
+  });
+  // A handful of seasons is all anyone looks at: the running one and a few old ones in a collection.
+  if (editionCache.size > 64) editionCache.clear();
+  editionCache.set(index, cards);
+  return cards;
+}
+
+const SEASON_ID = /^s(\d{1,5})-(\d\d)$/;
+/** The season a card id belongs to, or null for the permanent set. */
+export const seasonOf = (id: string): number | null => {
+  const m = SEASON_ID.exec(id);
+  return m ? Number(m[1]) : null;
+};
+
+/** Looks like a plain map of the permanent set, but also finds any season's cards by id. */
+class CardIndex extends Map<string, CardDef> {
+  override get(id: string): CardDef | undefined {
+    const hit = super.get(id);
+    if (hit) return hit;
+    const season = seasonOf(id);
+    return season === null ? undefined : seasonCards(season).find((c) => c.id === id);
+  }
+  override has(id: string): boolean { return this.get(id) !== undefined; }
+}
+
+export const CARD_BY_ID: ReadonlyMap<string, CardDef> = new CardIndex(CARDS.map((c) => [c.id, c]));
 
 export const CARDS_BY_FACTION: Record<FactionId, readonly CardDef[]> = {
   helix: CARDS.filter((c) => c.faction === 'helix'),

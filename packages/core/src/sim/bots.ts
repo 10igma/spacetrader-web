@@ -5,16 +5,16 @@
  */
 import { cardValue } from '../auction.ts';
 import { CONFIG } from '../config.ts';
-import { CARD_BY_ID, CARDS_BY_FACTION, FACTIONS, rarityRank, type FactionId } from '../content.ts';
+import { CARD_BY_ID, CARDS_BY_FACTION, FACTIONS, rarityRank, seasonCards, seasonOf, type FactionId } from '../content.ts';
 import { convoyChance, convoyStrength, MODULE_BY_ID, MODULE_MAX, SHIPS, type ModuleId } from '../fleet.ts';
-import { applyCommand, createInitialState, quote, toClientView, type ClientView, type Command, type GameState } from '../game.ts';
+import { applyCommand, createInitialState, forgeCost, quote, toClientView, type ClientView, type Command, type GameState } from '../game.ts';
 import { GOOD_BY_ID, isBanned, STATION_BY_ID, type GoodId } from '../world.ts';
 
 export type Policy = 'legal' | 'smuggler';
 
 const HOUR = 3_600_000;
 
-export interface DaySample { ship: number; modules: number; league: number; charter: number; charterPremium: boolean; posts: number; day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
+export interface DaySample { prestige: number; edition: number; ship: number; modules: number; league: number; charter: number; charterPremium: boolean; posts: number; day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
 
 interface Ctx { state: GameState; now: number; policy: Policy; log: Record<string, number> }
 
@@ -172,6 +172,9 @@ function housekeeping(ctx: Ctx, view: ClientView): ClientView {
   view.daily.missions.forEach((m, index) => { if (!m.claimed && m.progress >= m.target) view = act(ctx, { type: 'ClaimMission', index }); });
   if (!view.daily.chest.claimed && view.daily.chest.done === view.daily.chest.total) view = act(ctx, { type: 'ClaimChest' });
   for (const f of FACTION_LIST) while (view.albums[f].claimable) view = act(ctx, { type: 'ClaimAlbum', faction: f });
+  while (view.seasonAlbum.claimable) view = act(ctx, { type: 'ClaimSeasonAlbum' });
+  // Start over once the big ship is flown: the bonus is for good and the climb is the game.
+  if (view.captain.canPrestige && view.fleet.owned.includes('leviathan')) view = act(ctx, { type: 'Prestige' });
   if (view.daily.wheel.available) view = act(ctx, { type: 'SpinWheel' });
   if (view.posts.stored > 0) view = act(ctx, { type: 'CollectPosts' });
   // Read each manifest from the current view: handing one in can use up the copies another one needs.
@@ -216,6 +219,12 @@ function housekeeping(ctx: Ctx, view: ClientView): ClientView {
       .sort((a, b) => a.cost - b.cost);
     if (!seated[0] || seated[0].cost > view.wallet.shards) break;
     view = act(ctx, { type: 'UpgradeCard', cardId: seated[0].id });
+  }
+  // The season album has a deadline: forge its cheapest missing card first, once shards are plentiful.
+  for (let guard = 0; guard < 4; guard++) {
+    const missing = seasonCards(view.season.index).filter((c) => !view.collection[c.id]).sort((a, b) => forgeCost(a) - forgeCost(b))[0];
+    if (!missing || forgeCost(missing) * 1.5 > view.wallet.shards) break;
+    view = act(ctx, { type: 'ForgeCard', cardId: missing.id });
   }
   // Spare shards go into the album that is closest to its next milestone: forge the cheapest missing card.
   for (let guard = 0; guard < 10; guard++) {
@@ -289,8 +298,10 @@ export function simulate(seed: string, policy: Policy, days: number, sessionsPer
       profit: view.stats.profit,
       crates: view.crates.opened,
       level: view.profile.level,
-      cards: Object.keys(view.collection).length,
-      legends: Object.keys(view.collection).filter((id) => rarityRank(CARD_BY_ID.get(id)!.rarity) >= rarityRank('legend')).length,
+      cards: Object.keys(view.collection).filter((id) => seasonOf(id) === null).length,
+      edition: view.seasonAlbum.owned,
+      prestige: view.captain.prestige,
+      legends: Object.keys(view.collection).filter((id) => seasonOf(id) === null && rarityRank(CARD_BY_ID.get(id)!.rarity) >= rarityRank('legend')).length,
       quanta: view.wallet.quanta,
       posts: view.posts.list.reduce((sum, p) => sum + p.level, 0),
       league: view.league.tier,

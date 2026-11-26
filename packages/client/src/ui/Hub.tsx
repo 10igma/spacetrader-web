@@ -1,7 +1,7 @@
-import { CATEGORY_NAME, FACTIONS, GOOD_BY_ID, SHIP_BY_ID, STATION_BY_ID } from '@nova/core';
+import { CARD_BY_ID, CATEGORY_NAME, FACTIONS, GOOD_BY_ID, rarityRank, SHIP_BY_ID, STATION_BY_ID } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
-import { countdown, FACTION_COLOR, num } from './format.ts';
+import { countdown, FACTION_COLOR, longCountdown, num } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFuel, IconHangar, IconMarket } from './icons.tsx';
 
@@ -23,6 +23,29 @@ export function Hub() {
   // The ticker is the live local market, strongest deviations first.
   const movers = [...view.market].sort((a, b) => Math.abs(b.level - 1) - Math.abs(a.level - 1));
   const wanted = [...view.market].sort((a, b) => b.level - a.level)[0]!;
+
+  // News first: everything here is read from the game as it stands, nothing is made up.
+  const headlines: { label: string; text: string; tone: 'up' | 'down' | 'warn' }[] = [];
+  const { league, season, seasonAlbum, weekend } = view;
+  const ahead = league.rank > 1 ? league.standings[league.rank - 2] : undefined;
+  headlines.push({
+    label: `${league.tierName}-Liga`,
+    text: ahead ? `Platz ${league.rank} · ${num(Math.max(0, ahead.score - league.score))} hinter ${ahead.name}` : 'Platz 1 · du führst',
+    tone: league.rank <= league.promote ? 'up' : league.rank >= league.relegate ? 'down' : 'warn',
+  });
+  headlines.push({
+    label: 'Saison',
+    text: `${season.name} endet in ${longCountdown(season.endsAt - now)}${seasonAlbum.complete ? '' : ` · ${seasonAlbum.total - seasonAlbum.owned} Edition-Karten fehlen`}`,
+    tone: 'warn',
+  });
+  if (weekend.active) headlines.push({ label: 'Blockade-Lauf', text: `läuft noch ${longCountdown(weekend.endsAt - now)} · ${weekend.points} Punkte`, tone: 'down' });
+  else if (weekend.startsAt - now < 2 * 86_400_000) headlines.push({ label: 'Blockade-Lauf', text: `startet in ${longCountdown(weekend.startsAt - now)}`, tone: 'warn' });
+  for (const lot of view.auction.lots) {
+    const card = CARD_BY_ID.get(lot.cardId);
+    if (card && !lot.gone && lot.endsAt > now && rarityRank(card.rarity) >= rarityRank('legend')) headlines.push({ label: 'Auktion', text: `${card.name} · endet in ${longCountdown(lot.endsAt - now)}`, tone: 'up' });
+  }
+  const back = view.convoys.running.filter((c) => c.done).length;
+  if (back > 0) headlines.push({ label: 'Konvoi', text: back === 1 ? 'ist zurück' : `${back} sind zurück`, tone: 'up' });
 
   return (
     <section className="hub" style={{ ['--faction' as string]: FACTION_COLOR[station.faction] }}>
@@ -67,11 +90,16 @@ export function Hub() {
 
       <div className="ticker" aria-hidden="true">
         <div className="ticker__track">
-          {[...movers, ...movers].map((m, i) => (
-            <span key={i} className={`ticker__item ticker__item--${m.level >= 1 ? 'up' : 'down'}`}>
-              <b>{GOOD_BY_ID.get(m.goodId)!.name}</b>{m.level >= 1 ? '+' : '−'}{Math.abs(Math.round((m.level - 1) * 100))} %
-            </span>
-          ))}
+          {[0, 1].flatMap((half) => [
+            ...headlines.map((n, i) => (
+              <span key={`n${half}-${i}`} className={`ticker__item ticker__item--news ticker__item--${n.tone}`}><b>{n.label}</b>{n.text}</span>
+            )),
+            ...movers.slice(0, 8).map((m, i) => (
+              <span key={`m${half}-${i}`} className={`ticker__item ticker__item--${m.level >= 1 ? 'up' : 'down'}`}>
+                <b>{GOOD_BY_ID.get(m.goodId)!.name}</b>{m.level >= 1 ? '+' : '−'}{Math.abs(Math.round((m.level - 1) * 100))} %
+              </span>
+            )),
+          ])}
         </div>
       </div>
 

@@ -54,11 +54,11 @@ await mode('Konvois');
 await shot('105-convoys');
 await page.locator('.convoy--offer').last().tap(); await settle(800);
 await shot('106-convoy-sheet');
-await page.locator('.odds .link').tap(); await settle(500);
+await page.locator('.chance .link').tap(); await settle(500);
 await shot('107-convoy-team');
 await page.locator('.picker .cta').tap(); await settle(1000);
 await page.locator('.convoy--offer').first().tap(); await settle(700);
-await page.locator('.odds .link').tap(); await settle(400);
+await page.locator('.chance .link').tap(); await settle(400);
 await page.locator('.picker .cta').tap(); await settle(1000);
 await shot('108-convoys-running');
 // Let the short one come home: move its end into the past.

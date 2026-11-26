@@ -1,8 +1,8 @@
-import { CARD_BY_ID, CARDS, CONFIG, convoyChance, convoyStrength, FACTIONS, ROLES, type ConvoyOffer } from '@nova/core';
+import { CARD_BY_ID, CONFIG, convoyChance, convoyStrength, FACTIONS, ROLES, type ConvoyOffer } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
-import { FACTION_COLOR, longCountdown, RARITY_LABEL, rewardText } from './format.ts';
+import { FACTION_COLOR, longCountdown, ownedCards, RARITY_LABEL, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { Quanta } from './icons.tsx';
 
@@ -15,7 +15,7 @@ function ConvoySheet({ offer, onClose }: { offer: ConvoyOffer; onClose: () => vo
   const [team, setTeam] = useState<string[]>([]);
   const seated = new Set(Object.values(view.deck.seats).map((s) => s?.cardId));
   const levels = view.cardLevels;
-  const free = CARDS.filter((c) => view.collection[c.id] && !seated.has(c.id) && !view.convoys.busy.includes(c.id))
+  const free = ownedCards(view).filter((c) => !seated.has(c.id) && !view.convoys.busy.includes(c.id))
     .map((c) => ({ card: c, strength: convoyStrength(offer, c.id, levels[c.id] ?? 1) }))
     .sort((a, b) => b.strength - a.strength);
   const strength = team.reduce((sum, id) => sum + convoyStrength(offer, id, levels[id] ?? 1), 0);
@@ -34,7 +34,7 @@ function ConvoySheet({ offer, onClose }: { offer: ConvoyOffer; onClose: () => vo
         <p className="trade__note">
           Gesucht: {FACTIONS[offer.faction].name} (zählt 25 % mehr) und {ROLES[offer.role].name} (15 % mehr). Scheitert der Konvoi, kommen {Math.round(CONFIG.convoy.failShare * 100)} % der Credits zurück. Crew geht nie verloren.
         </p>
-        <div className={`odds${chance >= 0.9 ? ' is-good' : chance >= 0.6 ? '' : ' is-risky'}`}>
+        <div className={`chance${chance >= 0.9 ? ' is-good' : chance >= 0.6 ? '' : ' is-risky'}`}>
           <b>{Math.round(chance * 100)} %</b>
           <span>
             <div className="mission__bar"><i style={{ width: `${Math.min(1, strength / offer.need) * 100}%` }} /></div>

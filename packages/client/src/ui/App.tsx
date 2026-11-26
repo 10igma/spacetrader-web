@@ -1,4 +1,4 @@
-import { CARD_BY_ID, CONFIG, STATION_BY_ID, upgradeCost } from '@nova/core';
+import { CARD_BY_ID, CONFIG, forgeCost, STATION_BY_ID, upgradeCost } from '@nova/core';
 import { useEffect } from 'react';
 import { audio } from '../audio/engine.ts';
 import { stage } from '../stage/index.ts';
@@ -13,6 +13,7 @@ import { Market } from './Market.tsx';
 import { num } from './format.ts';
 import { Reveal } from './Reveal.tsx';
 import { RouteSheet } from './RouteSheet.tsx';
+import { ProfileSheet } from './Profile.tsx';
 import { PostSheet, SalvageSheet, WheelSheet } from './Sheets.tsx';
 import { Splash } from './Splash.tsx';
 import { TopBar } from './TopBar.tsx';
@@ -79,14 +80,17 @@ export function App() {
           {(() => {
             const owned = !!view.collection[inspected.id];
             const level = view.cardLevels[inspected.id] ?? 1;
-            const cost = owned ? upgradeCost(inspected, level) : CONFIG.cards.forge[inspected.rarity];
+            const expired = !owned && inspected.season !== undefined && inspected.season !== view.season.index;
+            const cost = owned ? upgradeCost(inspected, level) : forgeCost(inspected);
             const act = (): void => { audio.tap(); void send({ type: owned ? 'UpgradeCard' : 'ForgeCard', cardId: inspected.id }); };
             return (
               <div className="upcard" onClick={(e) => e.stopPropagation()}>
                 {owned
                   ? <span>Stufe <b>{level}</b> / {CONFIG.cards.maxLevel} · jede Stufe +{CONFIG.cards.statPerLevel} auf alle Werte</span>
-                  : <span>Fehlt in deiner Sammlung. Du findest sie in Containern oder schmiedest sie aus Splittern.</span>}
-                {cost === null ? <em>Maximal aufgewertet</em> : (
+                  : expired ? <span>Diese Karte gab es nur in ihrer Saison. Sie ist nicht mehr zu bekommen.</span>
+                    : inspected.season !== undefined ? <span>Saison-Edition: fällt nur diese Saison aus Containern (rund {Math.round(view.seasonAlbum.cardShare * 100)} % der seltenen und besseren Karten) oder lässt sich jetzt schmieden.</span>
+                      : <span>Fehlt in deiner Sammlung. Du findest sie in Containern oder schmiedest sie aus Splittern.</span>}
+                {expired ? null : cost === null ? <em>Maximal aufgewertet</em> : (
                   <button className="mission__btn" disabled={busy || view.wallet.shards < cost} onClick={act}>
                     {owned ? 'Aufwerten' : 'Schmieden'} · {num(cost)} Splitter
                   </button>
@@ -100,6 +104,7 @@ export function App() {
       {routesOpen && !travel && <RouteSheet />}
       {sheet === 'posts' && !travel && <PostSheet />}
       {sheet === 'wheel' && <WheelSheet />}
+      {sheet === 'profile' && !travel && <ProfileSheet />}
       {sheet === 'salvage' && !travel && <SalvageSheet />}
       {reveal && <Reveal pulls={reveal} />}
       {travel && <Travel travel={travel} />}

@@ -74,7 +74,7 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
   return (
     <div
       ref={ref}
-      className={`holo holo--${size} holo--${card.rarity}${locked ? ' is-locked' : ''}${CARD_ART.has(card.id) ? ' holo--painted' : ''}`}
+      className={`holo holo--${size} holo--${card.rarity}${locked ? ' is-locked' : ''}${CARD_ART.has(card.id) ? ' holo--painted' : ''}${card.season !== undefined ? ' holo--edition' : ''}`}
       style={{ ['--faction' as string]: FACTION_COLOR[card.faction] }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
@@ -103,6 +103,7 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
         <div className="holo__foil" />
         <div className="holo__glare" />
       </div>
+      {card.season !== undefined && <span className="holo__edition" title="Saison-Edition">S</span>}
       {count !== undefined && count > 1 && <span className="holo__count">×{count}</span>}
       {level > 1 && !locked && <span className="holo__level">{Array.from({ length: level - 1 }, (_, i) => <i key={i} />)}</span>}
     </div>
