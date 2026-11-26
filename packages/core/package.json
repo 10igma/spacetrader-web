@@ -1,6 +1,7 @@
 {
   "name": "@nova/core",
   "private": true,
+  "license": "GPL-3.0-only",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
