@@ -130,15 +130,15 @@ describe('crates', () => {
     expect(res.events[0]?.type).toBe('CrateOpened');
     s = res.state;
     expect(applyCommand(s, { type: 'ClaimFreeCrate' }, T0 + iv - 1).events).toEqual([{ type: 'CommandRejected', reason: 'free_crate_not_ready' }]);
-    expect(toClientView(s, T0 + iv - 1).crates.free).toEqual({ stock: 0, max: freeMax, nextAt: T0 + iv });
+    expect(toClientView(s, T0 + iv - 1).crates.free).toMatchObject({ stock: 0, max: freeMax, nextAt: T0 + iv });
     expect(toClientView(s, T0 + iv).crates.free.stock).toBe(1);
     // Away for a week: still only the limit is waiting.
     const later = T0 + 7 * 24 * 3_600_000;
-    expect(toClientView(s, later).crates.free).toEqual({ stock: freeMax, max: freeMax, nextAt: null });
+    expect(toClientView(s, later).crates.free).toMatchObject({ stock: freeMax, max: freeMax, nextAt: null });
     res = applyCommand(s, { type: 'ClaimFreeCrate' }, later);
     s = res.state;
     // Taking one starts the timer again from now, not from the past.
-    expect(toClientView(s, later).crates.free).toEqual({ stock: freeMax - 1, max: freeMax, nextAt: later + iv });
+    expect(toClientView(s, later).crates.free).toMatchObject({ stock: freeMax - 1, max: freeMax, nextAt: later + iv });
   });
 });
 
@@ -148,8 +148,8 @@ describe('fuel and view', () => {
     s.fuel.amount = 1;
     const { regenMs, max } = CONFIG.fuel;
     expect(toClientView(s, T0 + regenMs - 1).fuel.amount).toBe(1);
-    expect(toClientView(s, T0 + regenMs * 2.5).fuel).toEqual({ amount: 3, max, nextAt: T0 + regenMs * 3 });
-    expect(toClientView(s, T0 + regenMs * 99).fuel).toEqual({ amount: max, max, nextAt: null });
+    expect(toClientView(s, T0 + regenMs * 2.5).fuel).toMatchObject({ amount: 3, max, nextAt: T0 + regenMs * 3 });
+    expect(toClientView(s, T0 + regenMs * 99).fuel).toMatchObject({ amount: max, max, nextAt: null });
   });
 
   it('client view never contains RNG state', () => {

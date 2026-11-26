@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Projekt Nova</string>
+    <string name="title_activity_main">Projekt Nova</string>
+    <string name="package_name">app.projektnova.game</string>
+    <string name="custom_url_scheme">app.projektnova.game</string>
+</resources>

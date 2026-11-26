@@ -7,6 +7,8 @@ const single = process.env.SINGLE === '1';
 
 export default defineConfig({
   base: './',
+  // The single-file preview has no files beside it: no service worker there.
+  define: { 'import.meta.env.VITE_SINGLE': JSON.stringify(single ? '1' : '') },
   plugins: [react(), ...(single ? [viteSingleFile()] : [])],
   build: {
     target: 'es2022',

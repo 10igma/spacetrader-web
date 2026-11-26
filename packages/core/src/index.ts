@@ -8,4 +8,6 @@ export * from './season.ts';
 export * from './fleet.ts';
 export * from './profile.ts';
 export * from './game.ts';
+export * from './save.ts';
+export * from './reminders.ts';
 export * from './service.ts';

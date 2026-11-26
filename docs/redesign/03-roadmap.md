@@ -36,11 +36,13 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Profil: 11 Titel für Leistungen plus einer pro Saison, 6 Lackierungen (2 gegen Quanten, 4 verdient), Schaukasten mit 3 Karten | fertig | Tests: nichts davon ändert eine Zahl, Gesperrtes lässt sich nicht setzen |
 | Prestige ab Stufe 22, bis Rang 5: Stufe, Credits, Schiffe, Module und Posten weg, dafür 3 % besserer Verkaufspreis auf Dauer pro Rang | fertig | Tests: was geht, was bleibt, Bonus wirkt im Markt, Obergrenze |
 | Ticker auf der Station: Liga-Abstand zum Vordermann, Saisonende und fehlende Edition-Karten, Event, Legenden im Auktionshaus, Konvois | fertig | Liest nur den echten Spielstand, keine erfundenen Meldungen |
+| Mobile-Hülle (Phase 5): Android-Projekt baut zu einer installierbaren App, iOS-Projekt angelegt, Icon und Startbild, Haptik, lokale Erinnerungen mit Opt-in und Nachtruhe, Zurück-Taste, installierbare Web-App. Details in Dokument 05 | fertig bis auf Gerätetest | App hier gebaut und ihr Inhalt geprüft, 7 Tests, Durchlauf im Browser. Nicht auf einem Gerät gestartet |
+| Spielstand übersteht Regeländerungen: Ältere Stände werden übernommen, neue Systeme starten leer | fertig | Tests und Durchlauf mit einem alten Spielstand |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
 | Bot-Simulation | fertig | Zwei Spielertypen, je 10 Spieler über 90 Tage, dazu Leitplanken-Test |
 | Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus 16 gegen Werft und Konvois und 14 gegen Saison-Album, Titel, Lackierungen und Prestige |
-| Bühne, UI, Musik und Effekte | fertig | Neun automatische Durchläufe ohne Konsolenfehler |
+| Bühne, UI, Musik und Effekte | fertig | Zehn automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
@@ -98,9 +100,10 @@ Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lasse
 - **Schiffe sind Umrisse.** Die sechs Schiffe haben einfache Vektor-Silhouetten, keine gemalte Kunst, und fliegen noch nicht sichtbar durch die Warp-Szene.
 - **Kartenkunst.** Die 10 höchsten Karten sind gemalt, 120 zeigen Helme. Vorgehen in Dokument 04.
 - **Tages- und Wochengrenze.** Mitternacht und Montag nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
-- **Push-Nachrichten fehlen.** Serie in Gefahr und volle Lager wirken erst mit Erinnerung richtig (Phase 5).
+- **Erinnerungen sind lokal.** Sie werden auf dem Gerät geplant, wenn die App in den Hintergrund geht. Was erst danach passiert (zum Beispiel ein überbotenes Gebot), kann die App nicht melden. Dafür braucht es einen Server.
+- **Gerätetest steht aus.** Die Android-App ist gebaut, aber nicht auf einem Gerät gelaufen. iOS braucht einen Mac.
 - **Aus Phase 2:** Lizenzen, gefälschte Papiere, Veredelung, Versicherung. Verstecke gibt es jetzt als Modul Schmuggelfach.
-- **Speicherstand.** Im Offline-Modus lokal, bei Regeländerungen wird er verworfen. Der Server hält Sitzungen nur im Arbeitsspeicher.
+- **Speicherstand.** Im Offline-Modus lokal auf dem Gerät. Wer die App löscht, verliert ihn: Ein Konto mit Cloud-Speicher fehlt. Der Server hält Sitzungen nur im Arbeitsspeicher.
 
 ## Prinzipien
 
@@ -251,9 +254,6 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-Die Spielschleife ist inhaltlich vollständig. Zur Wahl stehen:
-
-1. **Phase 5 (meine Empfehlung):** Capacitor-Hülle, Push-Nachrichten (Konvoi zurück, Serie in Gefahr, Lager voll, Saison endet), Haptik, Test auf echten Geräten. Erst auf dem Handy zeigt sich, ob Bildrate, Klang und Bedienung halten.
-2. **Kunst:** gemalte Porträts für die 20 Elite-Karten und die Saison-Legenden, gemalte Schiffe.
-3. **Backend für echte Mitspieler:** Konten, Datenbank, echte Liga und echter Kartenmarkt.
-4. **Rest aus Phase 2:** Lizenzen, gefälschte Papiere, Veredelung, Versicherung.
+1. **Gerätetest** (deine Seite): die Android-App installieren und spielen. Was dabei auffällt, fliesst in die Design-Runde.
+2. **Design-Runde** (vereinbart): Optik und Bedienung Bildschirm für Bildschirm durchgehen, mit dem Gerät in der Hand.
+3. Danach zur Wahl: gemalte Kunst für Elite-Karten, Saison-Legenden und Schiffe, das Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.

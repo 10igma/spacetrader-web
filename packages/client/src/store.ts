@@ -1,4 +1,8 @@
 import { MODULE_BY_ID, SHIP_BY_ID } from '@nova/core';
+import { setHaptics } from './native/haptics.ts';
+import { askForReminders, syncReminders } from './native/reminders.ts';
+import { loadSettings, saveSettings, type DeviceSettings } from './native/settings.ts';
+import { askForMotion } from './native/shell.ts';
 import type { ClientView, Command, GameEvent, GameService, Pull, RejectReason, Reward, SalvageKind, StationId } from '@nova/core';
 import { create } from 'zustand';
 import { audio } from './audio/engine.ts';
@@ -93,6 +97,15 @@ interface AppState {
   setRoutesOpen(open: boolean): void;
   setSheet(sheet: Sheet): void;
   setInspect(cardId: string | null): void;
+  /** Device choices: haptics and reminders. */
+  settings: DeviceSettings;
+  setHapticsOn(on: boolean): void;
+  /** Turning reminders on asks the system for permission. Resolves to whether they are on now. */
+  setRemindersOn(on: boolean): Promise<boolean>;
+  /** Android back button: close what is on top. False when nothing was open. */
+  back(): boolean;
+  /** Time has passed while the app was away: fetch the game as it stands now. */
+  refresh(): Promise<void>;
   showToast(text: string, tone?: 'bad' | 'good'): void;
 }
 
@@ -134,6 +147,7 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const { view, events } = await get().service.send(cmd);
       set({ view, clockOffset: view.serverTime - Date.now() });
+      syncReminders(view, get().settings.reminders);
       // Wheel and salvage show their own result: no toast may give it away early.
       // A charter claim sums up many rewards in one line.
       const staged = events.some((e) => e.type === 'WheelSpun' || e.type === 'SalvageOpened' || e.type === 'CharterClaimed' || e.type === 'ConvoyReturned');
@@ -218,7 +232,44 @@ export const useApp = create<AppState>((set, get) => ({
   endTravel() { set({ travel: null, tab: 'market' }); },
   setRoutesOpen(open) { set({ routesOpen: open }); },
   setSheet(sheet) { set(sheet === null ? { sheet, wheel: null, salvageResult: null } : { sheet }); },
-  setInspect(cardId) { set({ inspect: cardId }); },
+  setInspect(cardId) {
+    // Cards tilt with the device. iOS only allows that after asking, and only from a tap like this one.
+    if (cardId) askForMotion();
+    set({ inspect: cardId });
+  },
+  settings: loadSettings(),
+  setHapticsOn(on) {
+    const settings = { ...get().settings, haptics: on };
+    setHaptics(on);
+    saveSettings(settings);
+    set({ settings });
+  },
+  async setRemindersOn(on) {
+    const granted = on ? await askForReminders() : false;
+    const settings = { ...get().settings, reminders: granted };
+    saveSettings(settings);
+    set({ settings });
+    const view = get().view;
+    if (view) syncReminders(view, granted, true);
+    return granted;
+  },
+  back() {
+    const s = get();
+    // Reveals and encounters are moments the game owns: back does not skip them.
+    if (s.reveal || s.travel) return true;
+    if (s.inspect) { set({ inspect: null }); return true; }
+    if (s.sheet) { set({ sheet: null }); return true; }
+    if (s.routesOpen) { set({ routesOpen: false }); return true; }
+    if (s.tab !== 'station') { set({ tab: 'station' }); return true; }
+    return false;
+  },
+  async refresh() {
+    if (!get().started || get().busy || get().travel) return;
+    try {
+      const view = await get().service.connect();
+      set({ view, clockOffset: view.serverTime - Date.now() });
+    } catch { /* offline: the last view stays */ }
+  },
   showToast(text, tone = 'bad') {
     toastQueue.push({ text, tone });
     if (get().toast) return;

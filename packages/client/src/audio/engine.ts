@@ -3,6 +3,7 @@
  * No samples, no licences, a few kilobytes. Everything is in D so that
  * reveal stingers always resolve musically against the bed.
  */
+import { haptic } from '../native/haptics.ts';
 
 const midi = (n: number): number => 440 * 2 ** ((n - 69) / 12);
 
@@ -204,6 +205,7 @@ export class AudioEngine {
   // ---- effects -------------------------------------------------------------
 
   tap(): void {
+    haptic('tap');
     const ctx = this.ctx;
     if (!ctx) return;
     const t = ctx.currentTime;
@@ -220,6 +222,7 @@ export class AudioEngine {
   }
 
   deny(): void {
+    haptic('warn');
     const ctx = this.ctx;
     if (!ctx) return;
     const t = ctx.currentTime;
@@ -239,6 +242,7 @@ export class AudioEngine {
 
   /** Engines spooling up, then the long rush. */
   warp(seconds = 2.4): void {
+    haptic('warp');
     const ctx = this.ctx;
     if (!ctx) return;
     const t = ctx.currentTime;
@@ -276,6 +280,7 @@ export class AudioEngine {
 
   /** Two-tone alarm. Pirates get the harsher interval. */
   alert(kind: 'pirates' | 'customs'): void {
+    haptic('warn');
     const ctx = this.ctx;
     if (!ctx) return;
     const t = ctx.currentTime;
@@ -302,6 +307,7 @@ export class AudioEngine {
 
   /** Coins: more of them for a bigger sale, always landing on the root. */
   coins(amount: number): void {
+    haptic('coins');
     const ctx = this.ctx;
     if (!ctx) return;
     const t = ctx.currentTime;
@@ -314,6 +320,7 @@ export class AudioEngine {
 
   /** Something went wrong and it cost you. */
   loss(): void {
+    haptic('loss');
     const ctx = this.ctx;
     if (!ctx) return;
     const t = ctx.currentTime;
@@ -380,6 +387,7 @@ export class AudioEngine {
 
   /** The payoff. Bigger, brighter and longer with every rank. */
   reveal(rank: Rank): void {
+    haptic(`reveal${rank}`);
     const ctx = this.ctx;
     if (!ctx) return;
     const t = ctx.currentTime;

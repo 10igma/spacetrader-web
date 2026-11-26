@@ -1,5 +1,5 @@
 import {
-  applyCommand, createInitialState, STATE_VERSION, toClientView,
+  applyCommand, createInitialState, toClientView, upgradeSave,
   type ClientView, type Command, type CommandResult, type GameService, type GameState,
 } from '@nova/core';
 
@@ -24,12 +24,14 @@ export class LocalGameService implements GameService {
 
   async connect(): Promise<ClientView> {
     const now = Date.now();
+    // Already running: this is a refresh after time has passed, not a new start.
+    if (this.state) return toClientView(this.state, now);
     const saved = storageGet(SAVE_KEY);
     let state: GameState | null = null;
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as GameState;
-        if (parsed.version === STATE_VERSION) state = parsed;
+        // Saves from older versions of the rules are carried over, not thrown away.
+        state = upgradeSave(JSON.parse(saved), now);
       } catch { /* corrupt save: start fresh */ }
     }
     // Dev aid for the offline host only: ?seed=x starts a fresh, reproducible game.

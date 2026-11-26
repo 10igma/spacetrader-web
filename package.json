@@ -10,6 +10,9 @@
     "test": "pnpm --filter @nova/core test",
     "typecheck": "pnpm -r typecheck",
     "shots": "node tools/shots/shots.mjs",
-    "balance": "pnpm --filter @nova/core balance"
+    "balance": "pnpm --filter @nova/core balance",
+    "mobile:assets": "node tools/mobile/assets.mjs",
+    "mobile:sync": "pnpm --filter @nova/client build && pnpm --filter @nova/client exec cap sync",
+    "android:apk": "pnpm mobile:sync && cd packages/client/android && ./gradlew assembleDebug"
   }
 }

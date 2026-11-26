@@ -190,9 +190,9 @@ export interface ClientView {
   serverTime: number;
   profile: { level: number; xp: number };
   wallet: { credits: number; quanta: number; shards: number };
-  fuel: { amount: number; max: number; nextAt: number | null };
+  fuel: { amount: number; max: number; nextAt: number | null; /** When the tank is full, or null if it is. */ fullAt: number | null };
   crates: {
-    free: { stock: number; max: number; nextAt: number | null };
+    free: { stock: number; max: number; intervalMs: number; nextAt: number | null };
     tiers: Record<CrateTier, { currency: 'credits' | 'quanta'; price: number; nextPrice: number; cards: number; floor: Rarity; odds: Record<Rarity, number>; unlockMs: number; dailyLimit: number; leftToday: number }>;
     opened: number;
     pityElite: { current: number; max: number };
@@ -1875,9 +1875,13 @@ export function toClientView(state: GameState, now: number): ClientView {
     serverTime: now,
     profile: s.profile,
     wallet: s.wallet,
-    fuel: { amount: s.fuel.amount, max, nextAt: s.fuel.amount >= max ? null : s.fuel.updatedAt + regenMs },
+    fuel: {
+      amount: s.fuel.amount, max,
+      nextAt: s.fuel.amount >= max ? null : s.fuel.updatedAt + regenMs,
+      fullAt: s.fuel.amount >= max ? null : s.fuel.updatedAt + (max - s.fuel.amount) * regenMs,
+    },
     crates: {
-      free: { stock: s.crates.freeStock, max: CONFIG.crate.freeMax, nextAt: s.crates.freeStock >= CONFIG.crate.freeMax ? null : s.crates.freeAt },
+      free: { stock: s.crates.freeStock, max: CONFIG.crate.freeMax, intervalMs: CONFIG.crate.freeIntervalMs, nextAt: s.crates.freeStock >= CONFIG.crate.freeMax ? null : s.crates.freeAt },
       tiers: Object.fromEntries(CRATE_TIERS.map((tier) => {
         const cfg = CONFIG.crate.tiers[tier];
         return [tier, {
