@@ -30,9 +30,8 @@ await shot('03-hangar');
 await page.locator('.cta').tap();
 await settle(700);
 await shot('04a-reveal-crate');
-await page.waitForSelector('.reveal__flash', { timeout: 5000 });
-await settle(120);
-await shot('04b-reveal-crack');
+// The crack lasts half a second: at large sizes the screenshot before it can take longer than that.
+if (await page.waitForSelector('.reveal__flash', { timeout: 2500 }).then(() => true, () => false)) await shot('04b-reveal-crack');
 await page.waitForSelector('.reveal__count', { timeout: 5000 });
 await settle(300);
 await shot('04-reveal-charge');

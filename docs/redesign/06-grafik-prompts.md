@@ -15,7 +15,7 @@ Was das Spiel schon hat: gemalte Porträts für die zehn höchsten Karten (`c21`
 5. In Originalgrösse herunterladen und **exakt nach Tabelle benennen** (zum Beispiel `g008.png`, `leviathan.png`).
 6. Dateien in dieser Sitzung hochladen oder ins Repository nach `art-inbox/<Paket>/` legen. Zuschneiden, Umwandeln in WebP und Einbauen übernehme ich. Jedes Bild hat einen Rückfall: Fehlt eine Datei, zeigt das Spiel das bisherige Bild.
 
-**Stand der Lieferung (26.11.2026):** Pakete A, B, C und D sind geliefert und eingebaut, 35 von 36 Bildern. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
+**Stand der Lieferung (26.11.2026):** Pakete A, B, C, D und J sind geliefert und eingebaut, 58 von 59 Bildern. Offen sind E, F, G, H und I. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
 
 **Reihenfolge und Umfang**
 
@@ -470,7 +470,7 @@ Dateinamen aus Anfang und Endung, zum Beispiel `helix-smuggler.png`, `zenit-pilo
 | `quanta.png` | A cut diamond-shaped energy crystal glowing bright cyan from within |
 | `shards.png` | A small heap of sharp violet crystal shards with a soft inner glow |
 
-**Stand (26.11.2026):** 15 von 20 Archetypen und alle 3 Währungen sind geliefert. Es fehlen `asche-gunner`, `helix-smuggler`, `zenit-trader`, `zenit-tech` und `zenit-gunner`. Der Text für Zenit oben ist angepasst, damit die Rüstungen nicht an bekannte Film-Rüstungen erinnern: bitte für die drei fehlenden Zenit-Bilder den neuen Text verwenden.
+**Stand (26.11.2026):** Alle 20 Archetypen und die 3 Währungen sind geliefert und eingebaut. Weil sich je fünf Karten ein Bild teilen, zeigt das Spiel es pro Karte leicht anders: gespiegelt oder nicht, mit anderem Ausschnitt und feiner Farbverschiebung.
 
 **Abnahme:** Kein Archetyp zeigt ein erkennbares Gesicht. Fraktion an Farbe und Kleidung, Rolle an der Silhouette erkennbar. Alle 20 im selben Stil.
 

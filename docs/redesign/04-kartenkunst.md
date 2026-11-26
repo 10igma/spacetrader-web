@@ -21,6 +21,8 @@ Die Holo-Folie spart bei gemalten Karten das Gesicht aus, damit die Hautfarbe ni
 
 **Nachtrag 26.11.2026:** Dazu kommen 19 der 20 Elite-Karten und die sechs hohen Karten der Saison "Glut über Varn" (`s495-07` bis `s495-12`), erzeugt nach Dokument 06. Damit haben 35 Karten ein gemaltes Porträt. Die neuen Bilder sind eine Spur grafischer als die ersten zehn Legenden, im Spiel fällt das nebeneinander kaum auf.
 
+Die 100 seltenen und Standard-Karten zeigen seit demselben Tag einen von 20 Archetypen (einer pro Fraktion und Rolle, Gesicht verdeckt). Der prozedurale Helm erscheint nur noch, wenn ein Bild fehlt, zurzeit bei `g094`.
+
 Alle zehn Legenden und Singularitäten haben ein gemaltes Porträt aus Gemini: `c21` bis `c30`. Übersicht in `preview/42-painted-legends.jpg`. Der Stil hält über alle zehn, die Lichtfarbe trennt die Fraktionen auf einen Blick (cyan, orange, magenta, weissblau).
 
 Bei gemalten Singularitäten wandert nur die Folie durch das Farbspektrum, das Bild selbst behält seine Farben.

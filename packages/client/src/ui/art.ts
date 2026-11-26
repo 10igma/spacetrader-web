@@ -22,8 +22,9 @@ export const art = (group: string, name: string): string | undefined => ART.get(
  * What a card shows: its own portrait if it has one. Standard and rare cards without one share
  * the archetype of their faction and role. Everything else keeps the procedural avatar.
  */
-export function cardArt(card: CardDef): string | undefined {
+export function cardArt(card: CardDef): { src: string; shared: boolean } | undefined {
   const own = CARD_ART.get(card.id);
-  if (own) return own;
-  return card.rarity === 'standard' || card.rarity === 'rare' ? art('archetypes', `${card.faction}-${card.role}`) : undefined;
+  if (own) return { src: own, shared: false };
+  const archetype = card.rarity === 'standard' || card.rarity === 'rare' ? art('archetypes', `${card.faction}-${card.role}`) : undefined;
+  return archetype ? { src: archetype, shared: true } : undefined;
 }

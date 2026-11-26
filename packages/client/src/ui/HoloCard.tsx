@@ -2,7 +2,7 @@ import { FACTIONS, ROLES, type CardDef } from '@nova/core';
 import { useEffect, useRef } from 'react';
 import { Avatar } from './Avatar.tsx';
 import { cardArt } from './art.ts';
-import { FACTION_COLOR, RARITY_LABEL } from './format.ts';
+import { FACTION_COLOR, hashString, RARITY_LABEL } from './format.ts';
 
 interface Props {
   card: CardDef;
@@ -29,6 +29,15 @@ if (typeof window !== 'undefined') {
 export function HoloCard({ card, size = 'lg', interactive = false, locked = false, count, level = 1, onClick }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const painted = cardArt(card);
+  // Five cards share one archetype picture. Each shows it a little differently, always the same way
+  // for the same card: mirrored or not, a slightly different crop and tint.
+  const seed = hashString(card.id);
+  const variation = painted?.shared ? {
+    ['--flip' as string]: seed % 2 ? -1 : 1,
+    ['--zoom' as string]: 1 + ((seed >> 3) % 4) * 0.045,
+    ['--pos' as string]: `${42 + ((seed >> 6) % 5) * 5}%`,
+    ['--hue' as string]: `${((seed >> 9) % 5 - 2) * 7}deg`,
+  } : undefined;
 
   useEffect(() => {
     const el = ref.current;
@@ -82,7 +91,7 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
     >
       <div className="holo__body">
         <div className={`holo__art${painted ? ' holo__art--painted' : ''}`}>
-          {painted ? <img className="holo__img" src={painted} alt="" draggable={false} /> : <Avatar card={card} />}
+          {painted ? <img className={`holo__img${painted.shared ? ' holo__img--shared' : ''}`} style={variation} src={painted.src} alt="" draggable={false} /> : <Avatar card={card} />}
         </div>
         <div className="holo__head">
           <span className="holo__rating">{locked ? '??' : card.rating}</span>
