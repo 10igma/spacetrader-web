@@ -15,7 +15,7 @@ const settle = (ms) => page.waitForTimeout(ms);
 const tab = async (name) => { await page.locator('.nav__item', { hasText: name }).tap(); await settle(1200); };
 const mode = async (name) => { await page.locator('.segment button', { hasText: name }).tap(); await settle(900); };
 const start = async (query) => {
-  await page.goto(`http://localhost:5173/?q=high${query}`);
+  await page.goto(`http://localhost:5173/?q=high&calm=1${query}`);
   await settle(2000);
   await page.locator('.splash').tap(); await settle(1500);
 };

@@ -28,9 +28,10 @@ Was das Spiel schon hat: gemalte Porträts für die zehn höchsten Karten (`c21`
 | G | Module | 6 | Mittel |
 | H | Embleme und Abzeichen | 10 | Mittel |
 | I | Saison-Banner, Event, Titelbild | 7 | Mittel, das Titelbild braucht es für die Stores |
-| K | Optional: Saison-Karten "Zenit unter Verdacht", seltene Karten | 6 und 40 | Niedrig |
+| J | Archetypen für seltene und Standard-Karten, Währungen | 23 | Hoch: beendet den Eindruck, 100 Karten zeigten denselben Helm |
+| K | Optional: Saison-Karten "Zenit unter Verdacht", Stationen | 6 und 8 | Niedrig |
 
-Standard-Karten (60) behalten bewusst den prozeduralen Helm. Der Abstand macht die hohen Seltenheiten begehrter.
+Seltene und Standard-Karten (100) bekommen keine Einzelporträts. Sie teilen sich 20 Archetypen aus Paket J, einen pro Fraktion und Rolle. Der Abstand zu Elite und Legende bleibt damit sichtbar.
 
 ---
 
@@ -100,6 +101,7 @@ No text, no letters, no numbers, no logo, no frame, no border, no watermark.
 | Begegnungen | 3:2 quer | 1536 x 1024 | gemalte Szene | `pirates-1.png` usw. |
 | Waren, Module | 1:1 | 1024 x 1024 | reines Schwarz | `<Waren-ID>.png` |
 | Embleme | 1:1 | 1024 x 1024 | reines Schwarz, Motiv reinweiss | `<Fraktion>.png` |
+| Archetypen | 4:5 hoch | 1024 x 1280 | gemalte Szene | `<Fraktion>-<Rolle>.png` |
 | Liga-Abzeichen | 1:1 | 1024 x 1024 | reines Schwarz | `bronze.png` usw. |
 | Banner | 3:1 quer | 1536 x 512 | gemalte Szene | `season-0.png` usw. |
 | Titelbild | 9:16 hoch | 1080 x 1920 | gemalte Szene | `keyart.png` |
@@ -424,6 +426,52 @@ Dasselbe Motiv zusätzlich quer für den Play Store (1024 x 500): denselben Prom
 
 ---
 
+## Paket J: Archetypen und Währungen (23 Bilder)
+
+**Archetypen (20):** ein Brustbild pro Fraktion und Rolle. Jede seltene und jede Standard-Karte dieser Kombination zeigt es. **Ordner:** `art-inbox/archetypes/`.
+
+Bewusst einfacher als die Porträts: Gesicht verdeckt oder im Schatten, damit fünf Karten dasselbe Bild tragen können, ohne dass es wie dieselbe Person wirkt.
+
+```
+Bust portrait of an anonymous sci-fi crew member for a collectible trading card, chest up,
+subject placed slightly right of centre, dark empty space in the top-left corner.
+[ROLLE], [FRAKTION]. Face hidden by a helmet visor, mask or deep shadow, no recognisable
+facial features.
+Background: [ORT], heavily blurred. Strong [LICHTFARBE] rim light from the left, dim amber
+key light from the right. Graphic painterly illustration, simplified shapes, limited palette,
+dark overall, less detailed than a hero portrait.
+No text, no letters, no numbers, no logo, no frame, no border, no watermark.
+```
+
+| Rolle | Text für [ROLLE] | Dateiendung |
+|---|---|---|
+| Pilot | A pilot in a flight suit with a closed flight helmet and a tinted visor | `-pilot` |
+| Händler | A trader in a high-collared coat, hood up, a small glowing ledger tablet in hand | `-trader` |
+| Technik | A technician in a work suit with a welding mask and tool harness | `-tech` |
+| Kanonier | A gunner in combat armour with a full-face tactical helmet | `-gunner` |
+| Schmuggel | A smuggler in a cloak with a scarf mask and goggles | `-smuggler` |
+
+| Fraktion | Text für [FRAKTION] | Ort | Lichtfarbe | Dateianfang |
+|---|---|---|---|---|
+| Tessera | practical mixed gear in teal and grey of a free merchant guild | a trade station concourse | cyan | `tessera` |
+| Aschenorden | heavy scorched gear in charcoal and rust of a shipyard order | a shipyard foundry with sparks | orange | `asche` |
+| Helix | sleek dark gear with thin neon seams of a smuggling cartel | a neon night market in haze | magenta | `helix` |
+| Zenit | spotless white and grey corporate gear | a glass corporate tower | cool white-blue | `zenit` |
+
+Dateinamen aus Anfang und Endung, zum Beispiel `helix-smuggler.png`, `zenit-pilot.png`. Das ergibt 4 mal 5 Bilder.
+
+**Währungen (3):** für Belohnungsmomente und den Charter. **Ordner:** `art-inbox/currency/`. Vorlage aus Paket F.
+
+| Datei | Gegenstand |
+|---|---|
+| `credits.png` | A stack of three hexagonal credit chips of brushed gold with a faint amber glow |
+| `quanta.png` | A cut diamond-shaped energy crystal glowing bright cyan from within |
+| `shards.png` | A small heap of sharp violet crystal shards with a soft inner glow |
+
+**Abnahme:** Kein Archetyp zeigt ein erkennbares Gesicht. Fraktion an Farbe und Kleidung, Rolle an der Silhouette erkennbar. Alle 20 im selben Stil.
+
+---
+
 ## Paket K (optional)
 
 **Saison-Karten "Zenit unter Verdacht"** (die Saison endet in wenigen Tagen, lohnt nur fürs Archiv). Karten-Vorlage aus Paket C, Hintergrund-Thema: Konzernturm unter Ermittlung, rote Warnlichter in sterilem Weiss.
@@ -437,7 +485,26 @@ Dasselbe Motiv zusätzlich quer für den Play Store (1024 x 500): denselben Prom
 | `s494-09.png` | Vito Oduya, Datenforensiker (Elite, Händler, Helix) | A sharp data forensics expert in his thirties, dark skin, cropped hair, translucent data gloves, strings of magenta code reflected on his face | magenta |
 | `s494-10.png` | Tamsin Juhl, Verbindungsfrau (Elite, Technik, Zenit) | A discreet liaison in her forties, pale blonde chignon, grey suit, a small encrypted communicator held to her lips | cool white-blue |
 
-**Seltene Karten (40):** erst sinnvoll, wenn Paket D abgenommen ist. Dann erstelle ich die Prompts aus der Kartenliste.
+**Stationen (8):** eine Raumstation als Vordergrund vor dem Planeten auf der Stationsseite. 4:3 quer, reines Schwarz, `art-inbox/stations/`.
+
+```
+A sci-fi space station seen from a distance in space, three-quarter view, perfectly centred,
+the whole structure visible with a clear margin. [STATION].
+Painterly digital illustration with crisp edges, strong rim light, many tiny lit windows,
+highly detailed. Pure black background, nothing else in the image, no stars, no planet.
+No text, no letters, no numbers, no logo, no frame, no border, no watermark.
+```
+
+| Datei | Station |
+|---|---|
+| `meridian.png` | A bright bustling free-trade ring station with docking arms and teal lights |
+| `kessin.png` | A sprawling orbital shipyard with half-built hulls in scaffolds, orange welding sparks |
+| `helixtor.png` | A dark tower-like cartel harbour wrapped in magenta neon bands |
+| `zenit.png` | An immaculate white corporate spire with clean blue-white light lines |
+| `varn.png` | A mining platform bolted to a broken asteroid, furnace glow from inside |
+| `lumen.png` | A wide floating anchorage of tethered trade ships and turquoise beacon lights |
+| `corvus.png` | A patched-together black market hideout built into a derelict hull, violet lights |
+| `aurel.png` | An elegant golden residential habitat with glass domes and warm lights |
 
 ---
 

@@ -7,6 +7,7 @@ import { useServerNow } from './hooks.ts';
 import { IconFlame, Quanta } from './icons.tsx';
 import { League } from './League.tsx';
 import { Season } from './Season.tsx';
+import { SpendButton } from './Spend.tsx';
 
 const STREAK_TEXT = {
   none: 'Spring heute einmal, um eine Serie zu starten.',
@@ -37,18 +38,18 @@ function Today() {
         </button>
       )}
 
-      <div className={`streak streak--${streak.status}`}>
+      <div className={`streak streak--${streak.status}${streak.status === 'atRisk' && streak.endsAt - now < 3 * 3_600_000 ? ' is-urgent' : ''}`}>
         <div className="streak__flame"><IconFlame /><b>{streak.count}</b></div>
         <div className="streak__main">
           <b>Handelsserie{streak.count > 0 ? ` · +${Math.round(streak.bonus * 100)} % Verkaufspreis` : ''}</b>
           <span>{STREAK_TEXT[streak.status]}</span>
           {streak.status === 'atRisk' && <span className="streak__clock">Noch {countdown(streak.endsAt - now)}</span>}
         </div>
-        <button className="streak__freeze" disabled={busy || streak.freezes >= streak.maxFreezes || view.wallet.quanta < streak.freezePrice} onClick={tap(() => void send({ type: 'BuyFreeze' }))}>
+        <SpendButton className="streak__freeze" disabled={busy || streak.freezes >= streak.maxFreezes || view.wallet.quanta < streak.freezePrice} onSpend={() => void send({ type: 'BuyFreeze' })} confirm={<><span>Kaufen?</span><small><Quanta />{streak.freezePrice}</small></>}>
           <b>{streak.freezes}<small> / {streak.maxFreezes}</small></b>
           <span>Urlaubsschein</span>
           <small><Quanta />{streak.freezePrice}</small>
-        </button>
+        </SpendButton>
       </div>
 
       <button className={`wheelcard${daily.wheel.available ? ' wheelcard--ready' : ''}`} onClick={tap(() => setSheet('wheel'))}>
@@ -61,7 +62,7 @@ function Today() {
       </button>
 
       <h4 className="market__section">Login-Kalender<span>{calendar.claimable ? 'Heute abholbar' : 'Morgen wieder'}</span></h4>
-      <div className="calendar">
+      <div className="calendar" ref={(el) => { el?.querySelector('.cal--today, .cal--next')?.scrollIntoView({ inline: 'center', block: 'nearest' }); }}>
         {calendar.rewards.map((r, i) => {
           const state = i < doneCount ? 'done' : i === doneCount ? (calendar.claimable ? 'today' : 'next') : 'future';
           return (

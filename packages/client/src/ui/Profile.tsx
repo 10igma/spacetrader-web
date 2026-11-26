@@ -1,5 +1,5 @@
 import { CARD_BY_ID, CONFIG, rarityRank, type CardDef } from '@nova/core';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { HoloCard } from './HoloCard.tsx';
@@ -7,8 +7,17 @@ import { FACTION_COLOR, num, ownedCards, RARITY_LABEL } from './format.ts';
 import { remindersAvailable } from '../native/reminders.ts';
 import { IconLock, Quanta } from './icons.tsx';
 import { ShipArt } from './Shipyard.tsx';
+import { CloseX, SpendButton } from './Spend.tsx';
 
 const LEAGUES = CONFIG.league.tiers;
+
+/** A paint you own switches on one tap. A paint you buy takes two. */
+function PaintButton({ buy, className, tone, disabled, onAct, confirm, children }: { buy: boolean; className: string; tone: string; disabled: boolean; onAct: () => void; confirm: ReactNode; children: ReactNode }) {
+  const style = { ['--tone' as string]: tone };
+  return buy
+    ? <span style={style} className="paint__wrap"><SpendButton className={className} disabled={disabled} onSpend={onAct} confirm={confirm}>{children}</SpendButton></span>
+    : <button style={style} className={className} disabled={disabled} onClick={() => { audio.tap(); onAct(); }}>{children}</button>;
+}
 
 function ShowcasePicker({ slot, onClose }: { slot: number; onClose: () => void }) {
   const view = useApp((s) => s.view)!;
@@ -26,6 +35,7 @@ function ShowcasePicker({ slot, onClose }: { slot: number; onClose: () => void }
   return (
     <div className="overlay overlay--dim overlay--bottom overlay--top" onClick={onClose}>
       <div className="sheet sheet--trade picker" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={onClose} />
         <span className="eyebrow">Schaukasten · Platz {slot + 1}</span>
         <h3>Karte zeigen</h3>
         <div className="picker__list">
@@ -69,6 +79,7 @@ export function ProfileSheet() {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={() => close(null)}>
       <div className="sheet sheet--trade profile" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={() => close(null)} />
         <span className="eyebrow">Profil · Stufe {view.profile.level}</span>
         <h3>{c.title}</h3>
         <div className="profile__scroll">
@@ -100,17 +111,19 @@ export function ProfileSheet() {
           <h4 className="market__section">Lackierung<span>Nur Optik</span></h4>
           <div className="profile__paints">
             {c.paints.map((p) => (
-              <button
+              <PaintButton
                 key={p.id}
+                buy={!p.unlocked && p.price !== null}
                 className={`paint${p.id === c.paint ? ' is-active' : ''}${p.unlocked ? '' : ' is-locked'}${p.tone === 'prisma' ? ' paint--prisma' : ''}`}
-                style={{ ['--tone' as string]: p.tone && p.tone !== 'prisma' ? p.tone : '#7fe3ff' }}
+                tone={p.tone && p.tone !== 'prisma' ? p.tone : '#7fe3ff'}
                 disabled={busy || p.id === c.paint || (!p.unlocked && (p.price === null || view.wallet.quanta < p.price))}
-                onClick={tap(() => void send(p.unlocked ? { type: 'SetPaint', paint: p.id } : { type: 'BuyPaint', paint: p.id }))}
+                onAct={() => void send(p.unlocked ? { type: 'SetPaint', paint: p.id } : { type: 'BuyPaint', paint: p.id })}
+                confirm={<><i /><b>Kaufen?</b><small><Quanta />{p.price}</small></>}
               >
                 <i />
                 <b>{p.name}</b>
                 <small>{p.unlocked ? (p.id === c.paint ? 'Aktiv' : 'Wählen') : p.price !== null ? <><Quanta />{p.price}</> : p.hint}</small>
-              </button>
+              </PaintButton>
             ))}
           </div>
 
@@ -148,7 +161,7 @@ export function ProfileSheet() {
                       </ul>
                       <div className="prestige__actions">
                         <button className="cta cta--ghost" onClick={tap(() => setConfirm(false))}><span>Abbrechen</span></button>
-                        <button className="cta cta--gold" disabled={busy} onClick={tap(() => { void send({ type: 'Prestige' }).then(() => setConfirm(false)); })}><span>Neu anfangen</span></button>
+                        <button className="cta cta--danger" disabled={busy} onClick={tap(() => { void send({ type: 'Prestige' }).then(() => setConfirm(false)); })}><span>Neu anfangen</span></button>
                       </div>
                     </>
                   )}

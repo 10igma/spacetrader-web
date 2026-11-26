@@ -11,7 +11,6 @@ const LAUNCH_MS = 2400;
 const CRUISE_MS = 1100;
 const ARRIVE_MS = 2600;
 
-const buzz = (pattern: number | number[]): void => { try { navigator.vibrate?.(pattern); } catch { /* unsupported */ } };
 
 const OPTION: Record<EncounterChoice, { label: string; stat?: 'nav' | 'hdl' | 'tec' | 'kmp'; note: (hot: boolean) => string }> = {
   fight: { label: 'Kämpfen', stat: 'kmp', note: () => 'Sieg bringt Beute. Niederlage kostet 40 % der Fracht' },
@@ -52,7 +51,6 @@ export function Travel({ travel }: { travel: TravelState }) {
     if (phase === 'launch') {
       audio.duck(true);
       audio.warp(LAUNCH_MS / 1000);
-      buzz(20);
       stage.setWarp(1);
       stage.setPlanet(-1.6, 0.4, 1.8); // the world slides past as we accelerate
       timer = window.setTimeout(() => setPhase(encounter ? 'encounter' : 'arrive'), LAUNCH_MS);
@@ -62,13 +60,11 @@ export function Travel({ travel }: { travel: TravelState }) {
       stage.setRift(encounter?.kind === 'pirates' ? [1, 0.18, 0.2] : [0.25, 0.55, 1], 0.28);
       stage.pulse(0.3);
       audio.alert(encounter?.kind ?? 'customs');
-      buzz([40, 60, 40]);
     } else if (phase === 'outcome') {
       const ok = travel.outcome!.success;
       stage.setRift(ok ? [0.3, 1, 0.7] : [1, 0.2, 0.2], 0.4);
       stage.pulse(ok ? 0.25 : 0.45);
       if (ok) audio.reveal(travel.outcome!.creditsDelta > 0 ? 2 : 1); else audio.loss();
-      buzz(ok ? 20 : [60, 40, 120]);
     } else if (phase === 'cruise') {
       stage.setRift(null, 0);
       stage.setWarp(1);
@@ -83,7 +79,6 @@ export function Travel({ travel }: { travel: TravelState }) {
       stage.pulse(0.3);
       audio.reveal(1);
       audio.duck(false);
-      buzz(15);
       timer = window.setTimeout(end, ARRIVE_MS);
     }
     return () => window.clearTimeout(timer);

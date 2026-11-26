@@ -1,4 +1,4 @@
-import { MODULE_BY_ID, SHIP_BY_ID } from '@nova/core';
+import { MODULE_BY_ID } from '@nova/core';
 import { setHaptics } from './native/haptics.ts';
 import { askForReminders, syncReminders } from './native/reminders.ts';
 import { loadSettings, saveSettings, type DeviceSettings } from './native/settings.ts';
@@ -23,7 +23,17 @@ export interface Travel {
   courier: number;
 }
 
-export interface SalePop { id: number; profit: number; revenue: number }
+export interface SalePop { id: number; profit: number; revenue: number; label: string; size: 's' | 'm' | 'l' }
+/** The few moments that get the whole screen. */
+export type MilestoneMoment = { id: number } & (
+  | { kind: 'level'; level: number }
+  | { kind: 'ship'; ship: string }
+  | { kind: 'league'; tierName: string; rank: number }
+  | { kind: 'album' }
+  | { kind: 'charter' }
+  | { kind: 'prestige'; rank: number }
+);
+type MomentInput = MilestoneMoment extends infer M ? (M extends { id: number } ? Omit<M, 'id'> : never) : never;
 export type Sheet = 'posts' | 'wheel' | 'salvage' | 'profile' | null;
 
 const REJECT_TEXT: Record<RejectReason, string> = {
@@ -79,6 +89,9 @@ interface AppState {
   travel: Travel | null;
   routesOpen: boolean;
   sale: SalePop | null;
+  milestone: MilestoneMoment | null;
+  celebrate(moment: MomentInput): void;
+  nextMilestone(): void;
   sheet: Sheet;
   /** Result of the last spin, decided by the game service. The wheel only plays it back. */
   wheel: { index: number; reward: Reward } | null;
@@ -113,6 +126,13 @@ let toastTimer: number | undefined;
 /** Several things can happen in one command: show them one after another. */
 const toastQueue: { text: string; tone: 'bad' | 'good' }[] = [];
 let saleId = 0;
+let momentId = 0;
+const momentQueue: MilestoneMoment[] = [];
+/** A win is felt relative to what you have: the same 500 is a triumph on day one and a rounding error on day thirty. */
+const saleSize = (profit: number, credits: number): 's' | 'm' | 'l' => {
+  const share = Math.abs(profit) / Math.max(1, credits);
+  return share >= 0.1 ? 'l' : share >= 0.01 ? 'm' : 's';
+};
 
 export const useApp = create<AppState>((set, get) => ({
   service: createGameService(),
@@ -128,6 +148,14 @@ export const useApp = create<AppState>((set, get) => ({
   travel: null,
   routesOpen: false,
   sale: null,
+  milestone: null,
+  celebrate(moment) {
+    // Walkthrough scripts that are about something else can switch the big moments off.
+    if (new URLSearchParams(location.search).has('calm')) return;
+    const m = { ...moment, id: ++momentId } as MilestoneMoment;
+    if (get().milestone) momentQueue.push(m); else set({ milestone: m });
+  },
+  nextMilestone() { set({ milestone: momentQueue.shift() ?? null }); },
   sheet: null,
   wheel: null,
   salvageResult: null,
@@ -156,25 +184,26 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'WheelSpun') set({ wheel: { index: ev.index, reward: ev.reward } });
         if (ev.type === 'SalvageOpened') set({ salvageResult: { kind: ev.kind, credits: ev.credits, shards: ev.shards } });
         if (ev.type === 'PostBuilt') get().showToast(ev.level === 1 ? 'Handelsposten im Bau' : `Ausbau auf Stufe ${ev.level} läuft`, 'good');
-        if (ev.type === 'PostsCollected') { audio.coins(ev.amount); set({ sale: { id: ++saleId, profit: ev.amount, revenue: ev.amount } }); }
+        if (ev.type === 'PostsCollected') { audio.coins(ev.amount); set({ sale: { id: ++saleId, profit: ev.amount, revenue: ev.amount, label: 'Posten-Ertrag', size: saleSize(ev.amount, view.wallet.credits) } }); }
         if (ev.type === 'OfferBought') { audio.coins(300); get().showToast('Gekauft', 'good'); }
         if (ev.type === 'ManifestDone') get().showToast('Manifest erfüllt', 'good');
         if (ev.type === 'BidPlaced') get().showToast('Gebot steht', 'good');
         if (ev.type === 'AuctionBought') { audio.reveal(2); get().showToast('Gekauft: Karte ist in deiner Sammlung', 'good'); }
         if (ev.type === 'CardListed') get().showToast('Angebot läuft', 'good');
         if (ev.type === 'CharterClaimed') { audio.coins(2000); get().showToast([rewardText(ev.total), ev.crates > 0 ? `${ev.crates} Container` : ''].filter(Boolean).join(' + ') || `${ev.rewards} Belohnungen abgeholt`, 'good'); }
-        if (ev.type === 'ShipBought') { audio.reveal(3); get().showToast(`${SHIP_BY_ID.get(ev.ship)!.name} gehört dir`, 'good'); }
+        if (ev.type === 'ShipBought') get().celebrate({ kind: 'ship', ship: ev.ship });
         if (ev.type === 'ModuleBought') { audio.coins(800); get().showToast(`${MODULE_BY_ID.get(ev.module)!.name} Stufe ${ev.level}`, 'good'); }
         if (ev.type === 'ConvoySent') get().showToast(`Konvoi unterwegs · Chance ${Math.round(ev.chance * 100)} %`, 'good');
         if (ev.type === 'ConvoyReturned') {
           if (ev.success) audio.coins(ev.reward.credits ?? 500);
           get().showToast(ev.success ? `Konvoi erfolgreich: ${rewardText(ev.reward)}` : `Konvoi gescheitert: nur ${rewardText(ev.reward)}`, ev.success ? 'good' : 'bad');
         }
-        if (ev.type === 'SeasonAlbumClaimed' && ev.complete) { audio.reveal(4); get().showToast('Saison-Edition komplett: Titel und Lack Prisma freigeschaltet', 'good'); }
+        if (ev.type === 'SeasonAlbumClaimed' && ev.complete) get().celebrate({ kind: 'album' });
         if (ev.type === 'PaintBought') { audio.coins(600); get().showToast('Neue Lackierung aufgetragen', 'good'); }
-        if (ev.type === 'Prestiged') { audio.reveal(4); set({ tab: 'station', sheet: null }); get().showToast(`Prestige ${ev.rank}: Ein neuer Anfang, für immer stärker`, 'good'); }
-        if (ev.type === 'CharterBought') { audio.reveal(3); get().showToast('Premium-Charter aktiv', 'good'); }
-        if (ev.type === 'LeagueClaimed' && ev.moved !== 0) get().showToast(ev.moved > 0 ? 'Aufgestiegen' : 'Abgestiegen', ev.moved > 0 ? 'good' : 'bad');
+        if (ev.type === 'Prestiged') { set({ tab: 'station', sheet: null }); get().celebrate({ kind: 'prestige', rank: ev.rank }); }
+        if (ev.type === 'CharterBought') get().celebrate({ kind: 'charter' });
+        if (ev.type === 'LeagueClaimed' && ev.moved > 0) get().celebrate({ kind: 'league', tierName: view.league.tierName, rank: ev.rank });
+        if (ev.type === 'LeagueClaimed' && ev.moved < 0) get().showToast('Abgestiegen');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls });
         if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0 }, routesOpen: false });
         if (ev.type === 'Arrived') {
@@ -188,10 +217,11 @@ export const useApp = create<AppState>((set, get) => ({
           if (travel) set({ travel: { ...travel, outcome: ev } });
         }
         if (ev.type === 'Sold') {
-          audio.coins(ev.revenue);
-          set({ sale: { id: ++saleId, profit: ev.profit, revenue: ev.revenue } });
+          // The sound follows the profit, not the turnover: a sale at a loss does not jingle.
+          if (ev.profit > 0) audio.coins(ev.profit);
+          set({ sale: { id: ++saleId, profit: ev.profit, revenue: ev.revenue, label: ev.profit >= 0 ? 'Gewinn' : 'Verlust', size: saleSize(ev.profit, view.wallet.credits) } });
         }
-        if (ev.type === 'LevelUp') get().showToast(`Stufe ${ev.level} erreicht · Tank gefüllt`, 'good');
+        if (ev.type === 'LevelUp') get().celebrate({ kind: 'level', level: ev.level });
         if (ev.type === 'RewardGranted') { audio.coins(500); get().showToast(`Erhalten: ${rewardText(ev.reward)}`, 'good'); }
         if (ev.type === 'CrateEarned') get().showToast(ev.tier === 'premium' ? 'Premium-Container im Hangar' : 'Container im Hangar', 'good');
         if (ev.type === 'CrateLost') get().showToast('Hangar voll: Container verloren');

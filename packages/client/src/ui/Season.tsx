@@ -4,7 +4,26 @@ import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { longCountdown, num, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
-import { IconLock, Quanta } from './icons.tsx';
+import type { Reward } from '@nova/core';
+import { Credits, IconDeck, IconHangar, IconLock, Quanta, Shard } from './icons.tsx';
+import { SpendButton } from './Spend.tsx';
+
+/** One reward as a tile: what it is at a glance, how much in big digits. */
+function RewardTile({ reward, state, premium = false }: { reward: Reward; state: 'locked' | 'open' | 'ready' | 'claimed'; premium?: boolean }) {
+  const main = reward.seasonCard ? { icon: <IconDeck />, amount: reward.seasonCard === 'legend' ? 'Legende' : 'Elite', label: 'Saison-Karte', big: true }
+    : reward.crate ? { icon: <IconHangar />, amount: reward.crate === 'premium' ? 'Premium' : 'Container', label: reward.crate === 'premium' ? 'Container' : 'Standard', big: reward.crate === 'premium' }
+      : reward.credits ? { icon: <Credits />, amount: num(reward.credits), label: 'Credits', big: false }
+        : reward.quanta ? { icon: <Quanta />, amount: num(reward.quanta), label: 'Quanten', big: false }
+          : { icon: <Shard />, amount: num(reward.shards ?? 0), label: 'Splitter', big: false };
+  const extra = (reward.seasonCard || reward.crate) && reward.quanta ? `+ ${reward.quanta} Quanten` : '';
+  return (
+    <span className={`rtile rtile--${state}${premium ? ' rtile--premium' : ''}${main.big ? ' rtile--big' : ''}`}>
+      <span className="rtile__icon">{state === 'locked' ? <IconLock /> : main.icon}</span>
+      <span className="rtile__main"><b>{main.amount}</b><small>{main.label}{extra ? ` ${extra}` : ''}</small></span>
+      {state === 'claimed' && <span className="rtile__check">✓</span>}
+    </span>
+  );
+}
 
 function WeekendCard() {
   const weekend = useApp((s) => s.view!.weekend);
@@ -74,28 +93,29 @@ export function Season() {
       </div>
 
       {!season.premium && (
-        <button className="premium" disabled={busy || quanta < season.premiumPrice} onClick={() => { audio.tap(); void send({ type: 'BuyCharter' }); }}>
+        <SpendButton
+          className="premium" disabled={busy || quanta < season.premiumPrice} onSpend={() => void send({ type: 'BuyCharter' })}
+          confirm={<><span><b>{season.premiumPrice} Quanten ausgeben?</b><small>Danach hast du {quanta - season.premiumPrice} Quanten. Tippe noch einmal zum Kaufen</small></span><span className="price price--quanta"><Quanta />{season.premiumPrice}</span></>}
+        >
           <span>
             <b>Premium-Charter</b>
-            <small>{season.waitingPremium > 0 ? `${season.waitingPremium} Belohnungen hast du schon erspielt. Sie warten auf dich` : 'Zweite Belohnung auf jeder Stufe'}</small>
+            <small>{season.waitingPremium > 0 ? `Zweite Belohnung auf jeder Stufe. ${season.waitingPremium} davon sofort abholbar` : 'Zweite Belohnung auf jeder Stufe'}</small>
           </span>
           <span className="price price--quanta"><Quanta />{season.premiumPrice}</span>
-        </button>
+        </SpendButton>
       )}
 
       <WeekendCard />
 
       <div className="track">
-        <div className="track__row track__row--head"><span /><span>Gratis</span><span>Premium</span></div>
+        <div className="track__row track__row--head"><span /><span>Gratis</span><span className="track__gold">Premium</span></div>
         {Array.from({ length: season.tiers }, (_, i) => i + 1).map((t) => {
           const reached = t <= season.tier;
           return (
             <div key={t} ref={t === Math.min(season.tiers, season.tier + 1) ? current : undefined} className={`track__row${reached ? ' is-reached' : ''}${t === season.tier + 1 ? ' is-next' : ''}`}>
               <span className="track__n">{t}</span>
-              <span className={`track__cell${t <= season.claimedFree ? ' is-claimed' : reached ? ' is-ready' : ''}`}>{rewardText(charterReward(t, 'free'))}</span>
-              <span className={`track__cell track__cell--premium${!season.premium ? ' is-locked' : t <= season.claimedPremium ? ' is-claimed' : reached ? ' is-ready' : ''}`}>
-                {!season.premium && <IconLock />}{rewardText(charterReward(t, 'premium'))}
-              </span>
+              <RewardTile reward={charterReward(t, 'free')} state={t <= season.claimedFree ? 'claimed' : reached ? 'ready' : 'open'} />
+              <RewardTile premium reward={charterReward(t, 'premium')} state={!season.premium ? 'locked' : t <= season.claimedPremium ? 'claimed' : reached ? 'ready' : 'open'} />
             </div>
           );
         })}

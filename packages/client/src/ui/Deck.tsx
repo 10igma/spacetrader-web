@@ -7,6 +7,7 @@ import { HoloCard } from './HoloCard.tsx';
 import { BONUS_LABEL, FACTION_COLOR, longCountdown, num, ownedCards, RARITY_LABEL, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { Shard } from './icons.tsx';
+import { CloseX } from './Spend.tsx';
 
 const SORTED = [...CARDS].sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) || b.rating - a.rating);
 const SEAT_BONUS: Record<RoleId, BonusKey> = { pilot: 'nav', trader: 'hdl', tech: 'tec', gunner: 'kmp', smuggler: 'smg' };
@@ -31,6 +32,7 @@ function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
       <div className="sheet sheet--trade picker" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={onClose} />
         <span className="eyebrow">Platz besetzen</span>
         <h3>{ROLES[seat].name}</h3>
         <p className="trade__note">Zählt für {BONUS_LABEL[SEAT_BONUS[seat]]}: {BONUS_USE[SEAT_BONUS[seat]]}. Fremde Rollen bringen 75 % ihres Werts.</p>

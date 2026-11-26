@@ -38,11 +38,13 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Ticker auf der Station: Liga-Abstand zum Vordermann, Saisonende und fehlende Edition-Karten, Event, Legenden im Auktionshaus, Konvois | fertig | Liest nur den echten Spielstand, keine erfundenen Meldungen |
 | Mobile-Hülle (Phase 5): Android-Projekt baut zu einer installierbaren App, iOS-Projekt angelegt, Icon und Startbild, Haptik, lokale Erinnerungen mit Opt-in und Nachtruhe, Zurück-Taste, installierbare Web-App. Details in Dokument 05 | fertig bis auf Gerätetest | App hier gebaut und ihr Inhalt geprüft, 7 Tests, Durchlauf im Browser. Nicht auf einem Gerät gestartet |
 | Spielstand übersteht Regeländerungen: Ältere Stände werden übernommen, neue Systeme starten leer | fertig | Tests und Durchlauf mit einem alten Spielstand |
+| Design-Runde 1 nach zwei unabhängigen Prüfungen (Art Direction, UX und Fairness): Lesbarkeit, Farbrollen, Vollbild-Momente, gestufte Verkaufs-Rückmeldung, Zwei-Tipp-Bestätigung für Quanten, Schliessen-Knopf in jedem Fenster, Einstieg für neue Spieler. Details in Dokument 07 | fertig | Eigener Durchlauf mit 12 Prüfungen, dabei einen Fehler gefunden und behoben |
+| Grafik-Auftrag: Stil, Formate, Dateinamen und Prompts für 127 Bilder in 11 Paketen. Dokument 06 | fertig, Bilder stehen aus | |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
 | Bot-Simulation | fertig | Zwei Spielertypen, je 10 Spieler über 90 Tage, dazu Leitplanken-Test |
 | Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus 16 gegen Werft und Konvois und 14 gegen Saison-Album, Titel, Lackierungen und Prestige |
-| Bühne, UI, Musik und Effekte | fertig | Zehn automatische Durchläufe ohne Konsolenfehler |
+| Bühne, UI, Musik und Effekte | fertig | Elf automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
@@ -254,6 +256,7 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-1. **Gerätetest** (deine Seite): die Android-App installieren und spielen. Was dabei auffällt, fliesst in die Design-Runde.
-2. **Design-Runde** (vereinbart): Optik und Bedienung Bildschirm für Bildschirm durchgehen, mit dem Gerät in der Hand.
-3. Danach zur Wahl: gemalte Kunst für Elite-Karten, Saison-Legenden und Schiffe, das Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.
+1. **Grafiken erzeugen** (deine Seite, Dokument 06): zuerst Schiffe, Container und die Saison-Karten. Ich baue jedes Paket ein, sobald Dateien da sind.
+2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
+3. **Design-Runde 2** (Dokument 07): Container-Enthüllung, Spannungsmoment bei Begegnungen, kürzerer Warp, Markt mit Waren-Symbolen, Glücksrad, Neuordnung der Tabs.
+4. Danach zur Wahl: Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.

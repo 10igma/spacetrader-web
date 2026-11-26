@@ -4,6 +4,7 @@ import { useApp } from '../store.ts';
 import { countdown, FACTION_COLOR, longCountdown, num } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFuel, IconHangar, IconMarket } from './icons.tsx';
+import { SpendButton } from './Spend.tsx';
 
 const CUSTOMS = ['Kein Zoll', 'Zoll lax', 'Zoll wachsam', 'Zoll streng'];
 
@@ -47,6 +48,20 @@ export function Hub() {
   const back = view.convoys.running.filter((c) => c.done).length;
   if (back > 0) headlines.push({ label: 'Konvoi', text: back === 1 ? 'ist zurück' : `${back} sind zurück`, tone: 'up' });
 
+  const empty = view.cargo.used === 0;
+  // The best thing on board and where it sells: the answer to "where should I go".
+  const best = view.routes
+    .flatMap((r) => r.hints.filter((h) => view.cargo.items[h.goodId]).map((h) => ({ stationId: r.stationId, goodId: h.goodId, pct: Math.round(h.pct * 100) })))
+    .sort((a, b) => b.pct - a.pct)[0];
+  // A new captain gets four steps, one at a time. Each is read from what they have done so far.
+  const made = view.stats.profit > 0;
+  const steps = made || view.profile.level > 3 ? null
+    : view.crates.opened === 0 ? { done: 0, text: 'Öffne deinen Gratis-Container: Darin ist deine erste Crew', go: () => setTab('hangar') }
+      : view.stats.jumps === 0 && empty ? { done: 1, text: 'Kauf günstige Ware auf dem Markt', go: () => setTab('market') }
+        : empty ? { done: 3, text: 'Kauf wieder ein und verkauf anderswo teurer', go: () => setTab('market') }
+          : view.stats.jumps === 0 ? { done: 2, text: 'Wähle eine Route und spring', go: () => openRoutes(true) }
+            : { done: 3, text: 'Verkauf deine Fracht hier oder spring weiter', go: () => setTab('market') };
+
   return (
     <section className="hub" style={{ ['--faction' as string]: FACTION_COLOR[station.faction] }}>
       <header className="hub__loc">
@@ -64,14 +79,14 @@ export function Hub() {
             </button>
           )}
           {view.streak.count > 0 && (
-            <button className={`chip chip--streak chip--${view.streak.status}`} onClick={() => { audio.tap(); setTab('daily'); }}>
+            <button className={`chip chip--streak chip--${view.streak.status === 'atRisk' && view.streak.endsAt - now >= 3 * 3_600_000 ? 'open' : view.streak.status}`} onClick={() => { audio.tap(); setTab('daily'); }}>
               Serie {view.streak.count} · +{Math.round(view.streak.bonus * 100)} %{view.streak.status === 'atRisk' ? ` · endet in ${countdown(view.streak.endsAt - now)}` : ''}
             </button>
           )}
           {stars > 0 && view.payOff !== null && (
-            <button className="chip chip--wanted" onClick={() => { audio.tap(); void send({ type: 'PayOff' }); }}>
+            <SpendButton className="chip chip--wanted" onSpend={() => void send({ type: 'PayOff' })} confirm={<>{num(view.payOff)} Credits zahlen? Tippe noch einmal</>}>
               Fahndung {'★'.repeat(stars)} · Freikaufen {num(view.payOff)}
-            </button>
+            </SpendButton>
           )}
         </div>
         {view.salvage && (
@@ -105,15 +120,24 @@ export function Hub() {
 
       <div className="hub__grow" />
 
+      {steps && (
+        <button className="coach" onClick={() => { audio.tap(); steps.go(); }}>
+          <span className="eyebrow">Erste Schritte · {steps.done} von 4</span>
+          <b>{steps.text}</b>
+          <span className="coach__pips">{[0, 1, 2, 3].map((i) => <i key={i} className={i < steps.done ? 'on' : i === steps.done ? 'now' : ''} />)}</span>
+        </button>
+      )}
+
       <div className="tiles">
         <button className={`tile${view.badges.station > 0 ? ' tile--ready' : ''}`} onClick={() => { audio.tap(); setSheet('posts'); }}>
           <span className="tile__icon"><IconMarket /></span>
           <span className="tile__label">{view.posts.list.length > 0 ? (view.badges.station > 0 ? 'Posten voll' : 'Handelsposten') : 'Posten bauen'}</span>
-          <span className="tile__value">{view.posts.list.length > 0 ? num(view.posts.stored) : '+'}</span>
+          <span className="tile__value">{view.posts.list.length > 0 ? num(view.posts.stored) : 'Bauen'}</span>
         </button>
         <div className="tile">
           <span className="tile__icon"><IconFuel /></span>
-          <span className="tile__label">{view.fuel.nextAt ? `+1 in ${countdown(view.fuel.nextAt - now)}` : 'Treibstoff'}</span>
+          <span className="tile__label">{view.fuel.nextAt ? `+1 in ${countdown(view.fuel.nextAt - now)}` : 'Tank voll'}</span>
+          <span className="tile__value">{view.fuel.amount}<small> / {view.fuel.max}</small></span>
           <span className="pips">
             {Array.from({ length: view.fuel.max }, (_, i) => <i key={i} className={i < view.fuel.amount ? 'on' : ''} />)}
           </span>
@@ -125,10 +149,20 @@ export function Hub() {
         </button>
       </div>
 
-      <button className="cta" onClick={() => { audio.tap(); openRoutes(true); }}>
-        <span>Route wählen</span>
-        <small>{view.routes.length} Ziele in Reichweite</small>
-      </button>
+      {empty ? (
+        <>
+          <button className="cta" onClick={() => { audio.tap(); setTab('market'); }}>
+            <span>Fracht kaufen</span>
+            <small>Laderaum leer · zum Markt</small>
+          </button>
+          <button className="link hub__skip" onClick={() => { audio.tap(); openRoutes(true); }}>Ohne Fracht springen</button>
+        </>
+      ) : (
+        <button className="cta" onClick={() => { audio.tap(); openRoutes(true); }}>
+          <span>Route wählen</span>
+          <small>{best ? `Beste Route: ${STATION_BY_ID.get(best.stationId)!.name} · ${GOOD_BY_ID.get(best.goodId)!.name} +${best.pct} %` : `${view.routes.length} Ziele in Reichweite`}</small>
+        </button>
+      )}
     </section>
   );
 }

@@ -4,6 +4,7 @@ import { useApp } from '../store.ts';
 import { countdown, FACTION_COLOR } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFuel } from './icons.tsx';
+import { CloseX } from './Spend.tsx';
 
 const Risk = ({ label, chance }: { label: string; chance: number }) => (
   <span className={`risk risk--${chance >= 0.4 ? 3 : chance >= 0.2 ? 2 : chance > 0 ? 1 : 0}`}>
@@ -22,6 +23,7 @@ export function RouteSheet() {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={() => close(false)}>
       <div className="routes" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={() => close(false)} />
         <header className="routes__head">
           <div>
             <span className="eyebrow">Sprungziel wählen</span>

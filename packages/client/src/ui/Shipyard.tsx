@@ -102,7 +102,7 @@ export function Shipyard() {
             </span>
             <span className="gear__actions">
               {level > 0 && !fitted && (
-                <button className="mission__btn" disabled={busy || fleet.fitted.length >= fleet.rig.slots} onClick={tap(() => void send({ type: 'FitModule', module: def.id }))}>
+                <button className="mission__btn mission__btn--plain" disabled={busy || fleet.fitted.length >= fleet.rig.slots} onClick={tap(() => void send({ type: 'FitModule', module: def.id }))}>
                   {fleet.fitted.length >= fleet.rig.slots ? 'Kein Platz' : 'Einbauen'}
                 </button>
               )}
@@ -132,7 +132,7 @@ export function Shipyard() {
             </span>
             <span className="gear__actions">
               {active && <span className="gear__state">Aktiv</span>}
-              {owned && !active && <button className="mission__btn" disabled={busy} onClick={tap(() => void send({ type: 'SelectShip', ship: s.id }))}>Wechseln</button>}
+              {owned && !active && <button className="mission__btn mission__btn--plain" disabled={busy} onClick={tap(() => void send({ type: 'SelectShip', ship: s.id }))}>Wechseln</button>}
               {locked && <span className="gear__state"><IconLock />Stufe {s.level}</span>}
               {!owned && !locked && (
                 <button className="price price--btn" disabled={busy || credits < s.price} onClick={tap(() => void send({ type: 'BuyShip', ship: s.id }))}>

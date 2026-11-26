@@ -15,7 +15,7 @@ const settle = (ms) => page.waitForTimeout(ms);
 const tab = async (name) => { await page.locator('.nav__item', { hasText: name }).tap(); await settle(1300); };
 
 // 1. Fresh game, then shape the offline save into an interesting mid-game state.
-await page.goto('http://localhost:5173/?q=high&seed=p2');
+await page.goto('http://localhost:5173/?q=high&calm=1&seed=p2');
 await settle(2000);
 await page.locator('.splash').tap(); await settle(800);
 await tab('Hangar');
@@ -34,7 +34,7 @@ await page.evaluate(() => {
   s.event = { stationId: s.routes[0], category: 'medizin', mult: 1.72, jumpsLeft: 3 };
   localStorage.setItem('nova.save', JSON.stringify(s));
 });
-await page.goto('http://localhost:5173/?q=high');
+await page.goto('http://localhost:5173/?q=high&calm=1');
 await settle(2000);
 await page.locator('.splash').tap(); await settle(1800);
 await shot('20-hub-wanted-news');

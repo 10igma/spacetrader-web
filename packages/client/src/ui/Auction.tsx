@@ -6,6 +6,7 @@ import { HoloCard } from './HoloCard.tsx';
 import { countdown, duration, num, RARITY_LABEL } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { Credits } from './icons.tsx';
+import { CloseX } from './Spend.tsx';
 
 const RESULT_TEXT: Record<AuctionResult['kind'], (name: string, price: string) => string> = {
   won: (n, p) => `Ersteigert: ${n} für ${p}`,
@@ -40,6 +41,7 @@ function BidSheet({ lotKey, onClose }: { lotKey: string; onClose: () => void }) 
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
       <div className="sheet sheet--trade bid" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={onClose} />
         <div className="bid__head">
           <div className="bid__card"><HoloCard card={card} size="sm" /></div>
           <div className="bid__info">
@@ -71,9 +73,9 @@ function BidSheet({ lotKey, onClose }: { lotKey: string; onClose: () => void }) 
             <span>{lot.yourMax === null ? 'Bieten' : 'Erhöhen'}</span>
             <small>{full ? `Höchstens ${view.auction.maxBids} Gebote gleichzeitig` : view.wallet.credits < extra ? 'Zu wenig Credits' : `Limit ${num(amount)} · ${num(extra)} wird hinterlegt`}</small>
           </button>
-          <button className="cta cta--gold" disabled={busy || view.wallet.credits + (lot.yourMax ?? 0) < lot.buyNow} onClick={() => { audio.tap(); void send({ type: 'BuyNow', lot: lot.key }).then(onClose); }}>
+          <button className="cta cta--ghost" disabled={busy || view.wallet.credits + (lot.yourMax ?? 0) < lot.buyNow} onClick={() => { audio.tap(); void send({ type: 'BuyNow', lot: lot.key }).then(onClose); }}>
             <span>Sofort kaufen</span>
-            <small>{num(lot.buyNow)} Credits</small>
+            <small>{num(lot.buyNow)} · {Math.round((lot.buyNow / lot.estimate - 1) * 100)} % über Schätzwert</small>
           </button>
         </div>
         <p className="trade__note">
@@ -103,6 +105,7 @@ function SellSheet({ onClose }: { onClose: () => void }) {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
       <div className="sheet sheet--trade picker" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={onClose} />
         <span className="eyebrow">Auktionshaus</span>
         <h3>{card ? card.name : 'Duplikat anbieten'}</h3>
         {!card ? (
@@ -155,7 +158,7 @@ function LotRow({ lot, onOpen }: { lot: LotView; onOpen: () => void }) {
         <b>{card.name}</b>
         <small>{RARITY_LABEL[card.rarity]} · {ROLES[card.role].short} · {FACTIONS[card.faction].short} · {owned > 0 ? `hast du ${owned}×` : 'fehlt dir'}</small>
         <small className={`lot__state${state === 'outbid' ? ' is-down' : state === 'lead' ? ' is-up' : ''}`}>
-          {state === 'gone' ? 'Gekauft' : state === 'lead' ? `Du führst · Limit ${num(lot.yourMax!)}` : state === 'outbid' ? 'Überboten: erhöhen?' : `Schätzwert ${num(lot.estimate)}`}
+          {state === 'gone' ? 'Gekauft' : state === 'lead' ? `Du führst · Limit ${num(lot.yourMax!)}` : state === 'outbid' ? 'Überboten · dein Gebot ist zurück' : `Schätzwert ${num(lot.estimate)}`}
         </small>
       </span>
       <span className="lot__price">
@@ -187,7 +190,7 @@ export function Auction() {
                 {RESULT_TEXT[r.kind](CARD_BY_ID.get(r.cardId)!.name, num(r.price))}
               </p>
             ))}
-            <button className="mission__btn" disabled={busy} onClick={() => { audio.tap(); void send({ type: 'AckAuctions' }); }}>Verstanden</button>
+            <button className="mission__btn mission__btn--plain" disabled={busy} onClick={() => { audio.tap(); void send({ type: 'AckAuctions' }); }}>Verstanden</button>
           </div>
         )}
         <h4 className="market__section">Laufende Auktionen<span>Gebote {openBids} von {maxBids}</span></h4>

@@ -5,6 +5,7 @@ import { Auction } from './Auction.tsx';
 import { useApp } from '../store.ts';
 import { num, pct } from './format.ts';
 import { Credits } from './icons.tsx';
+import { CloseX } from './Spend.tsx';
 
 const Heat = ({ heat }: { heat: number }) => (heat > 0 ? <i className="heat" title="Heisse Fracht">{'▲'.repeat(Math.min(heat, 5))}</i> : null);
 
@@ -31,7 +32,8 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
   while (maxBuy > 0 && quote(row, 'buy', maxBuy) > view.wallet.credits) maxBuy--;
   const maxSell = Math.min(owned, fenceLeft);
 
-  const [qty, setQty] = useState(() => Math.max(1, owned > 0 ? maxSell : Math.min(5, maxBuy)));
+  // A first-time buyer gets a full hold suggested: five units out of twenty make a first sale feel like nothing.
+  const [qty, setQty] = useState(() => Math.max(1, owned > 0 ? maxSell : view.stats.jumps === 0 ? maxBuy : Math.min(5, maxBuy)));
   const step = (d: number) => (): void => { audio.tap(); setQty((q) => Math.max(1, Math.min(99, q + d))); };
   const cost = quote(row, 'buy', qty);
   const revenue = quote(row, 'sell', Math.min(qty, owned));
@@ -47,6 +49,7 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
       <div className={`sheet sheet--trade${fence ? ' sheet--fence' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={onClose} />
         <div className="trade__head">
           <div>
             <span className="eyebrow">{CATEGORY_NAME[good.category]}{note ? ` · ${note}` : ''}</span>
@@ -107,6 +110,7 @@ function HoldSheet({ onClose }: { onClose: () => void }) {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
       <div className="sheet sheet--trade" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={onClose} />
         <span className="eyebrow">Werft</span>
         <h3>Laderaum</h3>
         {up ? (
@@ -150,7 +154,7 @@ export function Market() {
   const view = useApp((s) => s.view)!;
   const [open, setOpen] = useState<GoodId | null>(null);
   const [hold, setHold] = useState(false);
-  const [mode, setMode] = useState<'goods' | 'auction'>(() => (view.badges.market > 0 ? 'auction' : 'goods'));
+  const [mode, setMode] = useState<'goods' | 'auction'>('goods');
   const station = STATION_BY_ID.get(view.location)!;
   const byId = new Map(view.market.map((m) => [m.goodId, m]));
   const aboard = GOODS.filter((g) => view.cargo.items[g.id]);

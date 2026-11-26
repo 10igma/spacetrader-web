@@ -2,7 +2,7 @@ import { xpForLevel } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { num } from './format.ts';
-import { useCountUp } from './hooks.ts';
+import { useCountUp, useGain } from './hooks.ts';
 import { Credits, IconSound, Quanta } from './icons.tsx';
 
 export function TopBar() {
@@ -11,6 +11,9 @@ export function TopBar() {
   const toggleMute = useApp((s) => s.toggleMute);
   const setSheet = useApp((s) => s.setSheet);
   const credits = useCountUp(view.wallet.credits);
+  const quanta = useCountUp(view.wallet.quanta, 500);
+  const creditsUp = useGain(view.wallet.credits);
+  const quantaUp = useGain(view.wallet.quanta);
   const xp = view.profile.xp / xpForLevel(view.profile.level);
 
   return (
@@ -25,8 +28,8 @@ export function TopBar() {
         </div>
       </button>
       <div className="topbar__wallet">
-        <span className="pill pill--credits"><Credits />{num(credits)}</span>
-        <span className="pill pill--quanta"><Quanta />{num(view.wallet.quanta)}</span>
+        <span className={`pill pill--credits${creditsUp ? ' is-gain' : ''}`}><Credits />{num(credits)}</span>
+        <span className={`pill pill--quanta${quantaUp ? ' is-gain' : ''}`}><Quanta />{num(quanta)}</span>
         <button className="iconbtn" aria-label={muted ? 'Ton an' : 'Ton aus'} onClick={() => { toggleMute(); audio.tap(); }}>
           <IconSound off={muted} />
         </button>

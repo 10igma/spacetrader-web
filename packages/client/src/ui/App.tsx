@@ -10,10 +10,12 @@ import { HoloCard } from './HoloCard.tsx';
 import { Hub } from './Hub.tsx';
 import { Daily } from './Daily.tsx';
 import { Market } from './Market.tsx';
+import { Milestone } from './Milestone.tsx';
 import { num } from './format.ts';
 import { Reveal } from './Reveal.tsx';
 import { RouteSheet } from './RouteSheet.tsx';
 import { ProfileSheet } from './Profile.tsx';
+import { CloseX } from './Spend.tsx';
 import { PostSheet, SalvageSheet, WheelSheet } from './Sheets.tsx';
 import { Splash } from './Splash.tsx';
 import { TopBar } from './TopBar.tsx';
@@ -36,6 +38,7 @@ export function App() {
   const travel = useApp((s) => s.travel);
   const routesOpen = useApp((s) => s.routesOpen);
   const sale = useApp((s) => s.sale);
+  const milestone = useApp((s) => s.milestone);
   const sheet = useApp((s) => s.sheet);
   const location = view?.location;
   const inspect = useApp((s) => s.inspect);
@@ -61,7 +64,7 @@ export function App() {
   const inspected = inspect ? CARD_BY_ID.get(inspect) : undefined;
 
   return (
-    <div className={`app${reveal || travel ? ' is-revealing' : ''}`}>
+    <div className={`app${reveal || travel ? ' is-revealing' : ''}${tab !== 'station' ? ' app--inner' : ''}`}>
       <TopBar />
       <main className="app__main" key={tab}>
         {tab === 'station' && <Hub />}
@@ -74,6 +77,7 @@ export function App() {
 
       {inspected && (
         <div className="overlay overlay--dim" onClick={() => { audio.tap(); setInspect(null); }}>
+          <CloseX onClick={() => setInspect(null)} />
           <div onClick={(e) => e.stopPropagation()}>
             <HoloCard card={inspected} interactive={!!view.collection[inspected.id]} locked={!view.collection[inspected.id]} level={view.cardLevels[inspected.id] ?? 1} />
           </div>
@@ -104,13 +108,14 @@ export function App() {
       {routesOpen && !travel && <RouteSheet />}
       {sheet === 'posts' && !travel && <PostSheet />}
       {sheet === 'wheel' && <WheelSheet />}
+      {milestone && !travel && !reveal && <Milestone key={`moment-${milestone.id}`} />}
       {sheet === 'profile' && !travel && <ProfileSheet />}
       {sheet === 'salvage' && !travel && <SalvageSheet />}
       {reveal && <Reveal pulls={reveal} />}
       {travel && <Travel travel={travel} />}
       {sale && (
-        <div key={sale.id} className={`salepop ${sale.profit >= 0 ? 'is-up' : 'is-down'}`} aria-live="polite">
-          <small>{sale.profit >= 0 ? 'Gewinn' : 'Verlust'}</small>
+        <div key={`sale-${sale.id}`} className={`salepop salepop--${sale.size} ${sale.profit >= 0 ? 'is-up' : 'is-down'}`} aria-live="polite">
+          <small>{sale.label}</small>
           <b>{sale.profit >= 0 ? '+' : '−'}{num(Math.abs(sale.profit))}</b>
         </div>
       )}

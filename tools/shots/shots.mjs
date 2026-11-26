@@ -18,7 +18,7 @@ page.on('pageerror', (e) => problems.push(String(e).slice(0, 300)));
 const shot = (name) => page.screenshot({ path: `${out}/${name}.png` });
 const settle = (ms) => page.waitForTimeout(ms);
 
-await page.goto(`${base}?q=high&seed=${seed}`);
+await page.goto(`${base}?q=high&calm=1&seed=${seed}`);
 await settle(3000);
 await shot('01-splash');
 await page.locator('.splash').tap();

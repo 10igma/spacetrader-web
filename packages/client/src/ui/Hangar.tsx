@@ -6,6 +6,7 @@ import { Shipyard } from './Shipyard.tsx';
 import { countdown, duration, num, RARITY_LABEL } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { Credits, Quanta } from './icons.tsx';
+import { CloseX, SpendButton } from './Spend.tsx';
 
 const TIER_NAME: Record<CrateTier, string> = { standard: 'Standard', premium: 'Premium' };
 
@@ -48,10 +49,14 @@ function SlotCell({ slot, index, busy: anyUnlocking }: { slot: SlotView | undefi
         </button>
       )}
       {!ready && slot.state === 'unlocking' && (
-        <button className="slot__btn slot__btn--speed" disabled={pending || quanta < slot.speedUpCost} onClick={tap('SpeedUp')}>
-          {countdown(left)}
-          <small>{slot.speedUpCost > 0 ? <><Quanta />{slot.speedUpCost} sofort</> : 'Gratis sofort'}</small>
-        </button>
+        <>
+          <span className="slot__timer">{countdown(left)}</span>
+          {slot.speedUpCost > 0 ? (
+            <SpendButton className="slot__btn slot__btn--speed" disabled={pending || quanta < slot.speedUpCost} onSpend={() => void send({ type: 'SpeedUp', slot: index })} confirm={<><Quanta />{slot.speedUpCost} ausgeben?</>}>
+              Sofort <Quanta />{slot.speedUpCost}
+            </SpendButton>
+          ) : <button className="slot__btn slot__btn--speed" disabled={pending} onClick={tap('SpeedUp')}>Gratis sofort</button>}
+        </>
       )}
     </div>
   );
@@ -114,6 +119,17 @@ export function Hangar() {
         </div>
       </div>
 
+      <div className="pity">
+        <div className="meter meter--elite">
+          <div className="meter__row"><span>Elite garantiert in</span><b>{pityElite.max - pityElite.current}</b></div>
+          <div className="meter__bar"><i style={{ width: `${(pityElite.current / pityElite.max) * 100}%` }} /></div>
+        </div>
+        <div className="meter meter--legend">
+          <div className="meter__row"><span>Legende garantiert in</span><b>{pityLegend.max - pityLegend.current}</b></div>
+          <div className="meter__bar"><i style={{ width: `${(pityLegend.current / pityLegend.max) * 100}%` }} /></div>
+        </div>
+      </div>
+
       <h4 className="market__section">
         Verdiente Container
         <span className={full ? 'is-down' : ''}>{view.slots.length} von {view.slotCap} Plätzen{full ? ' · voll: neue Beute verfällt' : ''}</span>
@@ -125,7 +141,7 @@ export function Hangar() {
       <h4 className="market__section">Kaufen</h4>
       <div className="shop">
         {(Object.keys(tiers) as CrateTier[]).map((tier) => (
-          <button key={tier} className={`shop__item shop__item--${tier}`} disabled={busy || view.wallet[tiers[tier].currency] < tiers[tier].price || tiers[tier].leftToday < 1} onClick={() => { audio.tap(); void send({ type: 'BuyCrate', tier }); }}>
+          <SpendButton key={tier} className={`shop__item shop__item--${tier}`} disabled={busy || view.wallet[tiers[tier].currency] < tiers[tier].price || tiers[tier].leftToday < 1} onSpend={() => void send({ type: 'BuyCrate', tier })} confirm={<span className="shop__confirm">{TIER_NAME[tier]} für {num(tiers[tier].price)} {tiers[tier].currency === 'credits' ? 'Credits' : 'Quanten'} kaufen? Tippe noch einmal</span>}>
             <Crate tier={tier} small />
             <span className="shop__main">
               <b>{TIER_NAME[tier]}</b>
@@ -137,7 +153,7 @@ export function Hangar() {
               </small>
             </span>
             <span className={`price price--${tiers[tier].currency}`}>{tiers[tier].currency === 'credits' ? <Credits /> : <Quanta />}{num(tiers[tier].price)}</span>
-          </button>
+          </SpendButton>
         ))}
       </div>
 
@@ -163,20 +179,11 @@ export function Hangar() {
         })}
       </div>
 
-      <div className="pity">
-        <div className="meter meter--elite">
-          <div className="meter__row"><span>Elite garantiert in</span><b>{pityElite.max - pityElite.current}</b></div>
-          <div className="meter__bar"><i style={{ width: `${(pityElite.current / pityElite.max) * 100}%` }} /></div>
-        </div>
-        <div className="meter meter--legend">
-          <div className="meter__row"><span>Legende garantiert in</span><b>{pityLegend.max - pityLegend.current}</b></div>
-          <div className="meter__bar"><i style={{ width: `${(pityLegend.current / pityLegend.max) * 100}%` }} /></div>
-        </div>
-      </div>
 
       {odds && (
         <div className="overlay overlay--dim" onClick={() => setOdds(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={() => setOdds(false)} />
             <h3>Quoten pro Karte</h3>
             <table>
               <thead><tr><th /><th>Standard</th><th>Premium</th></tr></thead>

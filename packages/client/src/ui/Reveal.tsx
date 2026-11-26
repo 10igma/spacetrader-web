@@ -13,7 +13,6 @@ const CHARGE_MS = 900;
 /** Higher rarities hold the tension longer before the card lands. */
 const TELL_MS = [450, 650, 950, 1400, 2000];
 
-const buzz = (pattern: number | number[]): void => { try { navigator.vibrate?.(pattern); } catch { /* unsupported */ } };
 
 /**
  * Presentation only. The pulls were decided by the game service before this
@@ -54,19 +53,16 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
       const shownRank = rarityRank(shown) as Rank;
       stage.setRift(RARITY_RGB[shown], pull.upgradedFrom ? 0.8 : 1);
       audio.tell(shownRank);
-      buzz(12);
       timer = window.setTimeout(() => setPhase(pull.upgradedFrom ? 'bump' : 'show'), pull.upgradedFrom ? 700 : TELL_MS[rank]);
     } else if (phase === 'bump') {
       stage.setRift(RARITY_RGB[pull.rarity], 1);
       stage.pulse(0.3);
       audio.tell(rank);
-      buzz([10, 30, 30]);
       timer = window.setTimeout(() => setPhase('show'), TELL_MS[rank]);
     } else if (phase === 'show') {
       stage.setRift(RARITY_RGB[pull.rarity], 0.62);
       stage.pulse(0.35 + rank * 0.14);
       audio.reveal(rank);
-      buzz(rank >= 3 ? [30, 40, 30, 40, 120] : rank >= 2 ? [25, 30, 60] : 18);
     } else {
       stage.setRift(null, 0);
     }

@@ -12,7 +12,7 @@ page.on('console', (m) => { if (m.type() === 'error') problems.push(m.text().sli
 page.on('pageerror', (e) => problems.push(String(e).slice(0, 300)));
 const shot = (n) => page.screenshot({ path: `${out}/${n}.png` });
 const settle = (ms) => page.waitForTimeout(ms);
-await page.goto(`http://localhost:5173/?q=high&seed=${seed}`);
+await page.goto(`http://localhost:5173/?q=high&calm=1&seed=${seed}`);
 await settle(2500);
 await page.locator('.splash').tap(); await settle(2000);
 await shot('a-hub');

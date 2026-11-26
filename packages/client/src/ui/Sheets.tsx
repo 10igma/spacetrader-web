@@ -5,6 +5,7 @@ import { useApp } from '../store.ts';
 import { countdown, duration, FACTION_COLOR, num, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { Credits, Quanta } from './icons.tsx';
+import { CloseX, SpendButton } from './Spend.tsx';
 
 // ---------------------------------------------------------------------------
 // Trading posts
@@ -23,6 +24,7 @@ export function PostSheet() {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={() => close(null)}>
       <div className="sheet sheet--trade posts" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={() => close(null)} />
         <span className="eyebrow">Passives Einkommen</span>
         <h3>Handelsposten</h3>
         <p className="trade__note">Posten verdienen, während du weg bist. Nach {CONFIG.posts.storageHours} Stunden ist ihr Lager voll, dann verdienen sie nichts mehr.</p>
@@ -43,9 +45,9 @@ export function PostSheet() {
                   </small>
                 </div>
                 {p.readyAt !== null && (
-                  <button className="mission__btn post__rush" disabled={busy || view.wallet.quanta < p.speedUpCost} onClick={() => { audio.tap(); void send({ type: 'SpeedUpPost', stationId: p.stationId }); }}>
+                  <SpendButton className="mission__btn mission__btn--plain post__rush" disabled={busy || view.wallet.quanta < p.speedUpCost} onSpend={() => void send({ type: 'SpeedUpPost', stationId: p.stationId })} confirm={<><Quanta />{p.speedUpCost}<small>ausgeben?</small></>}>
                     {p.speedUpCost > 0 ? <><Quanta />{p.speedUpCost}</> : 'Gratis'}<small>sofort</small>
-                  </button>
+                  </SpendButton>
                 )}
               </div>
             );
@@ -126,6 +128,7 @@ export function WheelSheet() {
   return (
     <div className="overlay overlay--dim" onClick={() => { if (!result || landed) close(null); }}>
       <div className="wheel" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={() => { if (!result || landed) close(null); }} />
         <span className="eyebrow">Einmal pro Tag</span>
         <h3>Glücksrad</h3>
         <div className="wheel__stage">
@@ -194,6 +197,7 @@ export function SalvageSheet() {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={() => close(null)}>
       <div className="sheet sheet--trade salvage" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={() => close(null)} />
         <span className="eyebrow">Bergungs-Auktion</span>
         <h3>Versiegelter Wrack-Container</h3>
         <p className="trade__note">Gewicht: {WEIGHT[lot.weight]} · Herkunft: {FACTIONS[lot.origin].name}. Was drin ist, weiss niemand. Die Quoten stehen unten.</p>

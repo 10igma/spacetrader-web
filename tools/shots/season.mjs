@@ -14,7 +14,7 @@ const shot = (n) => page.screenshot({ path: `${out}/${n}.png` });
 const settle = (ms) => page.waitForTimeout(ms);
 const tab = async (name) => { await page.locator('.nav__item', { hasText: name }).tap(); await settle(1200); };
 const start = async (query) => {
-  await page.goto(`http://localhost:5173/?q=high${query}`);
+  await page.goto(`http://localhost:5173/?q=high&calm=1${query}`);
   await settle(2000);
   await page.locator('.splash').tap(); await settle(1500);
 };
@@ -57,7 +57,8 @@ await page.locator('.topbar__me').tap(); await settle(900);
 await shot('124-profile');
 await page.locator('.title', { hasText: 'Grosshändler' }).tap(); await settle(700);
 await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 330)); await settle(400);
-await page.locator('.paint', { hasText: 'Karminrot' }).tap(); await settle(900);
+await page.locator('.paint', { hasText: 'Karminrot' }).tap(); await settle(400);
+await page.locator('.paint.is-armed').tap(); await settle(900);
 await shot('125-titles-paints');
 await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 0)); await settle(400);
 await page.locator('.profile__empty').first().tap(); await settle(800);
@@ -68,7 +69,7 @@ await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 9999)); a
 await page.locator('.prestige .cta').tap(); await settle(600);
 await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 9999)); await settle(400);
 await shot('128-prestige-confirm');
-await page.locator('.prestige__actions .cta--gold').tap(); await settle(1500);
+await page.locator('.prestige__actions .cta--danger').tap(); await settle(1500);
 await shot('129-after-prestige');
 await page.locator('.topbar__me').tap(); await settle(900);
 await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 9999)); await settle(400);

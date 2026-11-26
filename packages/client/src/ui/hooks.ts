@@ -33,3 +33,18 @@ export function useCountUp(value: number, durationMs = 700): number {
   }, [value, durationMs]);
   return shown;
 }
+
+/** True for a moment after a number went up: the cue for a small celebration where the number lives. */
+export function useGain(value: number, ms = 600): boolean {
+  const [on, setOn] = useState(false);
+  const last = useRef(value);
+  useEffect(() => {
+    const grew = value > last.current;
+    last.current = value;
+    if (!grew) return;
+    setOn(true);
+    const t = setTimeout(() => setOn(false), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return on;
+}

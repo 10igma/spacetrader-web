@@ -5,6 +5,7 @@ import { useApp } from '../store.ts';
 import { FACTION_COLOR, longCountdown, ownedCards, RARITY_LABEL, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { Quanta } from './icons.tsx';
+import { CloseX, SpendButton } from './Spend.tsx';
 
 const offerTitle = (o: ConvoyOffer): string => `${o.hours} Std. · ${FACTIONS[o.faction].name}`;
 
@@ -29,6 +30,7 @@ function ConvoySheet({ offer, onClose }: { offer: ConvoyOffer; onClose: () => vo
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
       <div className="sheet sheet--trade picker" onClick={(e) => e.stopPropagation()}>
+        <CloseX onClick={onClose} />
         <span className="eyebrow">Konvoi · {offerTitle(offer)}</span>
         <h3>{rewardText(offer.reward)}</h3>
         <p className="trade__note">
@@ -97,9 +99,9 @@ export function Convoys() {
             ) : (
               <>
                 <span className="gear__state">{longCountdown(c.endsAt - now)}</span>
-                <button className="price price--btn price--quanta" disabled={busy || view.wallet.quanta < c.rushCost} onClick={() => { audio.tap(); void send({ type: 'RushConvoy', slot: i }); }}>
+                <SpendButton className="price price--btn price--quanta" disabled={busy || view.wallet.quanta < c.rushCost} onSpend={() => void send({ type: 'RushConvoy', slot: i })} confirm={<><Quanta />{c.rushCost} ausgeben?</>}>
                   Sofort <Quanta />{c.rushCost}
-                </button>
+                </SpendButton>
               </>
             )}
           </span>
