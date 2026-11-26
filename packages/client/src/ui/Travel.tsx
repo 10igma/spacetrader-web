@@ -1,8 +1,9 @@
-import { FACTIONS, GOOD_BY_ID, quote, STATION_BY_ID, type EncounterChoice, type GoodId } from '@nova/core';
+import { CONFIG, FACTIONS, GOOD_BY_ID, quote, STATION_BY_ID, type EncounterChoice, type GoodId } from '@nova/core';
 import { useEffect, useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { stage } from '../stage/index.ts';
 import { useApp, type Travel as TravelState } from '../store.ts';
+import { art } from './art.ts';
 import { FACTION_COLOR, num } from './format.ts';
 
 type Phase = 'launch' | 'encounter' | 'resolve' | 'outcome' | 'cruise' | 'arrive';
@@ -18,8 +19,9 @@ const ARRIVE_MS = 3400;
 
 
 const OPTION: Record<EncounterChoice, { label: string; stat?: 'nav' | 'hdl' | 'tec' | 'kmp'; note: (hot: boolean) => string }> = {
-  fight: { label: 'Kämpfen', stat: 'kmp', note: () => 'Sieg bringt Beute. Niederlage kostet 40 % der Fracht' },
-  flee: { label: 'Fliehen', stat: 'nav', note: () => 'Misslingt es, gehen 25 % der Fracht verloren' },
+  // The stakes come from the rules, so the text can never drift from what really happens.
+  fight: { label: 'Kämpfen', stat: 'kmp', note: () => `Sieg bringt Beute. Niederlage kostet ${Math.round(CONFIG.encounter.lossOnLostFight * 100)} % der Fracht` },
+  flee: { label: 'Fliehen', stat: 'nav', note: () => `Misslingt es, gehen ${Math.round(CONFIG.encounter.lossOnFailedFlee * 100)} % der Fracht verloren` },
   pay: { label: 'Tribut zahlen', note: () => 'Sie lassen dich ziehen' },
   submit: { label: 'Kontrollieren lassen', stat: 'tec', note: (hot) => (hot ? 'Wird verbotene Ware gefunden: beschlagnahmt, Busse, Fahndung' : 'Deine Fracht ist hier legal') },
   bribe: { label: 'Bestechen', stat: 'hdl', note: () => 'Geld ist in jedem Fall weg' },
@@ -49,6 +51,11 @@ export function Travel({ travel }: { travel: TravelState }) {
   /** The chance as it was shown when the choice was made: the encounter is gone from the view once it is resolved. */
   const [chosenChance, setChosenChance] = useState(1);
   const [beatOver, setBeatOver] = useState(false);
+  // The picture of this encounter: one of two per kind, fixed for the whole scene.
+  const [scene] = useState(() => {
+    const kind = view.encounter?.kind;
+    return kind ? art('encounters', `${kind}-${1 + (view.stats.jumps % 2)}`) ?? art('encounters', `${kind}-1`) : undefined;
+  });
   const [launchMs] = useState(() => (jumpsThisSession++ >= 3 ? LAUNCH_SHORT_MS : LAUNCH_LONG_MS));
   const dest = STATION_BY_ID.get(travel.to)!;
   const encounter = view.encounter;
@@ -136,6 +143,7 @@ export function Travel({ travel }: { travel: TravelState }) {
 
       {phase === 'encounter' && encounter && (
         <div className={`enc enc--${encounter.kind}`}>
+          {scene && <div className="enc__art"><img src={scene} alt="" draggable={false} /></div>}
           <span className="eyebrow">{encounter.kind === 'pirates' ? 'Angriff' : `Zoll · ${FACTIONS[dest.faction].name}`}</span>
           <h3>{encounter.kind === 'pirates' ? 'Piraten!' : 'Zollkontrolle'}</h3>
           <p>
@@ -166,6 +174,7 @@ export function Travel({ travel }: { travel: TravelState }) {
 
       {phase === 'resolve' && (
         <div className="enc enc--resolve">
+          {scene && <div className="enc__art enc__art--held"><img src={scene} alt="" draggable={false} /></div>}
           <span className="eyebrow">{chosen ? OPTION[chosen].label : ''}</span>
           <div className="enc__beat"><i /><i /><i /></div>
           {chosenChance < 1 && <small className="enc__chance">Chance {Math.round(chosenChance * 100)} %</small>}
