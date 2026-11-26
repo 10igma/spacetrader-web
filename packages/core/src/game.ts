@@ -1982,9 +1982,11 @@ export function toClientView(state: GameState, now: number): ClientView {
       station: postList.filter((p) => p.readyAt === null && p.stored >= p.cap * 0.9).length,
       market: s.auction.results.length + lots.filter((l) => l.yourMax !== null && !l.leading).length,
       daily: s.daily.missions.filter((m) => !m.claimed && m.progress >= m.target).length + (chestClaimable ? 1 : 0) + (calendarClaimable ? 1 : 0)
-        + (s.daily.wheelSpun ? 0 : 1) + manifests.filter((m) => !m.done && m.have >= m.need).length
+        + (s.daily.wheelSpun ? 0 : 1)
         + (charterClaimable > 0 ? 1 : 0) + (s.league.last ? 1 : 0) + (weekendClaimable > 0 ? 1 : 0) + (s.comeback ? 1 : 0),
-      deck: FACTION_IDS.filter((f) => albums[f].claimable).length + s.convoys.filter((c) => c.endsAt <= now).length + (album.claimable ? 1 : 0),
+      deck: FACTION_IDS.filter((f) => albums[f].claimable).length + s.convoys.filter((c) => c.endsAt <= now).length + (album.claimable ? 1 : 0)
+        // Manifests are handed in where the spare copies are: with the collection.
+        + manifests.filter((m) => !m.done && m.have >= m.need).length,
     },
     deck: { seats: deck.seats, chem: deck.chem },
     crew: deck.bonus,

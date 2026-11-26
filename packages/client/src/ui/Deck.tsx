@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { Convoys } from './Convoys.tsx';
+import { seatUpgrades } from './crew.ts';
 import { HoloCard } from './HoloCard.tsx';
 import { BONUS_LABEL, FACTION_COLOR, longCountdown, num, ownedCards, RARITY_LABEL, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
@@ -61,6 +62,28 @@ function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
 
 const FACTION_ORDER: FactionId[] = ['tessera', 'asche', 'helix', 'zenit'];
 
+/** Hand in spare copies for a reward. Two a day. They live with the collection, where the copies are. */
+function Manifests() {
+  const view = useApp((s) => s.view)!;
+  const send = useApp((s) => s.send);
+  const busy = useApp((s) => s.busy);
+  return (
+    <div className="manifests">
+      {view.daily.manifests.map((m, i) => {
+        const ready = !m.done && m.have >= m.need;
+        const what = `${m.need} ${m.need === 1 ? 'Duplikat' : 'Duplikate'}${m.faction ? ` · ${FACTIONS[m.faction].short}` : ''}${m.minRarity ? ` · ab ${RARITY_LABEL[m.minRarity]}` : ''}`;
+        return (
+          <button key={i} className={`manifest${ready ? ' is-ready' : ''}${m.done ? ' is-done' : ''}`} disabled={busy || !ready} onClick={() => { audio.tap(); void send({ type: 'SubmitManifest', index: i }); }}>
+            <small>Manifest · {m.done ? 'erfüllt' : `${Math.min(m.have, m.need)} von ${m.need}`}</small>
+            <b>{what}</b>
+            <span>{m.done ? 'Erhalten' : ready ? `Abgeben · ${rewardText(m.reward)}` : rewardText(m.reward)}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Deck() {
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
@@ -81,11 +104,13 @@ export function Deck() {
   const mode = useApp((s) => s.deckMode);
   const setMode = useApp((s) => s.setDeckMode);
   const back = view.convoys.running.filter((c) => c.done).length;
+  const collectable = view.seasonAlbum.claimable || FACTION_ORDER.some((f) => view.albums[f].claimable) || view.daily.manifests.some((m) => !m.done && m.have >= m.need);
+  const upgrades = seatUpgrades(view);
   const segment = (
-    <div className="segment" role="tablist">
-      {([['bridge', 'Brücke'], ['convoys', 'Konvois']] as const).map(([id, label]) => (
+    <div className="segment segment--3" role="tablist">
+      {([['bridge', 'Brücke'], ['collection', 'Sammlung'], ['convoys', 'Konvois']] as const).map(([id, label]) => (
         <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? 'is-active' : ''} onClick={() => { audio.tap(); setMode(id); }}>
-          {label}{id === 'convoys' && back > 0 && <i className="dot" />}
+          {label}{((id === 'convoys' && back > 0) || (id === 'collection' && collectable)) && <i className="dot" />}
         </button>
       ))}
     </div>
@@ -107,12 +132,16 @@ export function Deck() {
   return (
     <section className="deck">
       <header className="screenhead">
-        <span className="eyebrow">Brücke</span>
-        <h2>Crew</h2>
-        <span className="pill pill--chem">Chemie <b>{view.deck.chem}</b></span>
+        <span className="eyebrow">{mode === 'bridge' ? 'Brücke' : 'Sammlung'}</span>
+        <h2>{mode === 'bridge' ? 'Crew' : 'Alben'}</h2>
+        {mode === 'bridge'
+          ? <span className="pill pill--chem">Chemie <b>{view.deck.chem}</b></span>
+          : <span className="pill pill--shards"><Shard />{num(view.wallet.shards)}</span>}
       </header>
       {segment}
 
+      {mode === 'bridge' && (
+        <>
       <div className="bridge">
         {SEATS.map((seat) => {
           const s = view.deck.seats[seat];
@@ -126,6 +155,7 @@ export function Deck() {
                   <span className="seat__name">{card.name.split(' ').slice(-1)[0]}</span>
                   <span className="seat__links">{[0, 1, 2, 3].map((i) => <i key={i} className={i < s.links ? 'on' : ''} />)}</span>
                   {!s.onRole && <span className="seat__off">fremd</span>}
+                  {upgrades[seat] !== undefined && <span className="seat__up">▲ +{upgrades[seat]}</span>}
                 </>
               ) : <span className="seat__plus">+</span>}
             </button>
@@ -143,10 +173,24 @@ export function Deck() {
         ))}
       </div>
       <div className="deck__actions">
-        <button className="link" disabled={busy || Object.keys(view.collection).length === 0} onClick={() => { audio.tap(); void send({ type: 'AutoDeck' }); }}>Automatisch aufstellen</button>
-        <span className="pill pill--shards"><Shard />{num(view.wallet.shards)}</span>
+        <button className={`link deck__auto${Object.keys(upgrades).length > 0 ? ' is-hint' : ''}`} disabled={busy || Object.keys(view.collection).length === 0} onClick={() => { audio.tap(); void send({ type: 'AutoDeck' }); }}>Automatisch aufstellen</button>
       </div>
 
+        </>
+      )}
+      {mode === 'bridge' && (
+        <>
+          <div className="crewrow">
+            {SEATS.map((seat) => view.deck.seats[seat]).filter((s): s is NonNullable<typeof s> => !!s).map((s) => {
+              const c = CARD_BY_ID.get(s.cardId)!;
+              return <HoloCard key={c.id} card={c} size="sm" level={view.cardLevels[c.id] ?? 1} onClick={() => { audio.tap(); setInspect(c.id); }} />;
+            })}
+          </div>
+        </>
+      )}
+      {mode === 'collection' && (
+        <>
+          <Manifests />
       <div className="albums" role="tablist">
         {FACTION_ORDER.map((f) => {
           const a = view.albums[f];
@@ -193,6 +237,8 @@ export function Deck() {
         ))}
         {missing.map((c) => <HoloCard key={c.id} card={c} size="sm" locked onClick={() => { audio.tap(); setInspect(c.id); }} />)}
       </div>
+        </>
+      )}
       {picking && <SeatPicker seat={picking} onClose={() => setPicking(null)} />}
     </section>
   );

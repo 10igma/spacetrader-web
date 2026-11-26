@@ -30,7 +30,7 @@ function RewardTile({ reward, state, premium = false }: { reward: Reward; state:
   );
 }
 
-function WeekendCard() {
+export function WeekendCard() {
   const weekend = useApp((s) => s.view!.weekend);
   const send = useApp((s) => s.send);
   const busy = useApp((s) => s.busy);

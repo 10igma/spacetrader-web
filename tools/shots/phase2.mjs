@@ -22,7 +22,7 @@ await tab('Hangar');
 await page.locator('.cta').tap();
 await page.waitForSelector('.reveal');
 for (let i = 0; i < 12 && !(await page.locator('.reveal--summary').count()); i++) { await page.locator('.reveal').tap(); await settle(450); }
-await page.locator('.reveal .cta').tap(); await settle(400);
+await page.locator('.reveal .cta', { hasText: 'Weiter' }).tap(); await settle(400);
 await page.evaluate(() => {
   const s = JSON.parse(localStorage.getItem('nova.save'));
   for (const id of ['c20', 'c21', 'c11', 'c18', 'c15', 'c17', 'c13', 'c06']) s.collection[id] = 1;

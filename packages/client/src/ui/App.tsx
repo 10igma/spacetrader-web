@@ -16,6 +16,7 @@ import { Reveal } from './Reveal.tsx';
 import { RouteSheet } from './RouteSheet.tsx';
 import { ProfileSheet } from './Profile.tsx';
 import { CloseX } from './Spend.tsx';
+import { SettingsSheet } from './Settings.tsx';
 import { PostSheet, SalvageSheet, WheelSheet } from './Sheets.tsx';
 import { Splash } from './Splash.tsx';
 import { TopBar } from './TopBar.tsx';
@@ -110,6 +111,7 @@ export function App() {
       {sheet === 'wheel' && <WheelSheet />}
       {milestone && !travel && !reveal && <Milestone key={`moment-${milestone.id}`} />}
       {sheet === 'profile' && !travel && <ProfileSheet />}
+      {sheet === 'settings' && <SettingsSheet />}
       {sheet === 'salvage' && !travel && <SalvageSheet />}
       {reveal && <Reveal pulls={reveal} />}
       {travel && <Travel travel={travel} />}

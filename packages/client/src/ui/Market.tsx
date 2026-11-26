@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { Auction } from './Auction.tsx';
 import { useApp } from '../store.ts';
+import { art } from './art.ts';
 import { num, pct } from './format.ts';
 import { Credits } from './icons.tsx';
 import { CloseX } from './Spend.tsx';
@@ -51,7 +52,8 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
       <div className={`sheet sheet--trade${fence ? ' sheet--fence' : ''}`} onClick={(e) => e.stopPropagation()}>
         <CloseX onClick={onClose} />
         <div className="trade__head">
-          <div>
+          {art('goods', good.id) && <img className="trade__icon" src={art('goods', good.id)} alt="" draggable={false} />}
+          <div className="trade__title">
             <span className="eyebrow">{CATEGORY_NAME[good.category]}{note ? ` · ${note}` : ''}</span>
             <h3>{good.name}</h3>
           </div>
@@ -133,8 +135,10 @@ function GoodRow({ good, row, onOpen }: { good: GoodDef; row: MarketRow; onOpen:
   const lot = useApp((s) => s.view!.cargo.items[good.id]);
   const gain = lot ? row.sell - lot.avgCost : 0;
   const note = legalNote(good, row);
+  const picture = art('goods', good.id);
   return (
-    <button className={`good${good.tier !== 'free' ? ' good--hot' : ''}${lot ? ' good--owned' : ''}`} onClick={onOpen}>
+    <button className={`good${good.tier !== 'free' ? ' good--hot' : ''}${lot ? ' good--owned' : ''}${picture ? ' good--art' : ''}`} onClick={onOpen}>
+      {picture && <img className="good__icon" src={picture} alt="" draggable={false} loading="lazy" />}
       <span className="good__name">
         <b>{good.name}</b>
         <small>{CATEGORY_NAME[good.category]}{note ? ` · ${note}` : ''}</small>

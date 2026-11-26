@@ -856,6 +856,7 @@ button.tile:active { transform: scale(0.96); }
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
+  min-height: 62px;
   border-radius: var(--radius-m);
   text-align: left;
   background: var(--glass-strong);
@@ -1449,12 +1450,19 @@ button.tile:active { transform: scale(0.96); }
 .wheel h3 { font-family: var(--font-display); font-size: 26px; text-transform: uppercase; letter-spacing: 0.06em; }
 .wheel__stage { position: relative; width: min(74vw, 290px); aspect-ratio: 1; margin: 6px 0; }
 .wheel__disc { width: 100%; height: 100%; border-radius: 50%; transition: transform 3.8s cubic-bezier(0.12, 0.75, 0.1, 1); filter: drop-shadow(0 0 24px rgba(59, 227, 255, 0.35)); }
-.wheel__label { font-family: var(--font-display); font-size: 8.5px; font-weight: 700; fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, 0.6); stroke-width: 2px; }
-.wheel__pointer { position: absolute; z-index: 2; top: -8px; left: 50%; margin-left: -11px; border: 11px solid transparent; border-top: 20px solid #fff; filter: drop-shadow(0 0 8px var(--amber)); }
+.wheel__label { font-family: var(--font-display); font-size: 9px; font-weight: 700; fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, 0.7); stroke-width: 2.4px; }
+.wheel__disc path { transition: opacity 0.4s, filter 0.4s; }
+.wheel__disc path.is-lost { opacity: 0.35; }
+.wheel__disc path.is-won { filter: brightness(1.5) drop-shadow(0 0 6px #fff); }
+/* The rim: a metal ring with lights that chase while the wheel turns. */
+.wheel__rim { position: absolute; inset: -2%; border-radius: 50%; pointer-events: none; background: conic-gradient(#8a93a6, #e9eef7, #6b7386, #dfe6f2, #7b8496, #e9eef7, #8a93a6); -webkit-mask: radial-gradient(closest-side, transparent 88.5%, #000 89.5%); mask: radial-gradient(closest-side, transparent 88.5%, #000 89.5%); }
+.wheel__rim::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: repeating-conic-gradient(#ffc24a 0 3deg, transparent 3deg 15deg); -webkit-mask: radial-gradient(closest-side, transparent 92.5%, #000 93.5% 97%, transparent 98%); mask: radial-gradient(closest-side, transparent 92.5%, #000 93.5% 97%, transparent 98%); opacity: 0.55; }
+.wheel__rim.is-spinning::after { opacity: 1; animation: rays 1.2s linear infinite reverse; }
+.wheel__pointer { position: absolute; z-index: 2; top: -10px; left: 50%; margin-left: -11px; border: 11px solid transparent; border-top: 22px solid var(--r-legend); filter: drop-shadow(0 0 8px var(--amber)); }
 .wheel .cta { max-width: 260px; }
 .wheel__result { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; animation: pop 0.45s var(--spring) both; }
 .wheel__result small { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber); }
-.wheel__result b { font-family: var(--font-display); font-size: 28px; font-weight: 800; text-shadow: 0 0 22px var(--amber); margin-bottom: 6px; }
+.wheel__result b { font-family: var(--font-display); font-size: 34px; font-weight: 800; text-shadow: 0 0 22px var(--amber); margin-bottom: 6px; }
 .wheel__odds { list-style: none; margin: 6px 0 0; padding: 0; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; font-size: 11px; color: var(--ink-dim); text-align: left; }
 .wheel__odds li { display: flex; align-items: center; gap: 6px; }
 .wheel__odds i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
@@ -1891,6 +1899,36 @@ button.lot:active { transform: scale(0.98); }
 .arrive__chip.is-down b { color: var(--danger); }
 .rtile__icon--art { background: none; }
 .rtile__icon--art img { width: 34px; height: 34px; object-fit: contain; }
+
+/* Goods have a face, rewards have a path to the wallet. */
+.good--art { grid-template-columns: 46px 1fr auto auto; padding-left: 8px; }
+.good__icon { width: 46px; height: 46px; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)); }
+.trade__head { justify-content: flex-start; }
+.trade__icon { width: 64px; height: 64px; flex: none; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6)); }
+.trade__title { flex: 1; min-width: 0; }
+.flyglyph { position: fixed; z-index: 90; left: -11px; top: -11px; width: 22px; height: 22px; pointer-events: none; object-fit: contain; border-radius: 50%; will-change: transform, opacity; }
+i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(--tone); box-shadow: 0 0 10px var(--tone); }
+
+/* Deck in three parts: who flies, what you own, who is away. */
+.crewrow { display: flex; gap: 10px; margin: 10px -16px 0; padding: 6px 16px 14px; overflow-x: auto; scrollbar-width: none; }
+.crewrow::-webkit-scrollbar { display: none; }
+.crewrow .holo { flex: 0 0 31%; }
+.seat { position: relative; }
+.seat__up { position: absolute; z-index: 2; top: 3px; right: 3px; padding: 1px 4px; border-radius: 8px; font-family: var(--font-display); font-size: 10px; font-weight: 700; color: #021018; background: var(--ok); box-shadow: 0 0 10px -2px var(--ok); }
+.deck__actions { justify-content: center; }
+.deck__auto { justify-content: center; width: 100%; border-radius: 12px; font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px var(--stroke-strong); }
+/* A hint, not a reward: outlined in the colour of a gain, never a filled slab. */
+.deck__auto.is-hint { color: var(--ok); background: rgba(77, 255, 181, 0.08); box-shadow: inset 0 0 0 1px var(--ok); }
+.manifests { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 2px; }
+.manifest { display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border-radius: 12px; text-align: left; background: var(--glass-strong); border: 1px solid var(--stroke); opacity: 1 !important; }
+.manifest small { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
+.manifest b { font-family: var(--font-display); font-size: 13px; line-height: 1.2; }
+.manifest span { font-size: 11px; color: var(--ink-dim); }
+.manifest.is-ready { border-color: var(--r-legend); box-shadow: inset 0 0 16px -8px var(--r-legend); }
+.manifest.is-ready span { color: var(--r-legend); font-weight: 600; }
+.manifest.is-done { opacity: 0.5 !important; }
+.link--gold { min-height: 0; padding: 0; font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--r-legend); }
+.reveal--summary .cta small { font-size: 12px; }
 
 .toast {
   position: fixed;

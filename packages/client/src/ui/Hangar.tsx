@@ -84,8 +84,8 @@ export function Hangar() {
   const mode = useApp((s) => s.hangarMode);
   const setMode = useApp((s) => s.setHangarMode);
   const segment = (
-    <div className="segment" role="tablist">
-      {([['crates', 'Container'], ['yard', 'Werft']] as const).map(([id, label]) => (
+    <div className="segment segment--3" role="tablist">
+      {([['crates', 'Container'], ['shop', 'Shop'], ['yard', 'Werft']] as const).map(([id, label]) => (
         <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? 'is-active' : ''} onClick={() => { audio.tap(); setMode(id); }}>
           {label}{id === 'crates' && mode !== 'crates' && view.badges.hangar > 0 && <i className="dot" />}
         </button>
@@ -110,11 +110,13 @@ export function Hangar() {
     <section className="hangar">
       <header className="screenhead">
         <span className="eyebrow">Hangar</span>
-        <h2>Container</h2>
+        <h2>{mode === 'shop' ? 'Shop' : 'Container'}</h2>
         <button className="link" onClick={() => { audio.tap(); setOdds(true); }}>Quoten</button>
       </header>
       {segment}
 
+      {mode === 'crates' && (
+        <>
       <div className="free">
         <Crate />
         <div className="free__info">
@@ -148,6 +150,10 @@ export function Hangar() {
         {Array.from({ length: view.slotCap }, (_, i) => <SlotCell key={i} index={i} slot={view.slots[i]} busy={anyUnlocking} />)}
       </div>
 
+        </>
+      )}
+      {mode === 'shop' && (
+        <>
       <h4 className="market__section">Kaufen</h4>
       <div className="shop">
         {(Object.keys(tiers) as CrateTier[]).map((tier) => (
@@ -190,6 +196,8 @@ export function Hangar() {
       </div>
 
 
+        </>
+      )}
       {odds && (
         <div className="overlay overlay--dim" onClick={() => setOdds(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>

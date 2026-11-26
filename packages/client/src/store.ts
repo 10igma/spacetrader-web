@@ -36,7 +36,7 @@ export type MilestoneMoment = { id: number } & (
   | { kind: 'prestige'; rank: number }
 );
 type MomentInput = MilestoneMoment extends infer M ? (M extends { id: number } ? Omit<M, 'id'> : never) : never;
-export type Sheet = 'posts' | 'wheel' | 'salvage' | 'profile' | null;
+export type Sheet = 'posts' | 'wheel' | 'salvage' | 'profile' | 'settings' | null;
 
 const REJECT_TEXT: Record<RejectReason, string> = {
   not_enough_credits: 'Nicht genug Credits',
@@ -83,8 +83,8 @@ interface AppState {
   clockOffset: number;
   started: boolean;
   tab: Tab;
-  hangarMode: 'crates' | 'yard';
-  deckMode: 'bridge' | 'convoys';
+  hangarMode: 'crates' | 'shop' | 'yard';
+  deckMode: 'bridge' | 'collection' | 'convoys';
   muted: boolean;
   busy: boolean;
   reveal: Pull[] | null;
@@ -106,8 +106,8 @@ interface AppState {
   send(cmd: Command): Promise<GameEvent[]>;
   begin(): void;
   setTab(tab: Tab): void;
-  setHangarMode(mode: 'crates' | 'yard'): void;
-  setDeckMode(mode: 'bridge' | 'convoys'): void;
+  setHangarMode(mode: 'crates' | 'shop' | 'yard'): void;
+  setDeckMode(mode: 'bridge' | 'collection' | 'convoys'): void;
   toggleMute(): void;
   closeReveal(): void;
   endTravel(): void;

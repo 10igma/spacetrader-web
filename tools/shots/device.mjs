@@ -49,12 +49,12 @@ check('back has nothing left', await app(() => window.__nova.app.getState().back
 check('refresh keeps the game', await app(async () => { await window.__nova.app.getState().refresh(); return window.__nova.app.getState().view.wallet.credits; }) === 76_543);
 
 // Device settings
-await page.locator('.topbar__me').tap(); await settle(700);
-await page.locator('.profile__scroll').evaluate((el) => el.scrollTo(0, 9999)); await settle(400);
+await page.locator('.topbar .iconbtn').tap(); await settle(700);
 await page.screenshot({ path: `${out}/140-device-settings.png` });
-check('reminders are off by default', await page.locator('.switch').nth(1).getAttribute('aria-checked') === 'false');
-check('reminders cannot be switched on in a browser', await page.locator('.switch').nth(1).isDisabled());
-await page.locator('.switch').first().tap(); await settle(400);
+check('sound, haptics and reminders are in one place', await page.locator('.switch').count() === 3);
+check('reminders are off by default', await page.locator('.switch').nth(2).getAttribute('aria-checked') === 'false');
+check('reminders cannot be switched on in a browser', await page.locator('.switch').nth(2).isDisabled());
+await page.locator('.switch').nth(1).tap(); await settle(400);
 check('haptics switch is remembered', await page.evaluate(() => JSON.parse(localStorage.getItem('nova.device')).haptics) === false);
 await page.screenshot({ path: `${out}/141-haptics-off.png` });
 

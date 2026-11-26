@@ -4,7 +4,6 @@ import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { HoloCard } from './HoloCard.tsx';
 import { FACTION_COLOR, num, ownedCards, RARITY_LABEL } from './format.ts';
-import { remindersAvailable } from '../native/reminders.ts';
 import { IconLock, Quanta } from './icons.tsx';
 import { ShipArt } from './Shipyard.tsx';
 import { CloseX, SpendButton } from './Spend.tsx';
@@ -60,10 +59,6 @@ export function ProfileSheet() {
   const close = useApp((s) => s.setSheet);
   const [picking, setPicking] = useState<number | null>(null);
   const [confirm, setConfirm] = useState(false);
-  const settings = useApp((s) => s.settings);
-  const setHapticsOn = useApp((s) => s.setHapticsOn);
-  const setRemindersOn = useApp((s) => s.setRemindersOn);
-  const showToast = useApp((s) => s.showToast);
   const c = view.captain;
   const f = c.facts;
   const tap = (fn: () => void) => (): void => { audio.tap(); fn(); };
@@ -125,22 +120,6 @@ export function ProfileSheet() {
                 <small>{p.unlocked ? (p.id === c.paint ? 'Aktiv' : 'Wählen') : p.price !== null ? <><Quanta />{p.price}</> : p.hint}</small>
               </PaintButton>
             ))}
-          </div>
-
-          <h4 className="market__section">Gerät<span>Gilt nur hier</span></h4>
-          <div className="device">
-            <button className={`switch${settings.haptics ? ' is-on' : ''}`} role="switch" aria-checked={settings.haptics} onClick={() => { setHapticsOn(!settings.haptics); audio.tap(); }}>
-              <span><b>Haptik</b><small>Das Gerät antwortet auf Taps, Verkäufe und Karten</small></span><i />
-            </button>
-            <button
-              className={`switch${settings.reminders ? ' is-on' : ''}`} role="switch" aria-checked={settings.reminders} disabled={!remindersAvailable}
-              onClick={tap(() => { void setRemindersOn(!settings.reminders).then((on) => { if (!settings.reminders && !on) showToast('Erinnerungen sind in den Systemeinstellungen gesperrt'); }); })}
-            >
-              <span>
-                <b>Erinnerungen</b>
-                <small>{remindersAvailable ? 'Wenn etwas wirklich wartet: Konvoi, Container, voller Tank, Serie. Höchstens sechs, nie zwischen 22 und 8 Uhr' : 'Gibt es in der installierten App, nicht im Browser'}</small>
-              </span><i />
-            </button>
           </div>
 
           <h4 className="market__section">Prestige<span>{'★'.repeat(c.prestige)}{'☆'.repeat(c.prestigeMax - c.prestige)}</span></h4>

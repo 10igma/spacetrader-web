@@ -1,5 +1,5 @@
 import { CONFIG, FACTIONS, STATION_BY_ID, type Reward, type SalvageKind } from '@nova/core';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { countdown, duration, FACTION_COLOR, num, rewardText } from './format.ts';
@@ -73,13 +73,14 @@ export function PostSheet() {
 // ---------------------------------------------------------------------------
 
 /** One colour per kind of prize. Credit prizes go from dim to bright with their size. */
-function segmentColor(r: Reward, all: readonly Reward[]): string {
+/** Colour is saved for the prizes worth looking at. Everything else is one of two quiet blues. */
+function segmentColor(r: Reward, all: readonly Reward[], index = 0): string {
   if (r.crate === 'premium') return '#ffc24a';
   if (r.crate) return '#3be3ff';
-  if (r.quanta) return r.quanta >= 20 ? '#7fb6ff' : '#3f78d8';
-  if (r.shards) return '#b06cff';
   const credits = all.map((x) => x.credits ?? 0).filter((c) => c > 0).sort((x, y) => x - y);
-  return ['#1c3554', '#2b6f5a', '#ff8a3c'][Math.min(2, credits.indexOf(r.credits ?? 0))]!;
+  if (r.credits && r.credits === credits[credits.length - 1] && credits.length > 1) return '#ff4fa3';
+  if (r.quanta && r.quanta >= 20) return '#7fb6ff';
+  return index % 2 ? '#1a2a4a' : '#101c36';
 }
 
 const shortReward = (r: Reward): string =>
@@ -111,6 +112,28 @@ export function WheelSheet() {
     });
   }, [segments, total]);
 
+  const disc = useRef<SVGSVGElement>(null);
+  // While it turns, every field that passes the pointer ticks, slower and slower.
+  useEffect(() => {
+    if (!result || landed) return;
+    let raf = 0;
+    let last = -1;
+    const bounds = arcs.map((a) => a.from);
+    const step = (): void => {
+      const m = disc.current ? new DOMMatrixReadOnly(getComputedStyle(disc.current).transform) : null;
+      if (m) {
+        // The angle under the pointer at the top is the negative of the disc's own rotation.
+        const under = ((-Math.atan2(m.b, m.a) * 180) / Math.PI + 360) % 360;
+        const field = bounds.filter((b) => b <= under).length;
+        if (last !== -1 && field !== last) audio.tick();
+        last = field;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [result, landed, arcs]);
+
   useEffect(() => {
     if (!result) return;
     // Five full turns, then stop with the winning segment under the pointer at the top.
@@ -133,17 +156,19 @@ export function WheelSheet() {
         <h3>Glücksrad</h3>
         <div className="wheel__stage">
           <div className="wheel__pointer" />
-          <svg viewBox="0 0 200 200" className="wheel__disc" style={{ transform: `rotate(${angle}deg)` }}>
+          <svg ref={disc} viewBox="0 0 200 200" className="wheel__disc" style={{ transform: `rotate(${angle}deg)` }}>
             {arcs.map((a, i) => (
               <g key={i}>
-                <path d={`M100 100 L${point(a.from, 96)} A96 96 0 ${a.to - a.from > 180 ? 1 : 0} 1 ${point(a.to, 96)} Z`} fill={segmentColor(a.reward, rewards)} stroke="#050912" strokeWidth="1" />
-                {a.to - a.from >= 16 && (
-                  <text x="100" y="26" transform={`rotate(${a.mid} 100 100)`} textAnchor="middle" className="wheel__label">{shortReward(a.reward)}</text>
-                )}
+                <path className={landed && result ? (i === result.index ? 'is-won' : 'is-lost') : ''} d={`M100 100 L${point(a.from, 90)} A90 90 0 ${a.to - a.from > 180 ? 1 : 0} 1 ${point(a.to, 90)} Z`} fill={segmentColor(a.reward, rewards, i)} stroke="#050912" strokeWidth="1" />
+                {/* Labels run from hub to rim and are turned so that none stands on its head. */}
+                {a.to - a.from >= 14 && (a.mid <= 180
+                  ? <text x="128" y="103" transform={`rotate(${a.mid - 90} 100 100)`} textAnchor="start" className="wheel__label">{shortReward(a.reward)}</text>
+                  : <text x="72" y="103" transform={`rotate(${a.mid + 90} 100 100)`} textAnchor="end" className="wheel__label">{shortReward(a.reward)}</text>)}
               </g>
             ))}
-            <circle cx="100" cy="100" r="16" fill="#050912" stroke="#3be3ff" strokeWidth="2" />
+            <circle cx="100" cy="100" r="16" fill="#050912" stroke="#ffc24a" strokeWidth="2" />
           </svg>
+          <div className={`wheel__rim${result && !landed ? ' is-spinning' : ''}`} />
         </div>
         {landed && result ? (
           <div className="wheel__result">
@@ -158,7 +183,7 @@ export function WheelSheet() {
         )}
         <ul className="wheel__odds">
           {arcs.map((a, i) => (
-            <li key={i}><i style={{ background: segmentColor(a.reward, rewards) }} />{rewardText(a.reward)}<b>{((a.weight / total) * 100).toFixed(0)} %</b></li>
+            <li key={i}><i style={{ background: segmentColor(a.reward, rewards, i) }} />{rewardText(a.reward)}<b>{((a.weight / total) * 100).toFixed(0)} %</b></li>
           ))}
         </ul>
       </div>

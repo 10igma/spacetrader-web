@@ -2,18 +2,30 @@ import { xpForLevel } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { num } from './format.ts';
+import { useEffect, useRef } from 'react';
+import { flyToWallet } from './fly.ts';
 import { useCountUp, useGain } from './hooks.ts';
-import { Credits, IconSound, Quanta } from './icons.tsx';
+import { Credits, IconGear, Quanta } from './icons.tsx';
 
 export function TopBar() {
   const view = useApp((s) => s.view)!;
-  const muted = useApp((s) => s.muted);
-  const toggleMute = useApp((s) => s.toggleMute);
   const setSheet = useApp((s) => s.setSheet);
   const credits = useCountUp(view.wallet.credits);
   const quanta = useCountUp(view.wallet.quanta, 500);
   const creditsUp = useGain(view.wallet.credits);
   const quantaUp = useGain(view.wallet.quanta);
+  const creditsPill = useRef<HTMLSpanElement>(null);
+  const quantaPill = useRef<HTMLSpanElement>(null);
+  const before = useRef(view.wallet);
+  const quiet = useApp((s) => !!s.travel || !!s.reveal);
+  // Whenever a balance goes up, the gain flies in from where the player just tapped.
+  useEffect(() => {
+    const was = before.current;
+    before.current = view.wallet;
+    if (quiet) return;
+    if (view.wallet.credits > was.credits) flyToWallet('credits', creditsPill.current, view.wallet.credits - was.credits);
+    if (view.wallet.quanta > was.quanta) flyToWallet('quanta', quantaPill.current, (view.wallet.quanta - was.quanta) * 100);
+  }, [view.wallet, quiet]);
   const xp = view.profile.xp / xpForLevel(view.profile.level);
 
   return (
@@ -28,10 +40,10 @@ export function TopBar() {
         </div>
       </button>
       <div className="topbar__wallet">
-        <span className={`pill pill--credits${creditsUp ? ' is-gain' : ''}`}><Credits />{num(credits)}</span>
-        <span className={`pill pill--quanta${quantaUp ? ' is-gain' : ''}`}><Quanta />{num(quanta)}</span>
-        <button className="iconbtn" aria-label={muted ? 'Ton an' : 'Ton aus'} onClick={() => { toggleMute(); audio.tap(); }}>
-          <IconSound off={muted} />
+        <span ref={creditsPill} className={`pill pill--credits${creditsUp ? ' is-gain' : ''}`}><Credits />{num(credits)}</span>
+        <span ref={quantaPill} className={`pill pill--quanta${quantaUp ? ' is-gain' : ''}`}><Quanta />{num(quanta)}</span>
+        <button className="iconbtn" aria-label="Einstellungen" onClick={() => { audio.tap(); setSheet('settings'); }}>
+          <IconGear />
         </button>
       </div>
     </header>

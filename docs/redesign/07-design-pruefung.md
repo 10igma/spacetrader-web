@@ -48,16 +48,16 @@ Nach Wirkung geordnet. S unter einer halben Stunde, M Stunden, L ein Tag oder me
 | 1 | Erledigt am 26.11.: Der Container erscheint, wackelt immer stärker und bricht mit einem Blitz auf, für jeden Container gleich. Die beste Karte ist in der Zusammenfassung hervorgehoben. Offen bleibt der Knopf "Aufstellen" | Rest S |
 | 2 | Erledigt am 26.11.: Zwischen Wahl und Ergebnis liegt gut eine Sekunde mit gleichmässigem Puls, für jede Wahl und jedes Ergebnis gleich. Kein Zeiger, der knapp daneben stehen bleibt | |
 | 3 | Erledigt am 26.11.: Ab dem vierten Sprung einer Sitzung ist der Start kürzer, und ein Tipp überspringt ihn. Die Ankunft zeigt Kurierpost, Serie und was die Fracht am Ziel wert ist | |
-| 4 | Belohnungen fliegen sichtbar zum Geldbeutel | M |
-| 5 | Markt ist reine Schrift. Waren-Symbole und Zeilen in gemeinsamen Flächen statt einzelner Kästen | M, mit Grafik aus Paket F |
-| 6 | Glücksrad: Beschriftung stellenweise kopfüber oder abgeschnitten, kein Ticken beim Drehen | M |
+| 4 | Erledigt am 26.11.: Wenn Credits oder Quanten steigen, fliegen Symbole vom letzten Tipp zum Zähler | |
+| 5 | Erledigt am 26.11.: Der Markt zeigt für alle 27 Waren ein Symbol, auch im Handelsfenster. Offen: Zeilen in gemeinsamen Flächen | Rest S |
+| 6 | Erledigt am 26.11.: Beschriftung läuft von der Nabe zum Rand und steht in Ruhe nie kopf, Rand mit Lichtern, Ticken und Haptik pro Feld, Gewinnfeld leuchtet | |
 | 7 | Schriftgrössen vereinheitlichen: 25 Grössen auf 6 | M |
 | 8 | Kartenrahmen soll die Seltenheit tragen, nicht nur die Farbe | M |
 | 9 | Station: Mitte des Bildschirms ist leer. Platz für Schiff oder Station | M, mit Grafik aus Paket A oder K |
-| 10 | Tab "Aufträge" ist überladen. Vorschlag: Manifeste zur Sammlung, Deck in Brücke, Sammlung und Konvois teilen, Hangar in Container, Shop und Werft | M |
-| 11 | Einstellungen (Ton, Haptik, Erinnerungen) an einen Ort mit eigenem Symbol | S |
-| 12 | Deck zeigt, wenn eine bessere Karte für einen Platz vorhanden ist | M |
-| 13 | Tagesaufträge: Truhe mit Fortschritt im Kopf, "Alles abholen" | M |
+| 10 | Erledigt am 26.11.: Hangar in Container, Shop und Werft. Deck in Brücke, Sammlung und Konvois. Manifeste liegen bei der Sammlung. Das Wochenend-Event steht oben in "Heute", solange es läuft | |
+| 11 | Erledigt am 26.11.: Zahnrad oben rechts öffnet Ton, Haptik und Erinnerungen | |
+| 12 | Erledigt am 26.11.: Plätze zeigen "▲ +N", wenn die Reserve jemand Besseren hat. Nach einem Container bietet die Zusammenfassung "Crew neu aufstellen" an | |
+| 13 | Teilweise am 26.11.: "Alle abholen" bei zwei oder mehr fertigen Aufträgen. Offen: Truhe mit Fortschritt im Kopf | Rest S |
 | 14 | Konvoi-Rückkehr als kurzer Moment mit Chance und Ergebnis | M |
 | 15 | Radien vereinheitlichen, weniger Leuchten pro Bildschirm | S |
 

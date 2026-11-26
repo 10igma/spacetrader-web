@@ -15,7 +15,7 @@ Was das Spiel schon hat: gemalte Porträts für die zehn höchsten Karten (`c21`
 5. In Originalgrösse herunterladen und **exakt nach Tabelle benennen** (zum Beispiel `g008.png`, `leviathan.png`).
 6. Dateien in dieser Sitzung hochladen oder ins Repository nach `art-inbox/<Paket>/` legen. Zuschneiden, Umwandeln in WebP und Einbauen übernehme ich. Jedes Bild hat einen Rückfall: Fehlt eine Datei, zeigt das Spiel das bisherige Bild.
 
-**Stand der Lieferung (26.11.2026):** Pakete A, B, C, D, E und J sind geliefert und eingebaut, 62 von 63 Bildern. Offen sind F, G, H und I. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
+**Stand der Lieferung (26.11.2026):** Pakete A, B, C, D, E, F und J sind geliefert und eingebaut, 89 von 90 Bildern. Offen sind G, H und I. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
 
 **Reihenfolge und Umfang**
 

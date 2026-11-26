@@ -14,6 +14,7 @@ export const IconLock = () => <Icon><rect x="5" y="11" width="14" height="9" rx=
 export const IconSound = ({ off }: { off: boolean }) => (
   <Icon><path d="M4 9v6h4l5 4V5L8 9z" />{off ? <path d="M17 9l4 6M21 9l-4 6" /> : <path d="M17 8a5 5 0 0 1 0 8" />}</Icon>
 );
+export const IconGear = () => <Icon><circle cx="12" cy="12" r="3.2" /><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" /></Icon>;
 export const IconFuel = () => <Icon><path d="M12 3c3 4 5 6.5 5 10a5 5 0 0 1-10 0c0-3.500 2-6 5-10z" /></Icon>;
 
 export const Credits = () => (

@@ -221,6 +221,23 @@ export class AudioEngine {
     osc.stop(t + 0.1);
   }
 
+  /** A dry click, for things that pass by: the fields of the wheel. */
+  tick(): void {
+    haptic('tap');
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1760, t);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.07, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+    osc.connect(gain).connect(this.sfx);
+    osc.start(t);
+    osc.stop(t + 0.04);
+  }
+
   deny(): void {
     haptic('warn');
     const ctx = this.ctx;

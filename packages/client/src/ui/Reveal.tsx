@@ -4,6 +4,7 @@ import { audio, type Rank } from '../audio/engine.ts';
 import { stage } from '../stage/index.ts';
 import { useApp } from '../store.ts';
 import { art } from './art.ts';
+import { seatUpgrades } from './crew.ts';
 import { HoloCard } from './HoloCard.tsx';
 import { num, RARITY_LABEL, RARITY_RGB } from './format.ts';
 import { Shard } from './icons.tsx';
@@ -26,6 +27,10 @@ const TELL_MS = [450, 650, 950, 1400, 2000];
  */
 export function Reveal({ pulls }: { pulls: Pull[] }) {
   const close = useApp((s) => s.closeReveal);
+  const send = useApp((s) => s.send);
+  const busy = useApp((s) => s.busy);
+  // After a crate the reserve may hold someone better than who sits on the bridge.
+  const gain = Object.values(seatUpgrades(useApp((s) => s.view)!)).reduce((a, b) => a + (b ?? 0), 0);
   const tier = useApp((s) => s.revealCrate);
   const closed = tier ? art('crates', tier) : undefined;
   const opened = tier ? art('crates', `${tier}-open`) ?? closed : undefined;
@@ -113,7 +118,13 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
           ))}
         </div>
         {shards > 0 && <p className="reveal__shards">Doppelte Karten: +{num(shards)} Splitter</p>}
-        <button className="cta" onClick={() => { audio.tap(); close(); }}><span>Weiter</span></button>
+        {gain > 0 && (
+          <button className="cta cta--gold" disabled={busy} onClick={() => { audio.tap(); void send({ type: 'AutoDeck' }).then(close); }}>
+            <span>Crew neu aufstellen</span>
+            <small>Deine Brücke wird stärker: +{gain}</small>
+          </button>
+        )}
+        <button className={`cta${gain > 0 ? ' cta--ghost' : ''}`} onClick={() => { audio.tap(); close(); }}><span>Weiter</span></button>
       </div>
     );
   }

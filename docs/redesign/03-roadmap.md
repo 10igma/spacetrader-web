@@ -39,8 +39,9 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Mobile-Hülle (Phase 5): Android-Projekt baut zu einer installierbaren App, iOS-Projekt angelegt, Icon und Startbild, Haptik, lokale Erinnerungen mit Opt-in und Nachtruhe, Zurück-Taste, installierbare Web-App. Details in Dokument 05 | fertig bis auf Gerätetest | App hier gebaut und ihr Inhalt geprüft, 7 Tests, Durchlauf im Browser. Nicht auf einem Gerät gestartet |
 | Spielstand übersteht Regeländerungen: Ältere Stände werden übernommen, neue Systeme starten leer | fertig | Tests und Durchlauf mit einem alten Spielstand |
 | Design-Runde 1 nach zwei unabhängigen Prüfungen (Art Direction, UX und Fairness): Lesbarkeit, Farbrollen, Vollbild-Momente, gestufte Verkaufs-Rückmeldung, Zwei-Tipp-Bestätigung für Quanten, Schliessen-Knopf in jedem Fenster, Einstieg für neue Spieler. Details in Dokument 07 | fertig | Eigener Durchlauf mit 12 Prüfungen, dabei einen Fehler gefunden und behoben |
-| Grafik-Auftrag: Stil, Formate, Dateinamen und Prompts für 127 Bilder in 11 Paketen. Dokument 06 | Pakete A bis E und J geliefert und eingebaut (62 Bilder): 6 Schiffe, 4 Container, 6 Saison-Karten, 19 Elite-Karten, 4 Begegnungen, 20 Archetypen, 3 Währungen | Import-Werkzeug prüft Name, Format und Hintergrund. Sichtprüfung jedes Bilds im Spiel |
+| Grafik-Auftrag: Stil, Formate, Dateinamen und Prompts für 127 Bilder in 11 Paketen. Dokument 06 | Pakete A bis F und J geliefert und eingebaut (89 Bilder): 6 Schiffe, 4 Container, 6 Saison-Karten, 19 Elite-Karten, 4 Begegnungen, 27 Waren, 20 Archetypen, 3 Währungen | Import-Werkzeug prüft Name, Format und Hintergrund. Sichtprüfung jedes Bilds im Spiel |
 | Container in der Enthüllung: erscheint, wackelt, bricht auf. Schiffe als Bilder mit Lackierung als Farbschicht | fertig | Durchläufe mit Screenshots |
+| Design-Runde 2: Tabs neu geordnet (Hangar: Container, Shop, Werft. Deck: Brücke, Sammlung, Konvois), Einstellungen an einem Ort, Glücksrad überarbeitet, Belohnungen fliegen zum Geldbeutel, Markt mit Waren-Symbolen, Hinweis auf bessere Crew | fertig | Durchläufe an die neue Struktur angepasst |
 | Begegnungen mit Spannungsmoment, kürzerer und überspringbarer Warp, Ankunft mit Kurierpost, Serie und Frachtwert. Währungen als Bilder im Charter | fertig | Durchlauf prüft, dass das Ergebnis erst nach dem Spannungsmoment erscheint |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
@@ -102,7 +103,7 @@ Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lasse
 - **Geld im Spätspiel.** Die Werft bindet das Geld bis etwa Tag 50, Prestige setzt es zurück. Nach Rang 5 (rund 230 Tage) fehlt wieder ein Ziel.
 - **Vermögen der Bots täuscht.** Sie sparen stur auf das nächste Schiff und kaufen dann nur zwei Container pro Tag. Echte Spieler verteilen ihr Geld anders.
 - **Schiffe fliegen noch nicht sichtbar.** Die sechs Schiffe sind als Bilder in Werft und Profil, aber weder auf der Station noch in der Warp-Szene zu sehen.
-- **Kartenkunst.** 35 Karten haben ein eigenes Porträt (10 Legenden, 19 Elite, 6 Saison-Karten), die 100 seltenen und Standard-Karten teilen sich 20 Archetypen. Es fehlt eine Elite-Karte (`g094`). Offene Grafik-Pakete in Dokument 06: F bis I.
+- **Kartenkunst.** 35 Karten haben ein eigenes Porträt (10 Legenden, 19 Elite, 6 Saison-Karten), die 100 seltenen und Standard-Karten teilen sich 20 Archetypen. Es fehlt eine Elite-Karte (`g094`). Offene Grafik-Pakete in Dokument 06: G, H und I.
 - **Tages- und Wochengrenze.** Mitternacht und Montag nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
 - **Erinnerungen sind lokal.** Sie werden auf dem Gerät geplant, wenn die App in den Hintergrund geht. Was erst danach passiert (zum Beispiel ein überbotenes Gebot), kann die App nicht melden. Dafür braucht es einen Server.
 - **Gerätetest steht aus.** Die Android-App ist gebaut, aber nicht auf einem Gerät gelaufen. iOS braucht einen Mac.
@@ -260,5 +261,5 @@ Hier kommt der grösste Teil des Katalogs.
 
 1. **Grafiken erzeugen** (deine Seite, Dokument 06): zuerst Schiffe, Container und die Saison-Karten. Ich baue jedes Paket ein, sobald Dateien da sind.
 2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
-3. **Design-Runde 2, Rest** (Dokument 07): Markt mit Waren-Symbolen, Glücksrad, Neuordnung der Tabs, Belohnungen fliegen zum Geldbeutel.
+3. **Design-Runde 2, Rest** (Dokument 07): Schriftgrössen und Radien vereinheitlichen, Kartenrahmen nach Seltenheit, Schiff auf der Station, Konvoi-Rückkehr als Moment.
 4. Danach zur Wahl: Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.
