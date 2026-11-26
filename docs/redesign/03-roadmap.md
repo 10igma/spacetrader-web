@@ -94,15 +94,15 @@ Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lasse
 **Offen:**
 - **Auktionshaus und Liga sind simuliert.** Gegenbieter, Käufer und Liga-Rivalen sind Zufallsgrössen mit festen Grenzen, keine echten Spieler. Die Liga sagt das auf dem Bildschirm. Echte Mitspieler brauchen Konten, Datenbank und Schutz gegen Absprachen (zweiter Teil von Phase 4).
 - **Rest von Phase 4:** Telemetrie und alles, was echte Mitspieler braucht (Konten, Datenbank, echte Ranglisten).
-- **Saison-Karten haben keine gemalte Kunst.** Sie zeigen den prozeduralen Avatar. Pro Saison wären zwölf Porträts nötig, mindestens für die beiden Legenden.
+- **Saison-Karten brauchen jede Saison neue Kunst.** "Glut über Varn" hat Porträts für die sechs hohen Karten. Jede weitere Saison braucht wieder sechs, sonst zeigen ihre Karten den Helm oder den Archetyp.
 - **Saison-Karten und Namen.** Die Edition wird aus Namenslisten erzeugt. Beinamen passen nicht immer zum Vornamen.
 - **Kosmetik ist schmal.** Sechs Lackierungen und Titel. Kartenrahmen, Schiffs-Skins und Emotes fehlen. Der Schaukasten hat ohne echte Mitspieler noch kein Publikum.
 - **Premium-Charter ist für fleissige Spieler gratis.** 500 Quanten sind nach gut einer Woche erspielt. Das ist gewollt, solange es kein Echtgeld gibt, muss aber vor Phase 6 neu gerechnet werden.
 - **Sammeltempo.** Die Grundsammlung ist nach 60 Tagen komplett. Danach tragen nur die Saison-Edition (zwölf neue Karten alle sechs Wochen) und das Aufwerten.
 - **Geld im Spätspiel.** Die Werft bindet das Geld bis etwa Tag 50, Prestige setzt es zurück. Nach Rang 5 (rund 230 Tage) fehlt wieder ein Ziel.
 - **Vermögen der Bots täuscht.** Sie sparen stur auf das nächste Schiff und kaufen dann nur zwei Container pro Tag. Echte Spieler verteilen ihr Geld anders.
-- **Schiffe sind Umrisse.** Die sechs Schiffe haben einfache Vektor-Silhouetten, keine gemalte Kunst, und fliegen noch nicht sichtbar durch die Warp-Szene.
-- **Kartenkunst.** Die 10 höchsten Karten sind gemalt, 120 zeigen Helme. Vorgehen in Dokument 04.
+- **Schiffe fliegen noch nicht sichtbar.** Die sechs Schiffe sind als Bilder in Werft und Profil, aber weder auf der Station noch in der Warp-Szene zu sehen.
+- **Kartenkunst.** 35 Karten sind gemalt (10 Legenden, 19 Elite, 6 Saison-Karten). Die 100 seltenen und Standard-Karten zeigen den Helm, bis die 20 Archetypen aus Paket J vollständig sind. Offene Grafik-Pakete in Dokument 06: Rest von J, dazu E bis I.
 - **Tages- und Wochengrenze.** Mitternacht und Montag nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
 - **Erinnerungen sind lokal.** Sie werden auf dem Gerät geplant, wenn die App in den Hintergrund geht. Was erst danach passiert (zum Beispiel ein überbotenes Gebot), kann die App nicht melden. Dafür braucht es einen Server.
 - **Gerätetest steht aus.** Die Android-App ist gebaut, aber nicht auf einem Gerät gelaufen. iOS braucht einen Mac.
