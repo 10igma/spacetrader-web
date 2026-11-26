@@ -5,6 +5,7 @@ import { countdown, FACTION_COLOR } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFuel } from './icons.tsx';
 import { CloseX } from './Spend.tsx';
+import { Emblem } from './Emblem.tsx';
 
 const Risk = ({ label, chance }: { label: string; chance: number }) => (
   <span className={`risk risk--${chance >= 0.4 ? 3 : chance >= 0.2 ? 2 : chance > 0 ? 1 : 0}`}>
@@ -42,7 +43,8 @@ export function RouteSheet() {
               onClick={() => { audio.tap(); void send({ type: 'Jump', to: r.stationId }); }}
             >
               <span className="route__top">
-                <span>
+                <Emblem faction={st.faction} className="emblem--route" />
+                <span className="route__title">
                   <b>{st.name}</b>
                   <small>{FACTIONS[st.faction].name} · {st.tagline}</small>
                 </span>

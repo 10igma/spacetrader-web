@@ -2,6 +2,7 @@ import { FACTIONS, ROLES, type CardDef } from '@nova/core';
 import { useEffect, useRef } from 'react';
 import { Avatar } from './Avatar.tsx';
 import { cardArt } from './art.ts';
+import { Emblem } from './Emblem.tsx';
 import { FACTION_COLOR, hashString, RARITY_LABEL } from './format.ts';
 
 interface Props {
@@ -96,7 +97,7 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
         <div className="holo__head">
           <span className="holo__rating">{locked ? '??' : card.rating}</span>
           <span className="holo__role">{ROLES[card.role].short}</span>
-          <span className="holo__faction">{FACTIONS[card.faction].short}</span>
+          <span className="holo__faction"><Emblem faction={card.faction} />{FACTIONS[card.faction].short}</span>
         </div>
         <div className="holo__plate">
           <div className="holo__name">{locked ? 'Unbekannt' : card.name}</div>

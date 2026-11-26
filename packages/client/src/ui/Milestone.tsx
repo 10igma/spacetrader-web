@@ -2,6 +2,8 @@ import { SHIP_BY_ID, SHIPS, type ShipId } from '@nova/core';
 import { useEffect } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp, type MilestoneMoment } from '../store.ts';
+import { art } from './art.ts';
+import { leagueBadge } from './Emblem.tsx';
 import { ShipArt } from './Shipyard.tsx';
 
 /** What the big moments say. Everything here is a fact about the game as it stands. */
@@ -24,13 +26,13 @@ function content(m: MilestoneMoment, level: number): { eyebrow: string; title: s
       };
     }
     case 'league':
-      return { eyebrow: 'Aufstieg', title: `${m.tierName}-Liga`, rank: 3, hero: <b className="moment__number">▲</b>, lines: [`Platz ${m.rank} in der letzten Woche`, 'Stärkere Rivalen, bessere Belohnungen'] };
+      return { eyebrow: 'Aufstieg', title: `${m.tierName}-Liga`, rank: 3, hero: leagueBadge(m.tier) ? <img className="moment__badge" src={leagueBadge(m.tier)} alt="" draggable={false} /> : <b className="moment__number">▲</b>, lines: [`Platz ${m.rank} in der letzten Woche`, 'Stärkere Rivalen, bessere Belohnungen'] };
     case 'album':
       return { eyebrow: 'Saison-Edition', title: 'Komplett', rank: 4, hero: <b className="moment__number">12</b>, lines: ['Neuer Titel freigeschaltet', 'Lackierung Prisma freigeschaltet', 'Beides bleibt dir für immer'] };
     case 'charter':
       return { eyebrow: 'Saison', title: 'Premium-Charter', rank: 3, hero: <b className="moment__number">★</b>, lines: ['Zweite Belohnung auf jeder Stufe', 'Schon Erspieltes kannst du jetzt abholen'] };
     case 'prestige':
-      return { eyebrow: 'Prestige', title: `Rang ${m.rank}`, rank: 4, hero: <b className="moment__number">{'★'.repeat(m.rank)}</b>, lines: [`+${m.rank * 3} % Verkaufspreis auf Dauer`, 'Crew, Titel und Liga bleiben', `Du startest neu auf Stufe ${level}`] };
+      return { eyebrow: 'Prestige', title: `Rang ${m.rank}`, rank: 4, hero: art('emblems', 'prestige') ? <div className="moment__prestige"><img className="moment__badge" src={art('emblems', 'prestige')} alt="" draggable={false} /><b>{'★'.repeat(m.rank)}</b></div> : <b className="moment__number">{'★'.repeat(m.rank)}</b>, lines: [`+${m.rank * 3} % Verkaufspreis auf Dauer`, 'Crew, Titel und Liga bleiben', `Du startest neu auf Stufe ${level}`] };
   }
 }
 

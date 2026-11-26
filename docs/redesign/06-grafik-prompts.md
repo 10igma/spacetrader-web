@@ -15,7 +15,7 @@ Was das Spiel schon hat: gemalte Porträts für die zehn höchsten Karten (`c21`
 5. In Originalgrösse herunterladen und **exakt nach Tabelle benennen** (zum Beispiel `g008.png`, `leviathan.png`).
 6. Dateien in dieser Sitzung hochladen oder ins Repository nach `art-inbox/<Paket>/` legen. Zuschneiden, Umwandeln in WebP und Einbauen übernehme ich. Jedes Bild hat einen Rückfall: Fehlt eine Datei, zeigt das Spiel das bisherige Bild.
 
-**Stand der Lieferung (26.11.2026):** Pakete A bis G und J sind geliefert und eingebaut, 95 von 96 Bildern. Offen sind H und I. Bei `drive.png` (Nachbrenner) ist die Flamme am Bildrand abgeschnitten: Im Spiel fällt das bei der kleinen Grösse nicht auf, ein neues Bild mit ganz sichtbarer Flamme wäre trotzdem schöner. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
+**Stand der Lieferung (26.11.2026):** Alle Pakete A bis J sind geliefert und eingebaut, 112 von 113 Bildern. Offen ist nur die Ersatzkarte `g094`. Das Store-Bild liegt unter `docs/store/feature-1024x500.png`. Bei `drive.png` (Nachbrenner) ist die Flamme am Bildrand abgeschnitten: Im Spiel fällt das bei der kleinen Grösse nicht auf, ein neues Bild mit ganz sichtbarer Flamme wäre trotzdem schöner. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
 
 **Reihenfolge und Umfang**
 

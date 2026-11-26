@@ -1,9 +1,11 @@
-import { CARD_BY_ID, CATEGORY_NAME, FACTIONS, GOOD_BY_ID, rarityRank, SHIP_BY_ID, STATION_BY_ID } from '@nova/core';
+import { CARD_BY_ID, CATEGORY_NAME, FACTIONS, GOOD_BY_ID, rarityRank, STATION_BY_ID } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { countdown, FACTION_COLOR, longCountdown, num } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFuel, IconHangar, IconMarket } from './icons.tsx';
+import { Emblem } from './Emblem.tsx';
+import { ShipArt } from './Shipyard.tsx';
 import { SpendButton } from './Spend.tsx';
 
 const CUSTOMS = ['Kein Zoll', 'Zoll lax', 'Zoll wachsam', 'Zoll streng'];
@@ -48,6 +50,7 @@ export function Hub() {
   const back = view.convoys.running.filter((c) => c.done).length;
   if (back > 0) headlines.push({ label: 'Konvoi', text: back === 1 ? 'ist zurück' : `${back} sind zurück`, tone: 'up' });
 
+  const paint = view.captain.paints.find((p) => p.id === view.captain.paint)?.tone ?? null;
   const empty = view.cargo.used === 0;
   // The best thing on board and where it sells: the answer to "where should I go".
   const best = view.routes
@@ -65,14 +68,11 @@ export function Hub() {
   return (
     <section className="hub" style={{ ['--faction' as string]: FACTION_COLOR[station.faction] }}>
       <header className="hub__loc">
-        <span className="eyebrow">{FACTIONS[station.faction].name} · {station.tagline}</span>
+        <span className="eyebrow"><Emblem faction={station.faction} />{FACTIONS[station.faction].name} · {station.tagline}</span>
         <h1>{station.name}</h1>
         <div className="chips">
           <span className={`chip ${station.customs >= 2 ? 'chip--hot' : 'chip--ok'}`}>{CUSTOMS[station.customs]}</span>
           <span className="chip chip--hot">{GOOD_BY_ID.get(wanted.goodId)!.name} gefragt</span>
-          <button className="chip chip--ship" onClick={() => { audio.tap(); setHangarMode('yard'); setTab('hangar'); }}>
-            {SHIP_BY_ID.get(view.fleet.active)!.name} · Werft
-          </button>
           {view.weekend.active && (
             <button className="chip chip--event" onClick={() => { audio.tap(); setTab('daily'); }}>
               Blockade-Lauf · {view.weekend.points} Punkte
@@ -118,7 +118,10 @@ export function Hub() {
         </div>
       </div>
 
-      <div className="hub__grow" />
+      {/* Your ship, docked: the most expensive thing you own is the centre of the home screen. */}
+      <button className="hub__dock" aria-label="Zur Werft" onClick={() => { audio.tap(); setHangarMode('yard'); setTab('hangar'); }}>
+        <ShipArt id={view.fleet.active} paint={paint} />
+      </button>
 
       {steps && (
         <button className="coach" onClick={() => { audio.tap(); steps.go(); }}>

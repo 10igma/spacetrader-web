@@ -4,7 +4,9 @@ import { audio } from '../audio/engine.ts';
 import { stage } from '../stage/index.ts';
 import { useApp, type Travel as TravelState } from '../store.ts';
 import { art } from './art.ts';
+import { Emblem } from './Emblem.tsx';
 import { FACTION_COLOR, num } from './format.ts';
+import { ShipArt } from './Shipyard.tsx';
 
 type Phase = 'launch' | 'encounter' | 'resolve' | 'outcome' | 'cruise' | 'arrive';
 
@@ -133,6 +135,11 @@ export function Travel({ travel }: { travel: TravelState }) {
   return (
     <div className={`overlay travel travel--${phase}`} style={{ ['--faction' as string]: FACTION_COLOR[dest.faction] }} onClick={skip}>
       {(phase === 'launch' || phase === 'cruise') && (
+        <div className="travel__ship" key={phase} style={{ animationDuration: `${phase === 'launch' ? launchMs : CRUISE_MS}ms` }}>
+          <ShipArt id={view.fleet.active} paint={view.captain.paints.find((p) => p.id === view.captain.paint)?.tone ?? null} />
+        </div>
+      )}
+      {(phase === 'launch' || phase === 'cruise') && (
         <div className="travel__status">
           <span className="eyebrow">Sprung</span>
           <b>{dest.name}</b>
@@ -208,6 +215,7 @@ export function Travel({ travel }: { travel: TravelState }) {
 
       {phase === 'arrive' && (
         <div className="arrive" onClick={end}>
+          <Emblem faction={dest.faction} className="emblem--arrive" />
           <span className="eyebrow">{FACTIONS[dest.faction].name} · {dest.tagline}</span>
           <h2>{dest.name}</h2>
           <div className="arrive__line" />

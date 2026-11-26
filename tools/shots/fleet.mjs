@@ -36,7 +36,7 @@ await page.evaluate(() => {
 });
 await start('');
 await shot('100-hub-ship');
-await page.locator('.chip--ship').tap(); await settle(1200);
+await page.locator('.hub__dock').tap(); await settle(1200);
 await shot('101-shipyard');
 await page.locator('.gear', { hasText: 'Fusionslader' }).locator('.mission__btn').tap(); await settle(800);
 await page.locator('.gear', { hasText: 'Signalstörer' }).locator('.price--btn').tap(); await settle(900);

@@ -54,8 +54,9 @@ GROUPS = {
     'encounters': [(['pirates-1', 'pirates-2', 'customs-1', 'customs-2'], 'cover', dict(w=1170, h=780))],
     'banners': [
         (['season-0', 'season-1', 'season-2', 'season-3', 'event-blockade'], 'cover', dict(w=1170, h=390)),
-        (['keyart'], 'cover', dict(w=1080, h=1920)),
-        (['feature'], 'cover', dict(w=1024, h=500)),
+        (['keyart'], 'cover', dict(w=828, h=1472)),
+        # The store graphic is not part of the game: it goes to docs/store as PNG.
+        (['feature'], 'cover', dict(w=1024, h=500, out='docs/store', name='feature-1024x500.png')),
     ],
 }
 
@@ -125,7 +126,8 @@ def treat_cover(src: Image.Image, w: int, h: int, notes: list) -> Image.Image:
     img = src.convert('RGB')
     want = w / h
     have = img.width / img.height
-    if abs(have - want) / want > 0.12:
+    # Banners arrive as 16:9 and are cut to their strip on purpose: only odd shapes are worth a note.
+    if abs(have - want) / want > 0.12 and not (w / h >= 2 and have > 1.5):
         notes.append(f'Seitenverhältnis {img.width}x{img.height} weicht ab, wird beschnitten')
     if img.width < w * 0.8 or img.height < h * 0.8:
         notes.append(f'klein ({img.width}x{img.height}), wird hochskaliert')
@@ -176,9 +178,14 @@ def run(inbox: Path, only: list) -> int:
                 out = treat_mask(src, settings['size'], notes)
             else:
                 out = treat_cover(src, settings['w'], settings['h'], notes)
-            target = OUT / group / f'{name}.webp'
-            target.parent.mkdir(parents=True, exist_ok=True)
-            out.save(target, 'WEBP', quality=84 if treatment == 'cover' else 90, method=6)
+            if 'out' in settings:
+                target = ROOT / settings['out'] / settings['name']
+                target.parent.mkdir(parents=True, exist_ok=True)
+                out.save(target)
+            else:
+                target = OUT / group / f'{name}.webp'
+                target.parent.mkdir(parents=True, exist_ok=True)
+                out.save(target, 'WEBP', quality=84 if treatment == 'cover' else 90, method=6)
             seen.add(name)
             mark = '!' if notes else 'ok'
             print(f'  {mark:2} {path.name} -> {target.relative_to(ROOT)} ({out.width}x{out.height}, {target.stat().st_size // 1024} kB)' + ''.join(f'\n       {n}' for n in notes))

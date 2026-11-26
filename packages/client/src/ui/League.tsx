@@ -4,6 +4,7 @@ import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { longCountdown, num, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
+import { leagueBadge } from './Emblem.tsx';
 
 export function League() {
   const league = useApp((s) => s.view!.league);
@@ -18,9 +19,11 @@ export function League() {
   return (
     <div className="league">
       <div className={`league__head league__head--${league.tier}`}>
-        <div className="league__badge"><b>{league.tierName}</b><small>Liga</small></div>
+        {leagueBadge(league.tier)
+          ? <img className="league__art" src={leagueBadge(league.tier)} alt={`${league.tierName}-Liga`} draggable={false} />
+          : <div className="league__badge"><b>{league.tierName}</b><small>Liga</small></div>}
         <div className="league__info">
-          <span className="eyebrow">Woche endet in {longCountdown(league.endsAt - now)}</span>
+          <span className="eyebrow">{league.tierName}-Liga · endet in {longCountdown(league.endsAt - now)}</span>
           <b>Platz {league.rank} <small>von {league.standings.length}</small></b>
           <small className={zone === 'up' ? 'is-up' : zone === 'down' ? 'is-down' : ''}>
             {zone === 'up' ? (top ? 'Spitzengruppe: höchste Liga' : 'Aufstiegsplatz') : zone === 'down' ? (league.tier === 0 ? 'Schlussgruppe: tiefer geht es nicht' : 'Abstiegsplatz') : `Platz ${league.promote} steigt auf`}

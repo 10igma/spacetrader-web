@@ -4,6 +4,7 @@ import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { Convoys } from './Convoys.tsx';
 import { seatUpgrades } from './crew.ts';
+import { Emblem } from './Emblem.tsx';
 import { HoloCard } from './HoloCard.tsx';
 import { BONUS_LABEL, FACTION_COLOR, longCountdown, num, ownedCards, RARITY_LABEL, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
@@ -196,7 +197,7 @@ export function Deck() {
           const a = view.albums[f];
           return (
             <button key={f} role="tab" aria-selected={f === page} className={`album${f === page ? ' is-active' : ''}${a.complete ? ' is-complete' : ''}`} style={{ ['--faction' as string]: FACTION_COLOR[f] }} onClick={() => { audio.tap(); setPage(f); }}>
-              <b>{FACTIONS[f].short}</b>
+              <b><Emblem faction={f} />{FACTIONS[f].short}</b>
               <span>{a.owned}/{a.total}</span>
               <i style={{ width: `${(a.owned / a.total) * 100}%` }} />
               {a.claimable && <em className="dot" />}

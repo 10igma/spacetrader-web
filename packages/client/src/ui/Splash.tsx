@@ -1,10 +1,12 @@
 import { useApp } from '../store.ts';
+import { art } from './art.ts';
 
 type OrientationCtor = { requestPermission?: () => Promise<string> };
 
 export function Splash({ ready }: { ready: boolean }) {
   const begin = useApp((s) => s.begin);
   const mode = useApp((s) => s.service.mode);
+  const keyart = art('banners', 'keyart');
 
   const start = (): void => {
     if (!ready) return;
@@ -15,7 +17,8 @@ export function Splash({ ready }: { ready: boolean }) {
   };
 
   return (
-    <div className="splash" onClick={start} role="button" aria-label="Spiel starten">
+    <div className={`splash${keyart ? ' splash--art' : ''}`} onClick={start} role="button" aria-label="Spiel starten">
+      {keyart && <img className="splash__art" src={keyart} alt="" draggable={false} />}
       <div className="splash__center">
         <div className="splash__eyebrow">Projekt</div>
         <div className="splash__mark" data-text="NOVA">NOVA</div>

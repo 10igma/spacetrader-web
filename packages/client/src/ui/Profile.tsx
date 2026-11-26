@@ -2,6 +2,7 @@ import { CARD_BY_ID, CONFIG, rarityRank, type CardDef } from '@nova/core';
 import { useState, type ReactNode } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
+import { art } from './art.ts';
 import { HoloCard } from './HoloCard.tsx';
 import { FACTION_COLOR, num, ownedCards, RARITY_LABEL } from './format.ts';
 import { IconLock, Quanta } from './icons.tsx';
@@ -124,6 +125,7 @@ export function ProfileSheet() {
 
           <h4 className="market__section">Prestige<span>{'★'.repeat(c.prestige)}{'☆'.repeat(c.prestigeMax - c.prestige)}</span></h4>
           <div className="prestige">
+            {art('emblems', 'prestige') && <img className="prestige__badge" src={art('emblems', 'prestige')} alt="" draggable={false} />}
             <p>
               Fang als Kapitän neu an und verkaufe dafür <b>auf Dauer {Math.round(c.prestigeBonus * 100)} % besser</b> pro Rang.
               {c.prestige > 0 && ` Dein Bonus jetzt: ${Math.round(view.saleBonus.prestige * 100)} %.`}

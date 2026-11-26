@@ -36,10 +36,11 @@ export function WeekendCard() {
   const busy = useApp((s) => s.busy);
   const now = useServerNow();
   const top = weekend.milestones[weekend.milestones.length - 1]!.at;
+  const banner = art('banners', 'event-blockade');
 
   if (!weekend.active) {
     return (
-      <div className="event event--idle">
+      <div className={`event event--idle${banner ? ' event--art' : ''}`} style={banner ? { ['--img' as string]: `url("${banner}")` } : undefined}>
         <span className="eyebrow">Wochenend-Event</span>
         <b>Blockade-Lauf</b>
         <small>Noch {longCountdown(weekend.startsAt - now)} bis zum Start: mehr Zoll, bessere Schwarzmarkt-Preise, Belohnungen für Sprünge.</small>
@@ -47,7 +48,7 @@ export function WeekendCard() {
     );
   }
   return (
-    <div className="event">
+    <div className={`event${banner ? ' event--art' : ''}`} style={banner ? { ['--img' as string]: `url("${banner}")` } : undefined}>
       <span className="eyebrow">Wochenend-Event · endet in {longCountdown(weekend.endsAt - now)}</span>
       <b>Blockade-Lauf</b>
       <small>Zoll kontrolliert öfter, Hehler zahlen {Math.round(CONFIG.weekend.fenceBonus * 100)} % mehr. Sprung 1 Punkt, Sieg 2, durchgeschmuggelt 3.</small>
@@ -77,12 +78,14 @@ export function Season() {
   const current = useRef<HTMLDivElement>(null);
   const into = season.xp % season.xpPerTier;
   const maxed = season.tier >= season.tiers;
+  // One banner per season theme, in the order of the season names.
+  const banner = art('banners', `season-${((season.index % CONFIG.season.names.length) + CONFIG.season.names.length) % CONFIG.season.names.length}`);
 
   useEffect(() => { current.current?.scrollIntoView({ block: 'center' }); }, []);
 
   return (
     <div className="season">
-      <div className="season__head">
+      <div className={`season__head${banner ? ' season__head--art' : ''}`} style={banner ? { ['--img' as string]: `url("${banner}")` } : undefined}>
         <span className="eyebrow">Saison endet in {longCountdown(season.endsAt - now)}</span>
         <h3>{season.name}</h3>
         <div className="season__tier">

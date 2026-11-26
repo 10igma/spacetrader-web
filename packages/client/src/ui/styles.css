@@ -249,6 +249,9 @@ h1, h2, h3, p { margin: 0; }
   text-transform: uppercase;
 }
 .hub__grow { flex: 1; min-height: 12px; }
+.hub__dock { position: relative; flex: 1; min-height: 0; }
+.hub__dock .shipart { position: absolute; inset: 4px 0 12px; width: auto; height: auto; max-height: 210px; margin: auto; animation: float 6s ease-in-out infinite; }
+.hub__dock:active .shipart { transform: scale(0.97); }
 .hub__note { text-align: center; font-size: 11px; color: var(--ink-dim); margin-top: 14px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1934,6 +1937,43 @@ i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(-
 .manifest.is-done { opacity: 0.5 !important; }
 .link--gold { min-height: 0; padding: 0; font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--r-legend); }
 .reveal--summary .cta small { font-size: 12px; }
+
+/* Emblems, badges, banners, key art */
+.emblem { display: inline-block; flex: none; width: 1.15em; height: 1.15em; vertical-align: -0.2em; margin-right: 0.4em; background: var(--tone, currentColor); -webkit-mask: var(--img) center / contain no-repeat; mask: var(--img) center / contain no-repeat; }
+.route__top { align-items: center; }
+.routes__head { padding-right: 40px; }
+.emblem--route { width: 34px; height: 34px; margin-right: 10px; opacity: 0.95; }
+.route__title { flex: 1; min-width: 0; }
+.emblem--arrive { width: 56px; height: 56px; margin: 0 0 12px; filter: drop-shadow(0 0 16px var(--tone)); animation: fade 0.8s both; }
+.album b .emblem { display: block; width: 18px; height: 18px; margin: 0 0 2px; }
+.holo__faction .emblem { width: 1.2em; height: 1.2em; margin-right: 0.3em; background: currentColor; }
+.league__art { width: 84px; height: 84px; flex: none; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6)); }
+.moment__badge { width: 190px; height: 190px; object-fit: contain; filter: drop-shadow(0 0 34px var(--rar)); }
+.moment__prestige { display: flex; flex-direction: column; align-items: center; }
+.moment__prestige b { margin-top: -6px; font-size: 30px; letter-spacing: 4px; color: var(--r-legend); text-shadow: 0 0 16px var(--r-legend); }
+.prestige { position: relative; }
+.prestige__badge { float: right; width: 62px; height: 62px; margin: -4px -2px 4px 8px; object-fit: contain; }
+.season__head--art { position: relative; overflow: hidden; padding-top: 74px; background: linear-gradient(180deg, rgba(4, 7, 15, 0.1) 0, rgba(4, 7, 15, 0.82) 62px, rgba(4, 7, 15, 0.94)), var(--img) right top / auto 150px no-repeat, #060a14; }
+.event--art { background: linear-gradient(90deg, rgba(4, 7, 15, 0.94) 30%, rgba(4, 7, 15, 0.55)), var(--img) right center / cover no-repeat; }
+.event--art.event--idle { background: linear-gradient(90deg, rgba(4, 7, 15, 0.95) 40%, rgba(4, 7, 15, 0.72)), var(--img) right center / cover no-repeat; }
+.splash--art { background: #02030a; }
+.splash__art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 50%; animation: keyart 26s ease-in-out infinite alternate; }
+.splash--art::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(2, 3, 10, 0.72) 0, rgba(2, 3, 10, 0.15) 34%, rgba(2, 3, 10, 0.1) 62%, rgba(2, 3, 10, 0.86)); }
+.splash--art .splash__center, .splash--art .splash__bottom { position: relative; z-index: 1; }
+.splash--art .splash__center { justify-content: flex-start; padding: 9vh 0 0; }
+@keyframes keyart { from { transform: scale(1.02); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
+@media (prefers-reduced-motion: reduce) { .splash__art { animation: none; } }
+/* Your ship in the jump: it comes up from below, holds, then leaps ahead. */
+.travel__ship { position: absolute; left: 50%; top: 56%; width: 150px; height: 150px; margin: -75px 0 0 -75px; pointer-events: none; animation: ship-jump linear both; }
+.travel__ship .shipart { animation: ship-shake 0.12s linear infinite; }
+@keyframes ship-jump {
+  0% { transform: translateY(46vh) scale(1.35); opacity: 0; }
+  22% { transform: translateY(5vh) scale(1); opacity: 1; }
+  80% { transform: translateY(2vh) scale(0.95); opacity: 1; }
+  100% { transform: translateY(-9vh) scale(0.12); opacity: 0; }
+}
+@keyframes ship-shake { 0% { transform: translate(0.6px, -0.4px); } 50% { transform: translate(-0.6px, 0.5px); } 100% { transform: translate(0.4px, 0.3px); } }
+@media (prefers-reduced-motion: reduce) { .travel__ship .shipart { animation: none; } }
 
 .toast {
   position: fixed;

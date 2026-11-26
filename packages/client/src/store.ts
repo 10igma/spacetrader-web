@@ -30,7 +30,7 @@ export interface SalePop { id: number; profit: number; revenue: number; label: s
 export type MilestoneMoment = { id: number } & (
   | { kind: 'level'; level: number }
   | { kind: 'ship'; ship: string }
-  | { kind: 'league'; tierName: string; rank: number }
+  | { kind: 'league'; tier: number; tierName: string; rank: number }
   | { kind: 'album' }
   | { kind: 'charter' }
   | { kind: 'prestige'; rank: number }
@@ -207,7 +207,7 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'PaintBought') { audio.coins(600); get().showToast('Neue Lackierung aufgetragen', 'good'); }
         if (ev.type === 'Prestiged') { set({ tab: 'station', sheet: null }); get().celebrate({ kind: 'prestige', rank: ev.rank }); }
         if (ev.type === 'CharterBought') get().celebrate({ kind: 'charter' });
-        if (ev.type === 'LeagueClaimed' && ev.moved > 0) get().celebrate({ kind: 'league', tierName: view.league.tierName, rank: ev.rank });
+        if (ev.type === 'LeagueClaimed' && ev.moved > 0) get().celebrate({ kind: 'league', tier: view.league.tier, tierName: view.league.tierName, rank: ev.rank });
         if (ev.type === 'LeagueClaimed' && ev.moved < 0) get().showToast('Abgestiegen');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls, revealCrate: ev.source === 'reward' ? null : ev.tier });
         if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0, streak: null }, routesOpen: false });
