@@ -458,7 +458,7 @@ No text, no letters, no numbers, no logo, no frame, no border, no watermark.
 | Tessera | practical mixed gear in teal and grey of a free merchant guild | a trade station concourse | cyan | `tessera` |
 | Aschenorden | heavy scorched gear in charcoal and rust of a shipyard order | a shipyard foundry with sparks | orange | `asche` |
 | Helix | sleek dark gear with thin neon seams of a smuggling cartel | a neon night market in haze | magenta | `helix` |
-| Zenit | spotless white and grey corporate gear | a glass corporate tower | cool white-blue | `zenit` |
+| Zenit | sleek light-grey and silver corporate gear with thin blue light strips and soft rounded shapes, an original design that does not resemble armour from any film | a glass corporate tower | cool white-blue | `zenit` |
 
 Dateinamen aus Anfang und Endung, zum Beispiel `helix-smuggler.png`, `zenit-pilot.png`. Das ergibt 4 mal 5 Bilder.
 
@@ -469,6 +469,8 @@ Dateinamen aus Anfang und Endung, zum Beispiel `helix-smuggler.png`, `zenit-pilo
 | `credits.png` | A stack of three hexagonal credit chips of brushed gold with a faint amber glow |
 | `quanta.png` | A cut diamond-shaped energy crystal glowing bright cyan from within |
 | `shards.png` | A small heap of sharp violet crystal shards with a soft inner glow |
+
+**Stand (26.11.2026):** 15 von 20 Archetypen und alle 3 Währungen sind geliefert. Es fehlen `asche-gunner`, `helix-smuggler`, `zenit-trader`, `zenit-tech` und `zenit-gunner`. Der Text für Zenit oben ist angepasst, damit die Rüstungen nicht an bekannte Film-Rüstungen erinnern: bitte für die drei fehlenden Zenit-Bilder den neuen Text verwenden.
 
 **Abnahme:** Kein Archetyp zeigt ein erkennbares Gesicht. Fraktion an Farbe und Kleidung, Rolle an der Silhouette erkennbar. Alle 20 im selben Stil.
 
