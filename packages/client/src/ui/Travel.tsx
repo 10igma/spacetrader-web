@@ -228,6 +228,18 @@ export function Travel({ travel }: { travel: TravelState }) {
                 <b>{travel.streak.count} {travel.streak.count === 1 ? 'Tag' : 'Tage'}</b>
               </span>
             )}
+            {travel.depositLost > 0 && (
+              <span className="arrive__chip is-down">
+                <small>Auftrag geplatzt</small>
+                <b>−{num(travel.depositLost)} Pfand</b>
+              </span>
+            )}
+            {view.orders.active.filter((o) => o.here).map((o) => (
+              <span key={o.id} className={`arrive__chip ${o.have >= o.qty ? 'is-up' : 'is-down'}`}>
+                <small>Lieferauftrag</small>
+                <b>{o.have >= o.qty ? `+${num(o.total)}` : `es fehlen ${o.qty - o.have}`}</b>
+              </span>
+            ))}
             {cargoHere !== null && (
               <span className={`arrive__chip ${cargoHere >= 0 ? 'is-up' : 'is-down'}`}>
                 <small>Deine Fracht hier</small>

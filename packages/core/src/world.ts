@@ -204,30 +204,64 @@ export const LANES: readonly (readonly [StationId, StationId])[] = [
 const NEIGHBOURS = new Map<StationId, StationId[]>(STATIONS.map((s) => [s.id, []]));
 for (const [a, b] of LANES) { NEIGHBOURS.get(a)!.push(b); NEIGHBOURS.get(b)!.push(a); }
 
+/**
+ * Express lanes: the four spokes through the hub and the two short cuts across the ring. They save
+ * jumps and cost two units of fuel instead of one. The ring is slower and cheaper.
+ */
+export const EXPRESS: readonly (readonly [StationId, StationId])[] = [
+  ['meridian', 'lumen'], ['meridian', 'kessin'], ['meridian', 'helixtor'], ['meridian', 'zenit'],
+  ['kreuz', 'zenit'], ['aurel', 'helixtor'],
+];
+const laneKey = (a: StationId, b: StationId): string => (a < b ? `${a}|${b}` : `${b}|${a}`);
+const EXPRESS_KEYS = new Set(EXPRESS.map(([a, b]) => laneKey(a, b)));
+
+export const isExpress = (a: StationId, b: StationId): boolean => EXPRESS_KEYS.has(laneKey(a, b));
+/** Fuel for one jump along a lane. */
+export const laneFuel = (a: StationId, b: StationId): number => (isExpress(a, b) ? 2 : 1);
+/** Fuel for a whole course from a station. */
+export const courseFuel = (from: StationId, course: readonly StationId[]): number =>
+  course.reduce((sum, next, i) => sum + laneFuel(i === 0 ? from : course[i - 1]!, next), 0);
+
 /** Stations one jump away. */
 export const neighbours = (id: StationId): readonly StationId[] => NEIGHBOURS.get(id) ?? [];
 
-/** The shortest way from one station to another, without the start. Empty if they are the same. */
+/**
+ * The way with the fewest jumps from one station to another, without the start. Empty if they are the same.
+ * Among ways of the same length it takes the one that burns the least fuel.
+ */
 export function courseTo(from: StationId, to: StationId): StationId[] {
   if (from === to) return [];
-  const prev = new Map<StationId, StationId>();
-  const queue: StationId[] = [from];
-  const seen = new Set<StationId>([from]);
-  while (queue.length > 0) {
-    const at = queue.shift()!;
-    for (const next of neighbours(at)) {
-      if (seen.has(next)) continue;
-      seen.add(next);
-      prev.set(next, at);
-      if (next === to) {
-        const path: StationId[] = [to];
-        while (prev.get(path[0]!) !== from) path.unshift(prev.get(path[0]!)!);
-        return path;
+  // Jumps and fuel still needed from every station, counted back from the target.
+  const left = new Map<StationId, { hops: number; fuel: number }>([[to, { hops: 0, fuel: 0 }]]);
+  let layer: StationId[] = [to];
+  while (layer.length > 0 && !left.has(from)) {
+    const next: StationId[] = [];
+    for (const at of layer) {
+      const here = left.get(at)!;
+      for (const n of neighbours(at)) {
+        const fuel = here.fuel + laneFuel(n, at);
+        const known = left.get(n);
+        if (!known) { left.set(n, { hops: here.hops + 1, fuel }); next.push(n); }
+        else if (known.hops === here.hops + 1 && fuel < known.fuel) known.fuel = fuel;
       }
-      queue.push(next);
     }
+    layer = next;
   }
-  return [];
+  if (!left.has(from)) return [];
+  const path: StationId[] = [];
+  let at = from;
+  while (at !== to) {
+    const hops = left.get(at)!.hops;
+    let best: StationId | null = null;
+    for (const n of neighbours(at)) {
+      const l = left.get(n);
+      if (!l || l.hops !== hops - 1) continue;
+      if (best === null || laneFuel(at, n) + l.fuel < laneFuel(at, best) + left.get(best)!.fuel) best = n;
+    }
+    at = best!;
+    path.push(at);
+  }
+  return path;
 }
 
 /** Jumps between two stations. */

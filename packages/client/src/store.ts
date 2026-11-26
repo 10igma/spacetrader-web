@@ -6,7 +6,7 @@ import { askForMotion } from './native/shell.ts';
 import type { ClientView, Command, GameEvent, GameService, Pull, RejectReason, Reward, SalvageKind, StationId } from '@nova/core';
 import { create } from 'zustand';
 import { audio } from './audio/engine.ts';
-import { rewardText } from './ui/format.ts';
+import { num, rewardText } from './ui/format.ts';
 import { createGameService } from './net/services.ts';
 
 export type Tab = 'station' | 'market' | 'deck' | 'hangar' | 'daily';
@@ -20,7 +20,7 @@ export interface Travel {
   /** True when we reconnected into a pending encounter and skip the launch. */
   resumed: boolean;
   /** Courier pay on arrival, once known. */
-  courier: number;
+  courier: number; /** Deposits of orders that ran out of jumps on this jump. */ depositLost: number;
   /** The streak moved on this jump: shown on arrival. */
   streak: { count: number; kind: 'started' | 'extended' | 'saved' } | null;
 }
@@ -36,14 +36,18 @@ export type MilestoneMoment = { id: number } & (
   | { kind: 'prestige'; rank: number }
 );
 type MomentInput = MilestoneMoment extends infer M ? (M extends { id: number } ? Omit<M, 'id'> : never) : never;
-export type Sheet = 'posts' | 'wheel' | 'salvage' | 'profile' | 'settings' | null;
+export type Sheet = 'posts' | 'wheel' | 'salvage' | 'profile' | 'settings' | 'orders' | null;
 
 const REJECT_TEXT: Record<RejectReason, string> = {
   not_enough_credits: 'Nicht genug Credits',
   free_crate_not_ready: 'Gratis-Container noch nicht bereit',
   no_cargo_space: 'Laderaum voll',
   not_in_cargo: 'Nicht an Bord',
-  no_fuel: 'Tank leer',
+  no_fuel: 'Zu wenig Treibstoff',
+  no_such_order: 'Diesen Auftrag gibt es nicht mehr',
+  too_many_orders: 'Mehr Lieferaufträge kannst du nicht gleichzeitig halten',
+  sold_out: 'Ausverkauft: Die Station wartet selbst auf diese Ware',
+  not_here: 'Der Auftrag gilt für eine andere Station',
   no_such_route: 'Route nicht verfügbar',
   encounter_pending: 'Erst die Begegnung klären',
   no_encounter: 'Keine Begegnung offen',
@@ -176,7 +180,7 @@ export const useApp = create<AppState>((set, get) => ({
     const view = await get().service.connect();
     set({ view, clockOffset: view.serverTime - Date.now() });
     // Reconnected in the middle of an encounter: pick the scene up where it stopped.
-    if (view.encounter) set({ travel: { from: view.location, to: view.encounter.to, outcome: null, resumed: true, courier: 0, streak: null } });
+    if (view.encounter) set({ travel: { from: view.location, to: view.encounter.to, outcome: null, resumed: true, courier: 0, streak: null, depositLost: 0 } });
   },
 
   async send(cmd) {
@@ -215,11 +219,22 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'Prestiged') { set({ tab: 'station', sheet: null }); get().celebrate({ kind: 'prestige', rank: ev.rank }); }
         if (ev.type === 'MarketEventStarted') get().showToast(`${CRISIS_NAME[ev.event.category]} auf ${STATION_BY_ID.get(ev.event.stationId)!.name}: ${CATEGORY_NAME[ev.event.category]} gefragt`, 'good');
         if (ev.type === 'MarketEventEnded') get().showToast(ev.byYou ? `Bedarf gedeckt: ${CRISIS_NAME[ev.category]} auf ${STATION_BY_ID.get(ev.stationId)!.name} ist vorbei` : `${CRISIS_NAME[ev.category]} auf ${STATION_BY_ID.get(ev.stationId)!.name} vorbei: Andere haben geliefert`, ev.byYou ? 'good' : 'bad');
+        if (ev.type === 'OrderAccepted') get().showToast(`Lieferauftrag angenommen: ${STATION_BY_ID.get(ev.order.to)!.name} in ${ev.order.left} Sprüngen`, 'good');
+        if (ev.type === 'OrderDelivered') {
+          audio.coins(Math.max(ev.profit, ev.revenue / 4));
+          set({ sale: { id: ++saleId, profit: ev.profit, revenue: ev.revenue, label: 'Lieferauftrag erfüllt', size: saleSize(ev.profit, view.wallet.credits) } });
+        }
+        if (ev.type === 'OrderFailed') {
+          // The rules settle it when the jump starts. The player hears of it on arrival, on the arrival card.
+          const travel = get().travel;
+          if (travel) set({ travel: { ...travel, depositLost: travel.depositLost + ev.order.deposit } });
+          else { audio.deny(); get().showToast(`Lieferauftrag ${STATION_BY_ID.get(ev.order.to)!.name} geplatzt: Pfand ${num(ev.order.deposit)} verloren`); }
+        }
         if (ev.type === 'CharterBought') get().celebrate({ kind: 'charter' });
         if (ev.type === 'LeagueClaimed' && ev.moved > 0) get().celebrate({ kind: 'league', tier: view.league.tier, tierName: view.league.tierName, rank: ev.rank });
         if (ev.type === 'LeagueClaimed' && ev.moved < 0) get().showToast('Abgestiegen');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls, revealCrate: ev.source === 'reward' ? null : ev.tier });
-        if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0, streak: null }, routesOpen: false });
+        if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0, streak: null, depositLost: 0 }, routesOpen: false });
         if (ev.type === 'Arrived') {
           const travel = get().travel;
           if (travel) set({ travel: { ...travel, courier: ev.courier } });

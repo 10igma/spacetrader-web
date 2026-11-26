@@ -44,13 +44,15 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Sektor mit Raum: zwölf Stationen auf einer Sternkarte, verbunden durch Sprungbahnen. Ein Sprung folgt einer Bahn, ferne Ziele brauchen bis zu vier Sprünge. Ersetzt die drei zufälligen Routen | fertig | Tests: Karte ist zusammenhängend, Kurs ist eine Kette von Bahnen, Sprung nur entlang einer Bahn |
 | Krisen (Krieg, Seuche, Versorgungskrise und weitere): bis zu zwei gleichzeitig, mindestens zwei Sprünge entfernt. Der Bedarf sinkt mit jedem Sprung um eine angezeigte Menge, weil andere liefern, und um jede Einheit, die man selbst dort verkauft | fertig | Tests: Bedarf sinkt genau wie angezeigt, direkte Fahrt kommt rechtzeitig an, eigene Lieferung beendet die Krise |
 | Sternkarte mit Fraktionsgebieten, Kurs über mehrere Stationen, Anzeige "bei Ankunft noch N". Der Hauptknopf folgt dem Kurs | fertig | Eigener Durchlauf mit 13 Prüfungen |
+| Expressrouten: sechs Bahnen durch die Mitte des Sektors sparen Sprünge und kosten zwei Einheiten Treibstoff statt einer. Der Kurs nimmt den Weg mit den wenigsten Sprüngen und bei Gleichstand den sparsameren. Neue Spieler starten am Ring (Lumen-Reede) | fertig | Tests: Kosten je Bahn, Kurs und Treibstoff, Sprung scheitert bei zu wenig Treibstoff |
+| Lieferaufträge mit Frist (Frachtbörse, ab Stufe 3): Eine Station bestellt eine feste Menge zu festem Preis über ihrem Markt, lieferbar innert einer Anzahl Sprünge. Pfand von 10 % beim Annehmen, zurück bei Lieferung, weg bei Fristablauf. Die bestellende Station verkauft die Ware selbst nicht. Höchstens zwei gleichzeitig, drei neue Angebote an jeder Station | fertig | 10 Tests: Preis über Markt, Frist, Pfand, letzter Sprung zählt, Ausverkauf am Ziel, alte Spielstände. Eigener Durchlauf mit 23 Prüfungen |
 | Design-Runde 2: Tabs neu geordnet (Hangar: Container, Shop, Werft. Deck: Brücke, Sammlung, Konvois), Einstellungen an einem Ort, Glücksrad überarbeitet, Belohnungen fliegen zum Geldbeutel, Markt mit Waren-Symbolen, Hinweis auf bessere Crew | fertig | Durchläufe an die neue Struktur angepasst |
 | Begegnungen mit Spannungsmoment, kürzerer und überspringbarer Warp, Ankunft mit Kurierpost, Serie und Frachtwert. Währungen als Bilder im Charter | fertig | Durchlauf prüft, dass das Ergebnis erst nach dem Spannungsmoment erscheint |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
 | Bot-Simulation | fertig | Zwei Spielertypen, je 10 Spieler über 90 Tage, dazu Leitplanken-Test |
-| Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus 16 gegen Werft und Konvois und 14 gegen Saison-Album, Titel, Lackierungen und Prestige |
-| Bühne, UI, Musik und Effekte | fertig | Zwölf automatische Durchläufe ohne Konsolenfehler |
+| Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus 16 gegen Werft und Konvois und 14 gegen Saison-Album, Titel, Lackierungen und Prestige, dazu 9 gegen Lieferaufträge |
+| Bühne, UI, Musik und Effekte | fertig | Dreizehn automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
@@ -95,12 +97,25 @@ Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lasse
 
 **Nicht geprüft, weil hier nicht prüfbar:** wie Musik und Effekte klingen, Bildrate auf echten Handys, Verhalten in Safari, Gyroskop und Haptik. Das braucht deinen Test auf dem Gerät.
 
-**Nachtrag Sektor (26.11.2026):** Mit festen Sprungbahnen verdienten legale Händler zuerst das Doppelte. Ursache war eine alte Regel: Schmuggelware wurde mit jedem Sprung teurer, auch im Kartellraum ohne Zoll. Der Aufschlag gilt jetzt nur dort, wo die Ware verboten ist. Dazu erholen sich überschwemmte Märkte langsamer, damit Pendeln zwischen zwei Stationen weniger bringt als eine Rundreise. Stand nach 30 Tagen: legal 6'500 Gewinn pro Sprung (vorher 6'600), Schmuggel 7'400 (vorher 9'900). Der Schmuggel-Vorsprung ist mit 14 % kleiner als vorher und sollte wieder wachsen.
+**Nachtrag Sektor (26.11.2026):** Mit festen Sprungbahnen verdienten legale Händler zuerst das Doppelte. Ursache war eine alte Regel: Schmuggelware wurde mit jedem Sprung teurer, auch im Kartellraum ohne Zoll. Der Aufschlag gilt jetzt nur dort, wo die Ware verboten ist. Dazu erholen sich überschwemmte Märkte langsamer, damit Pendeln zwischen zwei Stationen weniger bringt als eine Rundreise.
+
+**Nachtrag Feinschliff (26.11.2026):** Der Schmuggel-Vorsprung war auf 14 % geschrumpft. Der eigentliche Engpass war der Hehler: Er nahm 16 Einheiten pro Station, ein spätes Schiff lädt 80 und mehr. Jetzt nimmt er 30 und erholt sich um 8 pro Sprung. Dazu steigt der Preis heisser Ware pro Sprung um 17 % statt 11 %, der Zoll findet etwas seltener (Grundchance 70 % statt 80 %) und die Busse ist kleiner (15 % statt 20 %). Stand nach 30 Tagen mit 8 Spielern je Typ:
+
+| | legal | Schmuggel |
+|---|---|---|
+| Gewinn pro Sprung | 7'100 | 10'000 (41 % mehr) |
+| Sprünge in 30 Tagen | 551 | 482 |
+| Handelsgewinn gesamt | 3.9 Millionen | 4.8 Millionen (23 % mehr) |
+| Vermögen Median | 609'000 | 683'000 |
+| Erwischt | 0.3 mal | 14 mal |
+
+Schmuggler springen seltener, weil ihre Wege öfter über die teuren Expressrouten führen. Ein Lieferauftrag bringt im Schnitt rund 100 Credits pro Einheit Laderaum und Sprung, normaler Handel 70 bis 80. Das gilt für jede Schiffsgrösse, weil der Auftrag den Preisanstieg grosser Einkäufe zur Hälfte mitbezahlt. Die Bots nehmen keine Aufträge an: Die Tabelle oben ist ohne sie gemessen.
 
 **Offen:**
 - **Sektor ist neu und kaum gespielt.** Die Karte hat zwölf Stationen, vier davon neu (Tessera-Kreuz, Eisenfurt, Nimbus-Riff, Solace-Labor). Ihre Preise sind gesetzt, aber nur von Bots geprüft. Die Bots planen keine fernen Krisen an, sie handeln nur von Bahn zu Bahn.
-- **Krisen kennen nur den Bedarf.** Es gibt noch keine Gegenspieler, die sichtbar unterwegs sind, keine Blockaden auf Bahnen und keine Aufträge mit Frist ("liefere 20 Einheiten bis Sprung X").
-- **Entfernung kostet nur Sprünge.** Jede Bahn kostet eine Einheit Treibstoff, lange und kurze gleich.
+- **Krisen kennen nur den Bedarf.** Es gibt noch keine Gegenspieler, die sichtbar unterwegs sind, und keine Blockaden auf Bahnen.
+- **Lieferaufträge sind neu und nur von Hand geprüft.** Die Bots nehmen keine an. Ob Frist (direkter Weg plus ein bis zwei Sprünge) und Aufpreis sich richtig anfühlen, zeigt erst das Spielen. Aufträge für Schmuggelware gibt es noch nicht.
+- **Treibstoff kennt zwei Preise.** Ringbahn eine Einheit, Expressroute zwei. Die Länge einer Bahn auf der Karte spielt sonst keine Rolle.
 - **Auktionshaus und Liga sind simuliert.** Gegenbieter, Käufer und Liga-Rivalen sind Zufallsgrössen mit festen Grenzen, keine echten Spieler. Die Liga sagt das auf dem Bildschirm. Echte Mitspieler brauchen Konten, Datenbank und Schutz gegen Absprachen (zweiter Teil von Phase 4).
 - **Rest von Phase 4:** Telemetrie und alles, was echte Mitspieler braucht (Konten, Datenbank, echte Ranglisten).
 - **Saison-Karten brauchen jede Saison neue Kunst.** "Glut über Varn" hat Porträts für die sechs hohen Karten. Jede weitere Saison braucht wieder sechs, sonst zeigen ihre Karten den Helm oder den Archetyp.
@@ -268,5 +283,6 @@ Hier kommt der grösste Teil des Katalogs.
 
 1. **Grafiken erzeugen** (deine Seite, Dokument 06): zuerst Schiffe, Container und die Saison-Karten. Ich baue jedes Paket ein, sobald Dateien da sind.
 2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
-3. **Design-Runde 2, Rest** (Dokument 07): Schriftgrössen und Radien vereinheitlichen, Kartenrahmen nach Seltenheit, Schiff auf der Station, Konvoi-Rückkehr als Moment.
-4. Danach zur Wahl: Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.
+3. **Design-Runde 2, Rest** (Dokument 07): Schriftgrössen und Radien vereinheitlichen, Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment.
+4. **Sektor weiter ausbauen:** Bots, die Aufträge und ferne Krisen anfahren, damit die Balance sie mitmisst. Aufträge für Schmuggelware. Sichtbare Konkurrenten auf der Karte.
+5. Danach zur Wahl: Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.

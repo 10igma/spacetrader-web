@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from './config.ts';
 import { applyCommand, createInitialState, holdCap, parseCommand, quote, toClientView, type GameEvent, type GameState, type MarketRow } from './game.ts';
 import { seedRng } from './rng.ts';
-import { courseTo, GOODS, hopsBetween, LANES, neighbours, STATIONS } from './world.ts';
+import { courseFuel, courseTo, EXPRESS, GOODS, hopsBetween, isExpress, laneFuel, LANES, neighbours, STATIONS } from './world.ts';
 
 const T0 = 1_800_000_000_000;
 const fresh = (seed = 'trade'): GameState => createInitialState(seed, T0);
@@ -119,10 +119,32 @@ describe('travel', () => {
     const s = fresh();
     const to = s.routes[0]!;
     const res = applyCommand(s, { type: 'Jump', to }, T0);
-    expect(res.state.fuel.amount).toBe(CONFIG.fuel.max - 1);
-    expect(res.events[0]).toEqual({ type: 'JumpStarted', from: 'meridian', to });
-    if (res.state.pending) expect(res.state.location).toBe('meridian');
+    const from = CONFIG.startStation;
+    expect(res.state.fuel.amount).toBe(CONFIG.fuel.max - laneFuel(from, to));
+    expect(res.events[0]).toEqual({ type: 'JumpStarted', from, to });
+    if (res.state.pending) expect(res.state.location).toBe(from);
     else expect(res.state.location).toBe(to);
+  });
+
+  it('express lanes save jumps and cost two units of fuel, the ring costs one', () => {
+    for (const [a, b] of EXPRESS) { expect(neighbours(a)).toContain(b); expect(laneFuel(a, b)).toBe(2); expect(laneFuel(b, a)).toBe(2); }
+    expect(LANES.filter(([a, b]) => !isExpress(a, b)).every(([a, b]) => laneFuel(a, b) === 1)).toBe(true);
+    // Across the sector: two jumps through the hub for four units, or the long way round.
+    expect(courseTo('lumen', 'helixtor')).toEqual(['meridian', 'helixtor']);
+    expect(courseFuel('lumen', courseTo('lumen', 'helixtor'))).toBe(4);
+    expect(courseFuel('kessin', courseTo('kessin', 'varn'))).toBe(1);
+    // Two ways of the same length: the course takes the one that burns less.
+    expect(courseTo('lumen', 'kessin')).toEqual(['eisenfurt', 'kessin']);
+    expect(courseFuel('lumen', courseTo('lumen', 'kessin'))).toBe(2);
+    // The view says what each lane costs, and one unit is not enough for an express lane.
+    const s = fresh();
+    const view = toClientView(s, T0);
+    for (const r of view.routes) expect(r.fuel).toBe(laneFuel(s.location, r.stationId));
+    const express = view.routes.find((r) => r.fuel === 2)!.stationId;
+    s.fuel.amount = 1;
+    expect(applyCommand(s, { type: 'Jump', to: express }, T0).events[0]).toEqual({ type: 'CommandRejected', reason: 'no_fuel' });
+    s.fuel.amount = 2;
+    expect(applyCommand(s, { type: 'Jump', to: express }, T0).state.fuel.amount).toBe(0);
   });
 
   it('rejects unknown routes and empty tanks', () => {

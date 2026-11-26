@@ -35,6 +35,8 @@ export function upgradeSave(raw: unknown, now: number): GameState | null {
     const at = saved.location as StationId;
     saved.routes = [...neighbours(STATION_BY_ID.has(at) ? at : 'meridian')];
   }
+  // Orders came with version 12. The board fills at the next station.
+  if ((raw.version as number) < 12) saved.orders = { offers: [], active: [], seq: 0 };
   saved.version = STATE_VERSION;
   return saved as unknown as GameState;
 }

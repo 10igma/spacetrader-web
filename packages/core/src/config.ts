@@ -5,7 +5,8 @@ const HOUR = 60 * MINUTE;
 
 export const CONFIG = {
   startCredits: 1_200,
-  startStation: 'meridian' as const,
+  /** A quiet trading post on the ring: the first jumps are cheap ones. */
+  startStation: 'lumen' as const,
   /** Cargo hold: base size, units per upgrade, and the price curve (cost of the next level). */
   hold: { base: 20, perLevel: 5, maxLevel: 6, costBase: 6_000, costGrowth: 2.2 },
   routesOffered: 3,
@@ -268,10 +269,10 @@ export const CONFIG = {
     breakThrough: { base: 0.35, crew: 0.30 },
     bribe: { base: 0.50, crew: 0.25 },
     /** Chance that a scan finds banned cargo. Technician and smuggler lower it. */
-    detect: { base: 0.80, tec: 0.25, smg: 0.25 },
+    detect: { base: 0.70, tec: 0.25, smg: 0.25 },
     /** Fine for a failed bribe or break-through with clean cargo. */
     flatFine: 200,
-    fineShare: 0.20,
+    fineShare: 0.15,
     bribeBase: 150,
     bribeShare: 0.15,
     tributeShare: 0.12,
@@ -290,16 +291,16 @@ export const CONFIG = {
   smuggling: {
     heatMax: 5,
     /** Hot cargo: every jump carried raises the sale price and the risk. */
-    heatSellBonus: 0.11,
+    heatSellBonus: 0.17,
     heatCustoms: 0.04,
     heatDetect: 0.03,
     /** Fences pay less than the open market and charge more. */
-    fenceSell: 0.86,
+    fenceSell: 0.9,
     fenceSellCrew: 0.05,
     fenceBuy: 1.15,
     /** Units a fence will move before needing time. */
-    fenceCap: 16,
-    fenceRefill: 4,
+    fenceCap: 30,
+    fenceRefill: 8,
     fenceClosedAtWanted: 4,
   },
   wanted: {
@@ -330,6 +331,33 @@ export const CONFIG = {
     /** It lasts as many jumps as the direct way takes, plus this much slack: between slackMin and slackMin + slackRange. */
     slackMin: 1.5,
     slackRange: 2,
+  },
+  /**
+   * Delivery orders: a station wants a fixed amount of a good within a number of jumps and pays a fixed
+   * price per unit, above its market. You leave a deposit and get it back on delivery. While the order
+   * is open the station has none of the good to sell, so the cargo has to come from somewhere else.
+   */
+  order: {
+    /** The board opens once a captain can afford a lot. */
+    level: 3,
+    /** New offers at every station you dock at. Offers you leave behind are gone. */
+    offers: 3,
+    maxActive: 2,
+    minHops: 2,
+    maxHops: 4,
+    /** Jumps on top of the direct way: between slackMin and slackMin + slackRange. */
+    slackMin: 1,
+    slackRange: 1,
+    /** Share of your cargo hold: between holdMin and holdMin + holdRange. */
+    holdMin: 0.4,
+    holdRange: 0.4,
+    /** Price per unit over the plain market price at the destination: premium + premiumPerHop per jump of the direct way. */
+    premium: 1.2,
+    premiumPerHop: 0.06,
+    /** Share of the price rise a lot of this size causes when bought in one place that the order pays on top. */
+    bulk: 0.5,
+    /** Share of the total pay you put down when you accept. */
+    deposit: 0.1,
   },
   shardsPerDuplicate: {
     standard: 5,

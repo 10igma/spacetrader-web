@@ -1,4 +1,5 @@
-import { courseTo, LANES, neighbours, STATIONS, type ClientView, type StationId } from '@nova/core';
+import { courseTo, isExpress, LANES, neighbours, STATIONS, type ClientView, type StationId } from '@nova/core';
+import { orderState } from './Orders.tsx';
 import { FACTION_COLOR } from './format.ts';
 
 type Pt = [number, number];
@@ -47,6 +48,7 @@ export function SectorMap({ view, course, onPick }: { view: ClientView; course: 
   const path = course && course !== here ? [here, ...courseTo(here, course)] : [];
   const onPath = (a: StationId, b: StationId): boolean => path.some((p, i) => (p === a && path[i + 1] === b) || (p === b && path[i + 1] === a));
   const crisisAt = new Map(view.events.map((e) => [e.stationId, e]));
+  const orderAt = new Map(view.orders.active.map((o) => [o.to, o]));
 
   return (
     <svg className="sector" viewBox="-5 -6 110 124" role="img" aria-label="Sternkarte des Sektors">
@@ -60,11 +62,19 @@ export function SectorMap({ view, course, onPick }: { view: ClientView; course: 
       {LANES.map(([a, b]) => {
         const p = POS.get(a)!, q = POS.get(b)!;
         const cls = onPath(a, b) ? ' is-course' : a === here || b === here ? ' is-open' : '';
-        return <line key={`${a}-${b}`} className={`sector__lane${cls}`} x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} />;
+        // Express lanes are drawn as a wide track under the lane: fewer jumps, two units of fuel.
+        return (
+          <g key={`${a}-${b}`}>
+            {isExpress(a, b) && <line className={`sector__express${cls}`} x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} />}
+            <line className={`sector__lane${cls}`} x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} />
+          </g>
+        );
       })}
       {STATIONS.map((s) => {
         const [x, y] = s.pos;
         const crisis = crisisAt.get(s.id);
+        const order = orderAt.get(s.id);
+        const tag = crisis || s.id === here ? y - 9.2 : y - 5.6;
         const anchor = x > 82 ? 'end' : x < 18 ? 'start' : 'middle';
         const tx = x > 82 ? x + 3 : x < 18 ? x - 3 : x;
         return (
@@ -76,10 +86,12 @@ export function SectorMap({ view, course, onPick }: { view: ClientView; course: 
           >
             {crisis && <circle className="sector__crisis" cx={x} cy={y} r="5" />}
             {s.id === here && <circle className="sector__pulse" cx={x} cy={y} r="4.2" />}
+            {order && <rect className={`sector__order sector__order--${orderState(order)}`} x={x - 3.4} y={y - 3.4} width="6.8" height="6.8" transform={`rotate(45 ${x} ${y})`} />}
             <circle className="sector__dot" cx={x} cy={y} r={s.id === here ? 2.6 : 2.1} />
             <text className="sector__name" x={tx} y={y + 6.4} textAnchor={anchor}>{s.name}</text>
             {crisis && <text className="sector__flag" x={tx} y={y - 5.6} textAnchor={anchor}>{crisis.name} {pct(crisis.mult)}</text>}
             {s.id === here && !crisis && <text className="sector__you" x={tx} y={y - 5.6} textAnchor={anchor}>Du bist hier</text>}
+            {order && <text className={`sector__due sector__due--${orderState(order)}`} x={tx} y={tag} textAnchor={anchor}>{order.here ? 'Auftrag hier' : `Auftrag · noch ${order.left}`}</text>}
             {/* A fingertip is bigger than a dot. */}
             <circle className="sector__hit" cx={x} cy={y} r="8" />
           </g>

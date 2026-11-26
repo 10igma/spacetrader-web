@@ -69,6 +69,8 @@ describe('fence', () => {
   it('has limited volume that refills over jumps, and closes when you are too hot', () => {
     let s = fresh();
     s.wallet.credits = 1_000_000;
+    // Room for more than the fence will move.
+    s.hold = 4;
     const cap = CONFIG.smuggling.fenceCap;
     expect(rejected(applyCommand(s, { type: 'Buy', goodId: 'neurostaub', qty: cap + 1 }, T0).events)).toBe('fence_limit');
     s = applyCommand(s, { type: 'Buy', goodId: 'neurostaub', qty: cap }, T0).state;

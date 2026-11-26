@@ -60,6 +60,8 @@ interface Plan { to: ClientView['routes'][number]; score: number; basket: { good
 function plan(ctx: Ctx, view: ClientView): Plan | null {
   let best: Plan | null = null;
   for (const route of view.routes) {
+    // Express lanes cost two units: not with one left in the tank.
+    if (route.fuel > view.fuel.amount) continue;
     const destFaction = STATION_BY_ID.get(route.stationId)!.faction;
     let credits = view.wallet.credits - 300; // keep a reserve for tribute and bribes
     let space = view.cargo.cap - view.cargo.used;
@@ -96,6 +98,8 @@ function plan(ctx: Ctx, view: ClientView): Plan | null {
       const lot = view.cargo.items[h.goodId];
       if (lot) score += lot.qty * lot.avgCost * h.pct * 0.5;
     }
+    // Fuel is what a session runs out of: judge a lane by what it pays per unit.
+    score /= route.fuel;
     if (!best || score > best.score) best = { to: route, score, basket };
   }
   return best;

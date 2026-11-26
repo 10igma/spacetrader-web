@@ -1,4 +1,4 @@
-import { CATEGORY_NAME, courseTo, FACTIONS, GOOD_BY_ID, STATION_BY_ID, type CrisisView, type StationId } from '@nova/core';
+import { CATEGORY_NAME, courseFuel, courseTo, FACTIONS, GOOD_BY_ID, STATION_BY_ID, type CrisisView, type StationId } from '@nova/core';
 import { useRef } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
@@ -7,6 +7,7 @@ import { useServerNow } from './hooks.ts';
 import { IconFuel } from './icons.tsx';
 import { CloseX } from './Spend.tsx';
 import { Emblem } from './Emblem.tsx';
+import { orderState, orderStatus } from './Orders.tsx';
 import { SectorMap } from './SectorMap.tsx';
 
 /** One line that says everything a captain needs to decide whether a crisis is worth the trip. */
@@ -33,6 +34,8 @@ export function RouteSheet() {
   const next = path[0] ?? null;
   const target = course ? STATION_BY_ID.get(course) : undefined;
   const targetCrisis = view.events.find((e) => e.stationId === course);
+  const targetOrder = view.orders.active.find((o) => o.to === course);
+  const need = courseFuel(view.location, path);
   const pick = (id: StationId): void => {
     audio.tap();
     if (id === view.location) { setCourse(null); return; }
@@ -56,14 +59,19 @@ export function RouteSheet() {
           <span className="pill"><IconFuel />{view.fuel.amount} / {view.fuel.max}</span>
         </header>
         <SectorMap view={view} course={course} onPick={pick} />
+        <div className="legend" aria-hidden="true">
+          <span><i className="legend__lane" />Ringroute · 1 Treibstoff</span>
+          <span><i className="legend__lane legend__lane--express" />Express · 2 Treibstoff, spart Sprünge</span>
+        </div>
         {target && path.length > 0 && (
           <div className="course">
             <span>
               <b>Kurs: {target.name}</b>
               <small>
                 {path.length === 1 ? '1 Sprung' : `${path.length} Sprünge über ${path.slice(0, -1).map((id) => STATION_BY_ID.get(id)!.name).join(', ')}`}
-                {path.length > view.fuel.amount ? ` · dein Tank reicht für ${view.fuel.amount}` : ''}
+                {` · ${need} Treibstoff`}{need > view.fuel.amount ? `, im Tank sind ${view.fuel.amount}` : ''}
               </small>
+              {targetOrder && <small className={`course__order course__order--${orderState(targetOrder)}`}>Lieferauftrag: {targetOrder.qty} × {GOOD_BY_ID.get(targetOrder.goodId)!.name} · {orderStatus(targetOrder)}</small>}
               {targetCrisis && <small className="course__crisis">{targetCrisis.name}: {crisisLine(targetCrisis)}. Bei direkter Fahrt bleiben {targetCrisis.onArrival}.</small>}
             </span>
             <button className="link" onClick={() => { audio.tap(); setCourse(null); }}>Löschen</button>
@@ -75,6 +83,12 @@ export function RouteSheet() {
             <small>{crisisLine(e)} · {e.hops} {e.hops === 1 ? 'Sprung' : 'Sprünge'} entfernt, bei Ankunft noch {e.onArrival}</small>
           </button>
         ))}
+        {view.orders.active.filter((o) => o.to !== course && !o.here).map((o) => (
+          <button key={o.id} className={`crisis crisis--order crisis--order-${orderState(o)}`} onClick={() => pick(o.to)}>
+            <b>Lieferauftrag {STATION_BY_ID.get(o.to)!.name}</b>
+            <small>{o.qty} × {GOOD_BY_ID.get(o.goodId)!.name} · {orderStatus(o)}</small>
+          </button>
+        ))}
         {routes.map((r, i) => {
           const st = STATION_BY_ID.get(r.stationId)!;
           return (
@@ -83,7 +97,7 @@ export function RouteSheet() {
               ref={(el) => { if (el) cards.current.set(r.stationId, el); }}
               className={`route${r.event ? ' route--event' : ''}${r.stationId === next ? ' route--course' : ''}`}
               style={{ ['--faction' as string]: FACTION_COLOR[st.faction], animationDelay: `${i * 70}ms` }}
-              disabled={busy || empty}
+              disabled={busy || view.fuel.amount < r.fuel}
               onClick={() => { audio.tap(); void send({ type: 'Jump', to: r.stationId }); }}
             >
               <span className="route__top">
@@ -92,7 +106,7 @@ export function RouteSheet() {
                   <b>{st.name}</b>
                   <small>{FACTIONS[st.faction].name} · {st.tagline}</small>
                 </span>
-                <span className="route__go">Sprung<small>{r.stationId === next && path.length > 1 ? `Kurs · noch ${path.length}` : `${r.fuel} Treibstoff`}</small></span>
+                <span className="route__go">Sprung<small>{view.fuel.amount < r.fuel ? `braucht ${r.fuel} Treibstoff` : `${r.stationId === next && path.length > 1 ? 'Kurs · ' : r.fuel > 1 ? 'Express · ' : ''}${r.fuel} Treibstoff`}</small></span>
               </span>
               {r.event && (
                 <span className="route__event">
@@ -122,7 +136,7 @@ export function RouteSheet() {
         <p className="routes__note">
           {empty && view.fuel.nextAt
             ? `Tank leer. Nächste Einheit in ${countdown(view.fuel.nextAt - now)}. Ein Stufenaufstieg füllt den Tank.`
-            : 'Tippe eine Station auf der Karte an, um einen Kurs zu setzen. Gewinn für 10 Einheiten, hier gekauft und dort verkauft.'}
+            : 'Tippe eine Station auf der Karte an, um einen Kurs zu setzen. Der Kurs nimmt den Weg mit den wenigsten Sprüngen. Gewinn für 10 Einheiten, hier gekauft und dort verkauft.'}
         </p>
       </div>
     </div>

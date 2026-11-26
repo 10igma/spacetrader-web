@@ -24,7 +24,7 @@ import {
   weekendActive, weekendStartsAt, weekIndex, weekStartsAt, type Standing,
 } from './season.ts';
 import {
-  CRISIS_NAME, GOOD_BY_ID, GOODS, hopsBetween, isBanned, neighbours, STATION_BY_ID, STATIONS, stationMod,
+  CRISIS_NAME, GOOD_BY_ID, GOODS, hopsBetween, isBanned, laneFuel, neighbours, STATION_BY_ID, STATIONS, stationMod,
   type Category, type GoodDef, type GoodId, type StationId,
 } from './world.ts';
 
@@ -32,7 +32,7 @@ import {
 // State
 // ---------------------------------------------------------------------------
 
-export const STATE_VERSION = 11;
+export const STATE_VERSION = 12;
 
 export type EncounterKind = 'pirates' | 'customs';
 export type EncounterChoice = 'fight' | 'flee' | 'pay' | 'submit' | 'bribe' | 'breakThrough';
@@ -51,6 +51,30 @@ export interface MarketEvent {
   /** Units other traders deliver with every jump you make. */
   drain: number;
 }
+/** A delivery order: `qty` units of a good to a station within `left` jumps, for a fixed price per unit. */
+export interface Order {
+  id: number;
+  from: StationId;
+  to: StationId;
+  goodId: GoodId;
+  qty: number;
+  /** Fixed price per unit. */
+  pay: number;
+  /** Paid when you accept, returned on delivery, lost if the jumps run out. */
+  deposit: number;
+  /** Jumps left to arrive. For an offer: the jumps you would get. */
+  left: number;
+}
+/** An order as the client sees it. `market`: what the same lot would sell for there today. */
+export interface OrderView extends Order {
+  total: number;
+  hops: number;
+  have: number;
+  here: boolean;
+  market: number;
+  /** What the missing units cost at the station you are docked at, or null if it has none to sell. */
+  buyHere: number | null;
+}
 /** A crisis as the client sees it: with the way there and what will be left on a direct run. */
 export interface CrisisView extends MarketEvent { name: string; hops: number; onArrival: number }
 
@@ -58,7 +82,7 @@ export interface CrisisView extends MarketEvent { name: string; hops: number; on
 export interface GameState {
   version: typeof STATE_VERSION;
   createdAt: number;
-  rng: { crate: RngState; market: RngState; travel: RngState; daily: RngState; auction: RngState; convoy: RngState; season: RngState };
+  rng: { crate: RngState; market: RngState; travel: RngState; daily: RngState; auction: RngState; convoy: RngState; season: RngState; order: RngState };
   profile: { level: number; xp: number };
   wallet: { credits: number; quanta: number; shards: number };
   fuel: { amount: number; updatedAt: number };
@@ -115,6 +139,8 @@ export interface GameState {
   fence: Record<StationId, number>;
   /** Crises running in the sector. */
   events: MarketEvent[];
+  /** Delivery orders: the board of the station you are docked at, and the ones you took. */
+  orders: { offers: Order[]; active: Order[]; seq: number };
   wanted: Record<FactionId, { level: number; cool: number }>;
   routes: StationId[];
   pending: { to: StationId; kind: EncounterKind } | null;
@@ -293,6 +319,7 @@ export interface ClientView {
   fence: { left: number; cap: number; closed: boolean };
   /** Crises running in the sector, nearest first. */
   events: CrisisView[];
+  orders: { offers: OrderView[]; active: OrderView[]; max: number; /** Level at which the board opens. */ level: number };
   wanted: Record<FactionId, number>;
   /** Cost to buy one star off at this station, if you are wanted here. */
   payOff: number | null;
@@ -348,6 +375,8 @@ export type Command =
   | { type: 'ClaimLeague' }
   | { type: 'ClaimWeekend' }
   | { type: 'ClaimComeback' }
+  | { type: 'AcceptOrder'; id: number }
+  | { type: 'DeliverOrder'; id: number }
   | { type: 'Buy'; goodId: GoodId; qty: number }
   | { type: 'Sell'; goodId: GoodId; qty: number }
   | { type: 'Jump'; to: StationId }
@@ -374,7 +403,8 @@ export type RejectReason =
   | 'no_such_slot' | 'slot_busy' | 'slot_not_ready' | 'not_enough_quanta' | 'not_enough_shards' | 'not_claimable'
   | 'daily_limit' | 'already_owned'
   | 'no_such_lot' | 'bid_too_low' | 'too_many_bids' | 'too_many_listings' | 'no_spare_copy'
-  | 'season_over' | 'level_too_low' | 'not_owned' | 'no_free_slot' | 'card_busy' | 'invalid_team' | 'no_such_contract';
+  | 'season_over' | 'level_too_low' | 'not_owned' | 'no_free_slot' | 'card_busy' | 'invalid_team' | 'no_such_contract'
+  | 'no_such_order' | 'too_many_orders' | 'sold_out' | 'not_here';
 
 export type GameEvent =
   | { type: 'CrateOpened'; source: 'free' | 'bought' | 'slot' | 'reward'; tier: CrateTier; pulls: Pull[] }
@@ -425,6 +455,9 @@ export type GameEvent =
   | { type: 'Arrived'; stationId: StationId; courier: number }
   | { type: 'WantedChanged'; faction: FactionId; level: number }
   | { type: 'MarketEventStarted'; event: MarketEvent }
+  | { type: 'OrderAccepted'; order: Order }
+  | { type: 'OrderDelivered'; order: Order; revenue: number; profit: number }
+  | { type: 'OrderFailed'; order: Order }
   | { type: 'MarketEventEnded'; stationId: StationId; category: Category; byYou: boolean }
   | { type: 'DeckChanged' }
   | { type: 'HoldUpgraded'; level: number; cap: number }
@@ -441,7 +474,7 @@ export function createInitialState(seed: string, now: number): GameState {
   const state: GameState = {
     version: STATE_VERSION,
     createdAt: now,
-    rng: { crate: seedRng(`${seed}:crate`), market: seedRng(`${seed}:market`), travel: seedRng(`${seed}:travel`), daily: seedRng(`${seed}:daily`), auction: seedRng(`${seed}:auction`), convoy: seedRng(`${seed}:convoy`), season: seedRng(`${seed}:season`) },
+    rng: { crate: seedRng(`${seed}:crate`), market: seedRng(`${seed}:market`), travel: seedRng(`${seed}:travel`), daily: seedRng(`${seed}:daily`), auction: seedRng(`${seed}:auction`), convoy: seedRng(`${seed}:convoy`), season: seedRng(`${seed}:season`), order: seedRng(`${seed}:order`) },
     profile: { level: 1, xp: 0 },
     wallet: { credits: CONFIG.startCredits, quanta: CONFIG.startQuanta, shards: 0 },
     fuel: { amount: CONFIG.fuel.max, updatedAt: now },
@@ -476,6 +509,7 @@ export function createInitialState(seed: string, now: number): GameState {
     ) as GameState['market'],
     fence: Object.fromEntries(STATIONS.map((s) => [s.id, CONFIG.smuggling.fenceCap])) as GameState['fence'],
     events: [],
+    orders: { offers: [], active: [], seq: 0 },
     wanted: Object.fromEntries(FACTION_IDS.map((f) => [f, { level: 0, cool: 0 }])) as GameState['wanted'],
     routes: [],
     pending: null,
@@ -484,6 +518,7 @@ export function createInitialState(seed: string, now: number): GameState {
   driftMarkets(state);
   driftMarkets(state);
   rollRoutes(state);
+  rollOrders(state);
   settleDaily(state, now);
   return state;
 }
@@ -878,6 +913,54 @@ function rollRoutes(state: GameState): void {
   state.routes = [...neighbours(state.location)];
 }
 
+/** Plain market price of a good at a station: no crisis, no drift. Orders are priced off this. */
+const plainPrice = (stationId: StationId, good: GoodDef): number =>
+  good.base * Math.pow(stationMod(STATION_BY_ID.get(stationId)!, good), CONFIG.market.spread);
+
+/** The order board of the station you are docked at. Stations ask for what they do not make themselves. */
+function rollOrders(state: GameState): void {
+  const cfg = CONFIG.order;
+  const rng = state.rng.order;
+  const here = state.location;
+  const busy = new Set(state.orders.active.map((o) => o.to));
+  const places = STATIONS.filter((s) => {
+    const hops = hopsBetween(here, s.id);
+    return hops >= cfg.minHops && hops <= cfg.maxHops && !busy.has(s.id);
+  });
+  const offers: Order[] = [];
+  if (state.profile.level < cfg.level) places.length = 0;
+  while (offers.length < cfg.offers && places.length > 0) {
+    const station = places.splice(Math.floor(nextFloat(rng) * places.length), 1)[0]!;
+    // Legal at both ends, so the lot can always be loaded where the order hangs.
+    const legal = GOODS.filter((g) => !bannedAt(g, station.id) && !bannedAt(g, here));
+    const wanted = legal.filter((g) => stationMod(station, g) >= 1);
+    // Nobody sends for a courier over cheap bulk: dear goods are asked for more often.
+    const pool = wanted.length > 0 ? wanted : legal;
+    const good = pool[pickWeighted(rng, pool.map((g) => Math.sqrt(g.base)))]!;
+    const hops = hopsBetween(here, station.id);
+    const qty = Math.max(3, Math.round(cargoCap(state) * (cfg.holdMin + nextFloat(rng) * cfg.holdRange)));
+    // A big lot drives the price up wherever you buy it. The order pays for that, so it is worth it for any ship.
+    const bulk = CONFIG.market.impact * qty * cfg.bulk;
+    const pay = Math.round(plainPrice(station.id, good) * (cfg.premium + cfg.premiumPerHop * hops + bulk));
+    state.orders.seq += 1;
+    offers.push({
+      id: state.orders.seq,
+      from: here,
+      to: station.id,
+      goodId: good.id,
+      qty,
+      pay,
+      deposit: Math.round(qty * pay * cfg.deposit),
+      left: hops + cfg.slackMin + Math.floor(nextFloat(rng) * (cfg.slackRange + 1)),
+    });
+  }
+  state.orders.offers = offers;
+}
+
+/** True while an order you took asks for this good here: the station has none to sell. */
+const shortAt = (state: GameState, stationId: StationId, goodId: GoodId): boolean =>
+  state.orders.active.some((o) => o.to === stationId && o.goodId === goodId);
+
 // ---------------------------------------------------------------------------
 // Law
 // ---------------------------------------------------------------------------
@@ -1072,7 +1155,13 @@ function arrive(state: GameState, to: StationId, events: GameEvent[], now: numbe
     state.salvage = null;
   }
 
+  // Orders you took: one jump less. Out of jumps and not there means the deposit is gone.
+  for (const o of state.orders.active) o.left -= 1;
+  for (const o of state.orders.active.filter((x) => x.left < 0 || (x.left === 0 && x.to !== to))) events.push({ type: 'OrderFailed', order: { ...o } });
+  state.orders.active = state.orders.active.filter((o) => o.left > 0 || (o.left === 0 && o.to === to));
+
   rollRoutes(state);
+  rollOrders(state);
   const courier = CONFIG.travel.courierBase + CONFIG.travel.courierPerLevel * state.profile.level;
   state.wallet.credits += courier;
   events.push({ type: 'Arrived', stationId: to, courier });
@@ -1520,6 +1609,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       const viaFence = bannedAt(good, state.location);
       if (viaFence && fenceClosed(state, state.location)) return reject('fence_closed');
       if (viaFence && cmd.qty > state.fence[state.location]) return reject('fence_limit');
+      if (shortAt(state, state.location, cmd.goodId)) return reject('sold_out');
       if (cargoUsed(state) + cmd.qty > cargoCap(state)) return reject('no_cargo_space');
       const cost = quote(marketRow(state, state.location, cmd.goodId, 0), 'buy', cmd.qty);
       if (state.wallet.credits < cost) return reject('not_enough_credits');
@@ -1571,10 +1661,42 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       if (profit > 0) addXp(state, CONFIG.travel.xpPerSaleLog * Math.log10(1 + profit), events, now);
       break;
     }
+    case 'AcceptOrder': {
+      const order = state.orders.offers.find((o) => o.id === cmd.id);
+      if (!order) return reject('no_such_order');
+      if (state.orders.active.length >= CONFIG.order.maxActive) return reject('too_many_orders');
+      if (state.wallet.credits < order.deposit) return reject('not_enough_credits');
+      state.wallet.credits -= order.deposit;
+      state.orders.offers = state.orders.offers.filter((o) => o !== order);
+      state.orders.active.push(order);
+      events.push({ type: 'OrderAccepted', order: { ...order } });
+      break;
+    }
+    case 'DeliverOrder': {
+      const order = state.orders.active.find((o) => o.id === cmd.id);
+      if (!order) return reject('no_such_order');
+      if (order.to !== state.location) return reject('not_here');
+      const lot = state.cargo[order.goodId];
+      if (!lot || lot.qty < order.qty) return reject('not_in_cargo');
+      const revenue = order.qty * order.pay;
+      const profit = Math.round(revenue - lot.avgCost * order.qty);
+      state.wallet.credits += revenue + order.deposit;
+      lot.qty -= order.qty;
+      if (lot.qty === 0) delete state.cargo[order.goodId];
+      state.orders.active = state.orders.active.filter((o) => o !== order);
+      state.stats.profit += profit;
+      if (profit > 0) state.league.score += profit;
+      events.push({ type: 'OrderDelivered', order: { ...order }, revenue, profit });
+      progress(state, 'sellUnits', order.qty);
+      progress(state, 'profit', profit);
+      if (profit > 0) addXp(state, CONFIG.travel.xpPerSaleLog * Math.log10(1 + profit), events, now);
+      break;
+    }
     case 'Jump': {
       if (!state.routes.includes(cmd.to)) return reject('no_such_route');
-      if (state.fuel.amount < 1) return reject('no_fuel');
-      state.fuel.amount -= 1;
+      const fuel = laneFuel(state.location, cmd.to);
+      if (state.fuel.amount < fuel) return reject('no_fuel');
+      state.fuel.amount -= fuel;
       events.push({ type: 'JumpStarted', from: state.location, to: cmd.to });
       touchStreak(state, events);
       const chance = encounterChances(state, cmd.to);
@@ -1869,6 +1991,15 @@ export function toClientView(state: GameState, now: number): ClientView {
   const market: MarketRow[] = GOODS.map((g) => marketRow(s, here, g.id, s.cargo[g.id]?.heat ?? 0));
   const lot = CONFIG.market.hintLot;
 
+  const orderView = (o: Order): OrderView => ({
+    ...o,
+    total: o.qty * o.pay,
+    hops: hopsBetween(here, o.to),
+    have: s.cargo[o.goodId]?.qty ?? 0,
+    here: o.to === here,
+    market: quote(marketRow(s, o.to, o.goodId, 0), 'sell', o.qty),
+    buyHere: o.to === here || o.qty <= (s.cargo[o.goodId]?.qty ?? 0) ? null : quote(marketRow(s, here, o.goodId, 0), 'buy', o.qty - (s.cargo[o.goodId]?.qty ?? 0)),
+  });
   const crises: CrisisView[] = s.events.map((e) => {
     const hops = hopsBetween(here, e.stationId);
     return { ...e, name: CRISIS_NAME[e.category], hops, onArrival: Math.max(0, e.demand - e.drain * hops) };
@@ -1889,7 +2020,7 @@ export function toClientView(state: GameState, now: number): ClientView {
       .slice(0, 4);
     return {
       stationId: id,
-      fuel: 1,
+      fuel: laneFuel(here, id),
       customsChance: chance.customs,
       piratesChance: chance.pirates,
       wanted: s.wanted[dest.faction].level,
@@ -2031,6 +2162,12 @@ export function toClientView(state: GameState, now: number): ClientView {
     market,
     fence: { left: s.fence[here], cap: CONFIG.smuggling.fenceCap, closed: fenceClosed(s, here) },
     events: crises,
+    orders: {
+      offers: s.orders.offers.map(orderView),
+      active: s.orders.active.map(orderView),
+      max: CONFIG.order.maxActive,
+      level: CONFIG.order.level,
+    },
     wanted: Object.fromEntries(FACTION_IDS.map((f) => [f, s.wanted[f].level])) as Record<FactionId, number>,
     payOff: s.wanted[hereFaction].level > 0 ? CONFIG.wanted.payOffPerStar * s.wanted[hereFaction].level : null,
     routes,
@@ -2094,6 +2231,9 @@ export function parseCommand(input: unknown): Command | null {
       return Number.isInteger(c.offer) && Array.isArray(c.cards) && c.cards.length <= 8 && c.cards.every((x: unknown) => typeof x === 'string' && x.length < 16)
         ? { type: 'SendConvoy', offer: c.offer as number, cards: c.cards as string[] }
         : null;
+    case 'AcceptOrder':
+    case 'DeliverOrder':
+      return Number.isInteger(c.id) ? { type: c.type, id: c.id as number } : null;
     case 'ClaimConvoy':
     case 'RushConvoy':
       return Number.isInteger(c.slot) ? { type: c.type, slot: c.slot as number } : null;

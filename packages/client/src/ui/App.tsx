@@ -18,6 +18,7 @@ import { ProfileSheet } from './Profile.tsx';
 import { CloseX } from './Spend.tsx';
 import { SettingsSheet } from './Settings.tsx';
 import { PostSheet, SalvageSheet, WheelSheet } from './Sheets.tsx';
+import { OrderSheet } from './Orders.tsx';
 import { Splash } from './Splash.tsx';
 import { TopBar } from './TopBar.tsx';
 import { Travel } from './Travel.tsx';
@@ -113,6 +114,7 @@ export function App() {
       {sheet === 'profile' && !travel && <ProfileSheet />}
       {sheet === 'settings' && <SettingsSheet />}
       {sheet === 'salvage' && !travel && <SalvageSheet />}
+      {sheet === 'orders' && !travel && <OrderSheet />}
       {reveal && <Reveal pulls={reveal} />}
       {travel && <Travel travel={travel} />}
       {sale && (

@@ -1,10 +1,11 @@
-import { CARD_BY_ID, CATEGORY_NAME, FACTIONS, GOOD_BY_ID, rarityRank, STATION_BY_ID, courseTo } from '@nova/core';
+import { CARD_BY_ID, CATEGORY_NAME, courseFuel, FACTIONS, GOOD_BY_ID, rarityRank, STATION_BY_ID, courseTo } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
 import { countdown, FACTION_COLOR, longCountdown, num } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconFuel, IconHangar, IconMarket } from './icons.tsx';
 import { Emblem } from './Emblem.tsx';
+import { jumps, orderState, orderStatus } from './Orders.tsx';
 import { crisisLine } from './RouteSheet.tsx';
 import { ShipArt } from './Shipyard.tsx';
 import { SpendButton } from './Spend.tsx';
@@ -53,6 +54,19 @@ export function Hub() {
   }
   const back = view.convoys.running.filter((c) => c.done).length;
   if (back > 0) headlines.push({ label: 'Konvoi', text: back === 1 ? 'ist zurück' : `${back} sind zurück`, tone: 'up' });
+
+  // The freight board in one card: what is ready, what is running, what hangs here.
+  const { orders } = view;
+  const ready = orders.active.find((o) => o.here && o.have >= o.qty);
+  const urgent = ready ?? [...orders.active].sort((a, b) => (a.left - a.hops) - (b.left - b.hops))[0];
+  const board = orders.active.length === 0 && orders.offers.length === 0 ? null : {
+    tone: ready ? 'ready' : urgent ? orderState(urgent) : 'ok',
+    title: ready ? 'Lieferung bereit' : urgent ? `Lieferauftrag ${STATION_BY_ID.get(urgent.to)!.name}` : 'Frachtbörse',
+    text: ready ? `${ready.qty} × ${GOOD_BY_ID.get(ready.goodId)!.name} abliefern: ${num(ready.total)} Credits und das Pfand zurück`
+      : urgent ? `${urgent.qty} × ${GOOD_BY_ID.get(urgent.goodId)!.name} · ${orderStatus(urgent)}`
+        : `${orders.offers.length} Lieferaufträge hängen aus: feste Preise über dem Markt, Frist in Sprüngen`,
+    more: urgent && orders.offers.length > 0 ? `${orders.offers.length} neue Angebote hier${orders.active.length > 1 ? ` · ${orders.active.length} Aufträge laufen` : ''}` : orders.active.length > 1 ? `${orders.active.length} Aufträge laufen` : '',
+  };
 
   const paint = view.captain.paints.find((p) => p.id === view.captain.paint)?.tone ?? null;
   const empty = view.cargo.used === 0;
@@ -105,6 +119,12 @@ export function Hub() {
             {crisisLine(e)}{e.stationId === view.location ? '' : ` · ${e.hops} ${e.hops === 1 ? 'Sprung' : 'Sprünge'} entfernt, bei Ankunft noch ${e.onArrival}`}
           </button>
         ))}
+        {board && (
+          <button className={`news news--order news--order-${board.tone}`} onClick={() => { audio.tap(); setSheet('orders'); }}>
+            <b>{board.title}</b>
+            {board.text}{board.more ? <small>{board.more}</small> : null}
+          </button>
+        )}
       </header>
 
       <div className="ticker" aria-hidden="true">
@@ -168,7 +188,7 @@ export function Hub() {
         <button className="cta" onClick={() => { audio.tap(); openRoutes(true); }}>
           <span>{way.length > 0 ? `Weiter nach ${STATION_BY_ID.get(way[0]!)!.name}` : 'Sternkarte'}</span>
           <small>
-            {way.length > 1 ? `Kurs ${STATION_BY_ID.get(course!)!.name} · noch ${way.length} Sprünge`
+            {way.length > 1 ? `Kurs ${STATION_BY_ID.get(course!)!.name} · noch ${jumps(way.length)}, ${courseFuel(view.location, way)} Treibstoff`
               : best ? `Beste Route: ${STATION_BY_ID.get(best.stationId)!.name} · ${GOOD_BY_ID.get(best.goodId)!.name} +${best.pct} %` : `${view.routes.length} Ziele in Reichweite`}
           </small>
         </button>

@@ -51,15 +51,15 @@ describe('trading posts', () => {
     let s = applyCommand(rich(), { type: 'BuildPost' }, T0).state;
     const t1 = T0 + CONFIG.posts.buildMs[0]! + 2 * HOUR;
     s = applyCommand(s, { type: 'BuildPost' }, t1).state;
-    expect(s.posts.meridian).toMatchObject({ level: 2 });
+    expect(s.posts[CONFIG.startStation]).toMatchObject({ level: 2 });
     const view = toClientView(s, t1 + 10 * 60_000).posts.list[0]!;
     expect(view.stored).toBe(2 * postPerHour(1));
     expect(view.speedUpCost).toBeGreaterThan(0);
     const quanta = s.wallet.quanta;
-    const rushed = applyCommand(s, { type: 'SpeedUpPost', stationId: 'meridian' }, t1 + 10 * 60_000);
+    const rushed = applyCommand(s, { type: 'SpeedUpPost', stationId: CONFIG.startStation }, t1 + 10 * 60_000);
     expect(rushed.state.wallet.quanta).toBe(quanta - view.speedUpCost);
     expect(toClientView(rushed.state, t1 + 10 * 60_000 + HOUR).posts.list[0]!.stored).toBe(2 * postPerHour(1) + postPerHour(2));
-    expect(rejected(rushed.state, { type: 'SpeedUpPost', stationId: 'meridian' }, t1 + HOUR)).toBe('slot_not_ready');
+    expect(rejected(rushed.state, { type: 'SpeedUpPost', stationId: CONFIG.startStation }, t1 + HOUR)).toBe('slot_not_ready');
     expect(rejected(s, { type: 'SpeedUpPost', stationId: 'kessin' }, t1)).toBe('slot_not_ready');
   });
 
