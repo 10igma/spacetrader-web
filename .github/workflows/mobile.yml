@@ -1,0 +1,93 @@
+name: Mobile builds
+
+# Builds the Android debug app and the iOS simulator app from the same web build
+# and offers both as downloads on the run page. Nothing here is signed for a store.
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    paths:
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+      - '.github/workflows/mobile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android (debug APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @nova/client build
+      - run: pnpm --filter @nova/client exec cap sync android
+      - name: Build the debug APK
+        working-directory: packages/client/android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: projekt-nova-android-debug
+          path: packages/client/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  ios:
+    name: iOS (simulator app, unsigned)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @nova/client build
+      - run: pnpm --filter @nova/client exec cap sync ios
+      - name: Show Xcode and schemes
+        working-directory: packages/client/ios/App
+        run: |
+          xcodebuild -version
+          xcodebuild -list -project App.xcodeproj
+      - name: Build for the simulator
+        working-directory: packages/client/ios/App
+        run: |
+          xcodebuild build \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Pack the app
+        working-directory: packages/client/ios/App/build/Build/Products/Debug-iphonesimulator
+        run: ditto -c -k --keepParent App.app "$RUNNER_TEMP/ProjektNova-simulator.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: projekt-nova-ios-simulator
+          path: ${{ runner.temp }}/ProjektNova-simulator.zip
+          if-no-files-found: error
