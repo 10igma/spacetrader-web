@@ -1,6 +1,7 @@
 import { MODULE_MAX, MODULES, SHIP_BY_ID, SHIPS, type ModuleDef, type ShipDef, type ShipId } from '@nova/core';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
+import { art } from './art.ts';
 import { num } from './format.ts';
 import { Credits, IconLock } from './icons.tsx';
 
@@ -14,8 +15,25 @@ const HULL: Record<ShipId, { d: string; engines: number[]; tone: string }> = {
   leviathan: { d: 'M60 6 L76 22 L80 50 L96 58 L96 96 L78 100 L74 114 L46 114 L42 100 L24 96 L24 58 L40 50 L44 22 Z', engines: [50, 57, 63, 70], tone: '#ff8a3c' },
 };
 
+/** Renders are trimmed to the hull, so all arrive the same size. This puts the fleet back in proportion. */
+const SIZE: Record<ShipId, number> = { sperling: 0.72, kormoran: 0.82, lanze: 0.84, nachtfalter: 0.88, basilisk: 0.94, leviathan: 1 };
+
 export function ShipArt({ id, locked = false, paint = null }: { id: ShipId; locked?: boolean; paint?: string | null }) {
   const prisma = paint === 'prisma';
+  const render = art('ships', id);
+  if (render) {
+    // A rendered hull is neutral grey. Paint is laid over it and follows its shape.
+    return (
+      <div
+        className={`shipart shipart--img${locked ? ' is-locked' : ''}${prisma ? ' shipart--prisma' : ''}`}
+        style={{ ['--tone' as string]: paint && !prisma ? paint : HULL[id].tone, ['--img' as string]: `url("${render}")`, ['--size' as string]: SIZE[id] }}
+        aria-hidden="true"
+      >
+        <img src={render} alt="" draggable={false} />
+        {paint && <i className="shipart__paint" />}
+      </div>
+    );
+  }
   const hull = { ...HULL[id], tone: paint && !prisma ? paint : HULL[id].tone };
   const base = Number(hull.d.match(/L\d+ (\d+) L\d+ \1 /)?.[1] ?? 104);
   return (

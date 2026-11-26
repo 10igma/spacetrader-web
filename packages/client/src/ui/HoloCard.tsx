@@ -1,7 +1,7 @@
 import { FACTIONS, ROLES, type CardDef } from '@nova/core';
 import { useEffect, useRef } from 'react';
 import { Avatar } from './Avatar.tsx';
-import { CARD_ART } from './cardArt.ts';
+import { cardArt } from './art.ts';
 import { FACTION_COLOR, RARITY_LABEL } from './format.ts';
 
 interface Props {
@@ -28,6 +28,7 @@ if (typeof window !== 'undefined') {
 
 export function HoloCard({ card, size = 'lg', interactive = false, locked = false, count, level = 1, onClick }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const painted = cardArt(card);
 
   useEffect(() => {
     const el = ref.current;
@@ -74,14 +75,14 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
   return (
     <div
       ref={ref}
-      className={`holo holo--${size} holo--${card.rarity}${locked ? ' is-locked' : ''}${CARD_ART.has(card.id) ? ' holo--painted' : ''}${card.season !== undefined ? ' holo--edition' : ''}`}
+      className={`holo holo--${size} holo--${card.rarity}${locked ? ' is-locked' : ''}${painted ? ' holo--painted' : ''}${card.season !== undefined ? ' holo--edition' : ''}`}
       style={{ ['--faction' as string]: FACTION_COLOR[card.faction] }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
     >
       <div className="holo__body">
-        <div className={`holo__art${CARD_ART.has(card.id) ? ' holo__art--painted' : ''}`}>
-          {CARD_ART.has(card.id) ? <img className="holo__img" src={CARD_ART.get(card.id)} alt="" draggable={false} /> : <Avatar card={card} />}
+        <div className={`holo__art${painted ? ' holo__art--painted' : ''}`}>
+          {painted ? <img className="holo__img" src={painted} alt="" draggable={false} /> : <Avatar card={card} />}
         </div>
         <div className="holo__head">
           <span className="holo__rating">{locked ? '??' : card.rating}</span>

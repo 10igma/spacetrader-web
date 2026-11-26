@@ -380,8 +380,10 @@ button.tile:active { transform: scale(0.96); }
 .hangar .screenhead .link { margin-left: auto; }
 .crate { position: relative; display: grid; place-items: center; --seam: var(--cyan); }
 .crate--premium { --seam: var(--r-legend); }
-.crate svg { position: relative; height: 130px; animation: float 5s ease-in-out infinite; filter: drop-shadow(0 20px 20px rgba(0, 0, 0, 0.6)); }
-.crate--small svg { height: 44px; animation: none; filter: none; }
+.crate svg, .crate__img { position: relative; height: 130px; animation: float 5s ease-in-out infinite; filter: drop-shadow(0 20px 20px rgba(0, 0, 0, 0.6)); }
+.crate--small svg, .crate--small .crate__img { height: 44px; animation: none; filter: none; }
+.crate__img { height: 150px; object-fit: contain; }
+.crate--small .crate__img { height: 54px; }
 .crate__top { fill: #2a3b5e; stroke: #6f8cc4; stroke-width: 1.5; }
 .crate__left { fill: #152038; stroke: #4d6696; stroke-width: 1.5; }
 .crate__right { fill: #0b1222; stroke: #3b5080; stroke-width: 1.5; }
@@ -419,7 +421,7 @@ button.tile:active { transform: scale(0.96); }
 .slot--empty { justify-content: center; border-style: dashed; background: rgba(8, 13, 26, 0.4); color: var(--ink-faint); font-size: 11px; }
 .slot--premium { border-color: rgba(255, 194, 74, 0.4); }
 .slot--ready { border-color: var(--ok); box-shadow: inset 0 0 20px -8px var(--ok), 0 0 20px -8px var(--ok); }
-.slot--ready .crate svg { animation: float 1.2s ease-in-out infinite; }
+.slot--ready .crate svg, .slot--ready .crate__img { animation: float 1.2s ease-in-out infinite; }
 .slot__btn {
   width: 100%;
   padding: 5px 2px;
@@ -1631,6 +1633,12 @@ button.lot:active { transform: scale(0.98); }
 .convoys::-webkit-scrollbar { display: none; }
 .shipart { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--tone) 60%, transparent)); }
 .shipart.is-locked { filter: grayscale(1) brightness(0.55); }
+/* Rendered hulls: the image carries the detail, the glow stays subtle, paint is a colour layer in the hull's shape. */
+.shipart--img { position: relative; display: grid; place-items: center; isolation: isolate; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tone) 35%, transparent)); }
+.shipart--img img, .shipart__paint { transform: scale(var(--size, 1)); }
+.shipart--img img { width: 100%; height: 100%; object-fit: contain; }
+.shipart__paint { position: absolute; inset: 0; background: var(--tone); mix-blend-mode: color; opacity: 0.75; -webkit-mask: var(--img) center / contain no-repeat; mask: var(--img) center / contain no-repeat; }
+.shipart--prisma .shipart__paint { background: conic-gradient(#ff5468, #ffc24a, #4dffb5, #3be3ff, #b06cff, #ff5468); }
 .shipart__flame { fill: var(--tone); opacity: 0.85; filter: blur(1.6px); transform-origin: center top; transform-box: fill-box; animation: flame 0.9s ease-in-out infinite alternate; }
 .shipart.is-locked .shipart__flame { display: none; }
 @keyframes flame { from { transform: scaleY(0.7); opacity: 0.6; } to { transform: scaleY(1.15); opacity: 0.95; } }

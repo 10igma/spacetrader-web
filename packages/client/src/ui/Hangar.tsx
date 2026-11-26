@@ -2,6 +2,7 @@ import { CARD_BY_ID, FACTIONS, RARITIES, ROLES, type CrateTier, type SlotView } 
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
+import { art } from './art.ts';
 import { Shipyard } from './Shipyard.tsx';
 import { countdown, duration, num, RARITY_LABEL } from './format.ts';
 import { useServerNow } from './hooks.ts';
@@ -11,6 +12,15 @@ import { CloseX, SpendButton } from './Spend.tsx';
 const TIER_NAME: Record<CrateTier, string> = { standard: 'Standard', premium: 'Premium' };
 
 function Crate({ tier = 'standard', small = false }: { tier?: CrateTier; small?: boolean }) {
+  const render = art('crates', tier);
+  if (render) {
+    return (
+      <div className={`crate crate--${tier}${small ? ' crate--small' : ''}`} aria-hidden="true">
+        {!small && <div className="crate__glow" />}
+        <img className="crate__img" src={render} alt="" draggable={false} />
+      </div>
+    );
+  }
   return (
     <div className={`crate crate--${tier}${small ? ' crate--small' : ''}`} aria-hidden="true">
       {!small && <div className="crate__glow" />}

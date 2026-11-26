@@ -5,3 +5,11 @@ Hier landen die Bilder aus dem Grafik-Auftrag (`docs/redesign/06-grafik-prompts.
 Unterordner: `ships`, `crates`, `cards`, `encounters`, `goods`, `modules`, `emblems`, `banners`, `archetypes`, `currency`, `stations`.
 
 Die Dateien hier sind Rohmaterial. Zugeschnitten und als WebP kommen sie nach `packages/client/src/assets/`.
+
+## Einbauen
+
+```bash
+python3 tools/art/import.py
+```
+
+Das Werkzeug schneidet zu, stellt Motive auf schwarzem Grund frei, wandelt in WebP um und meldet, was nicht passt (falscher Dateiname, falsches Seitenverhältnis, Hintergrund nicht schwarz). Mit einem Gruppennamen dahinter, zum Beispiel `ships`, verarbeitet es nur diese Gruppe.
