@@ -1,4 +1,4 @@
-import { CATEGORY_NAME, courseFuel, courseTo, FACTIONS, GOOD_BY_ID, STATION_BY_ID, type CrisisView, type StationId } from '@nova/core';
+import { CATEGORY_NAME, courseFuel, courseTo, GOOD_BY_ID, STATION_BY_ID, type CrisisView, type StationId } from '@nova/core';
 import { useRef } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp } from '../store.ts';
@@ -7,7 +7,7 @@ import { useServerNow } from './hooks.ts';
 import { IconFuel } from './icons.tsx';
 import { CloseX } from './Spend.tsx';
 import { Emblem } from './Emblem.tsx';
-import { orderState, orderStatus } from './Orders.tsx';
+import { jumps, orderState, orderStatus } from './Orders.tsx';
 import { SectorMap } from './SectorMap.tsx';
 
 /** One line that says everything a captain needs to decide whether a crisis is worth the trip. */
@@ -60,35 +60,38 @@ export function RouteSheet() {
         </header>
         <SectorMap view={view} course={course} onPick={pick} />
         <div className="legend" aria-hidden="true">
-          <span><i className="legend__lane" />Ringroute · 1 Treibstoff</span>
-          <span><i className="legend__lane legend__lane--express" />Express · 2 Treibstoff, spart Sprünge</span>
+          <span><i className="legend__lane" />1 Treibstoff</span>
+          <span><i className="legend__lane legend__lane--express" />Express: 2 Treibstoff</span>
+          <span>Station antippen: Kurs setzen</span>
         </div>
+        {/* Far places worth a trip, as chips: tap one to set a course. */}
+        {(view.events.some((e) => e.stationId !== view.location) || view.orders.active.some((o) => !o.here)) && (
+          <div className="targets">
+            {view.events.filter((e) => e.stationId !== view.location).map((e) => (
+              <button key={e.stationId} className={`target target--crisis${e.stationId === course ? ' is-on' : ''}`} onClick={() => pick(e.stationId)}>
+                <b>{e.name}</b>{STATION_BY_ID.get(e.stationId)!.name} · +{Math.round((e.mult - 1) * 100)} %
+              </button>
+            ))}
+            {view.orders.active.filter((o) => !o.here).map((o) => (
+              <button key={o.id} className={`target target--order target--order-${orderState(o)}${o.to === course ? ' is-on' : ''}`} onClick={() => pick(o.to)}>
+                <b>Auftrag</b>{STATION_BY_ID.get(o.to)!.name} · noch {o.left}
+              </button>
+            ))}
+          </div>
+        )}
         {target && path.length > 0 && (
           <div className="course">
             <span>
               <b>Kurs: {target.name}</b>
-              <small>
-                {path.length === 1 ? '1 Sprung' : `${path.length} Sprünge über ${path.slice(0, -1).map((id) => STATION_BY_ID.get(id)!.name).join(', ')}`}
-                {` · ${need} Treibstoff`}{need > view.fuel.amount ? `, im Tank sind ${view.fuel.amount}` : ''}
+              <small className={need > view.fuel.amount ? 'is-short' : ''}>
+                {jumps(path.length)} · {need} Treibstoff{need > view.fuel.amount ? `, im Tank ${view.fuel.amount}` : ''}
               </small>
-              {targetOrder && <small className={`course__order course__order--${orderState(targetOrder)}`}>Lieferauftrag: {targetOrder.qty} × {GOOD_BY_ID.get(targetOrder.goodId)!.name} · {orderStatus(targetOrder)}</small>}
-              {targetCrisis && <small className="course__crisis">{targetCrisis.name}: {crisisLine(targetCrisis)}. Bei direkter Fahrt bleiben {targetCrisis.onArrival}.</small>}
+              {targetCrisis && <small className="course__crisis">{targetCrisis.name}: {CATEGORY_NAME[targetCrisis.category]} +{Math.round((targetCrisis.mult - 1) * 100)} % · bei Ankunft Bedarf {targetCrisis.onArrival}</small>}
+              {targetOrder && <small className={`course__order course__order--${orderState(targetOrder)}`}>Auftrag: {targetOrder.qty} × {GOOD_BY_ID.get(targetOrder.goodId)!.name} · {orderStatus(targetOrder)}</small>}
             </span>
             <button className="link" onClick={() => { audio.tap(); setCourse(null); }}>Löschen</button>
           </div>
         )}
-        {view.events.filter((e) => e.stationId !== course && e.stationId !== view.location).map((e) => (
-          <button key={e.stationId} className="crisis" onClick={() => pick(e.stationId)}>
-            <b>{e.name} auf {STATION_BY_ID.get(e.stationId)!.name}</b>
-            <small>{crisisLine(e)} · {e.hops} {e.hops === 1 ? 'Sprung' : 'Sprünge'} entfernt, bei Ankunft noch {e.onArrival}</small>
-          </button>
-        ))}
-        {view.orders.active.filter((o) => o.to !== course && !o.here).map((o) => (
-          <button key={o.id} className={`crisis crisis--order crisis--order-${orderState(o)}`} onClick={() => pick(o.to)}>
-            <b>Lieferauftrag {STATION_BY_ID.get(o.to)!.name}</b>
-            <small>{o.qty} × {GOOD_BY_ID.get(o.goodId)!.name} · {orderStatus(o)}</small>
-          </button>
-        ))}
         {routes.map((r, i) => {
           const st = STATION_BY_ID.get(r.stationId)!;
           return (
@@ -104,40 +107,33 @@ export function RouteSheet() {
                 <Emblem faction={st.faction} className="emblem--route" />
                 <span className="route__title">
                   <b>{st.name}</b>
-                  <small>{FACTIONS[st.faction].name} · {st.tagline}</small>
+                  <small className="route__risks">
+                    <Risk label="Zoll" chance={r.customsChance} />
+                    <Risk label="Piraten" chance={r.piratesChance} />
+                    {r.wanted > 0 && <span className="risk risk--3">Fahndung <b>{'★'.repeat(r.wanted)}</b></span>}
+                  </small>
                 </span>
                 <span className="route__go">Sprung<small>{view.fuel.amount < r.fuel ? `braucht ${r.fuel} Treibstoff` : `${r.stationId === next && path.length > 1 ? 'Kurs · ' : r.fuel > 1 ? 'Express · ' : ''}${r.fuel} Treibstoff`}</small></span>
               </span>
-              {r.event && (
-                <span className="route__event">
-                  {r.event.name}: {crisisLine(r.event)}
+              {(r.event || r.hints.length > 0) && (
+                <span className="route__hints">
+                  {r.event && <i className="hint hint--event">{r.event.name}: {CATEGORY_NAME[r.event.category]} +{Math.round((r.event.mult - 1) * 100)} %</i>}
+                  {/* The two best trades are enough to decide. The market shows the rest. */}
+                  {r.hints.slice(0, 2).map((h) => {
+                    const good = GOOD_BY_ID.get(h.goodId)!;
+                    const aboard = (view.cargo.items[h.goodId]?.qty ?? 0) > 0;
+                    return (
+                      <i key={h.goodId} className={`hint${aboard ? ' hint--aboard' : ''}${h.fence ? ' hint--hot' : ''}`}>
+                        {good.name} +{Math.round(h.pct * 100)} %{h.fence ? ' · Hehler' : ''}
+                      </i>
+                    );
+                  })}
                 </span>
               )}
-              <span className="route__risks">
-                <Risk label="Zoll" chance={r.customsChance} />
-                <Risk label="Piraten" chance={r.piratesChance} />
-                {r.wanted > 0 && <span className="risk risk--3">Fahndung <b>{'★'.repeat(r.wanted)}</b></span>}
-              </span>
-              <span className="route__hints">
-                {r.hints.length === 0 && <i className="hint hint--none">Keine lohnende Ware von hier</i>}
-                {r.hints.map((h) => {
-                  const good = GOOD_BY_ID.get(h.goodId)!;
-                  const aboard = (view.cargo.items[h.goodId]?.qty ?? 0) > 0;
-                  return (
-                    <i key={h.goodId} className={`hint${aboard ? ' hint--aboard' : ''}${h.fence ? ' hint--hot' : ''}`}>
-                      {good.name} +{Math.round(h.pct * 100)} %{h.fence ? ' · Hehler' : ''}
-                    </i>
-                  );
-                })}
-              </span>
             </button>
           );
         })}
-        <p className="routes__note">
-          {empty && view.fuel.nextAt
-            ? `Tank leer. Nächste Einheit in ${countdown(view.fuel.nextAt - now)}. Ein Stufenaufstieg füllt den Tank.`
-            : 'Tippe eine Station auf der Karte an, um einen Kurs zu setzen. Der Kurs nimmt den Weg mit den wenigsten Sprüngen. Gewinn für 10 Einheiten, hier gekauft und dort verkauft.'}
-        </p>
+        {empty && view.fuel.nextAt && <p className="routes__note">Tank leer. Nächste Einheit in {countdown(view.fuel.nextAt - now)}.</p>}
       </div>
     </div>
   );

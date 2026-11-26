@@ -26,3 +26,5 @@ export const Quanta = () => (
 export const Shard = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 1l6 4-3 8-6-5z" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>
 );
+export const IconAlert = () => <Icon><path d="M12 3.5l9.5 16.5h-19z" /><path d="M12 10v4.5" /><path d="M12 17.4v.2" /></Icon>;
+export const IconOrder = () => <Icon><rect x="5" y="4.5" width="14" height="16.5" rx="2" /><path d="M9 4.5V3h6v1.5" /><path d="M8.5 10h7M8.5 13.5h7M8.5 17h4" /></Icon>;

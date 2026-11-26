@@ -48,7 +48,7 @@ await shot('51-posts');
 await page.locator('.posts .cta--gold').tap(); await settle(700);
 await shot('52-posts-collected');
 await page.locator('.overlay').last().tap({ position: { x: 12, y: 12 } }); await settle(400);
-await page.locator('.news--salvage').tap(); await settle(800);
+await page.locator('.rail__btn--salvage').tap(); await settle(800);
 await shot('53-salvage');
 await page.locator('.salvage .cta--gold').tap(); await settle(900);
 await shot('54-salvage-result');

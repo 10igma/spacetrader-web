@@ -51,5 +51,7 @@ async function play(kind: Haptic): Promise<void> {
 export function haptic(kind: Haptic): void {
   if (!enabled) return;
   if (native) { void play(kind).catch(() => { /* no motor, no feedback */ }); return; }
+  // A browser can only buzz the whole motor. For plain taps that is more noise than feedback.
+  if (kind === 'tap') return;
   try { navigator.vibrate?.(PATTERN[kind]); } catch { /* not allowed before the first touch */ }
 }

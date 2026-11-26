@@ -147,14 +147,13 @@ function GoodRow({ good, row, onOpen, soldOut = false }: { good: GoodDef; row: M
       {picture && <img className="good__icon" src={picture} alt="" draggable={false} loading="lazy" />}
       <span className="good__name">
         <b>{good.name}</b>
-        <small>{CATEGORY_NAME[good.category]}{note ? ` · ${note}` : ''}</small>
+        {lot
+          ? <small className={`good__aboard ${gain >= 0 ? 'is-up' : 'is-down'}`}><Heat heat={lot.heat} /> {lot.qty} an Bord · {gain >= 0 ? '+' : '−'}{num(Math.abs(Math.round(gain)))}</small>
+          : note ? <small>{note}</small> : null}
       </span>
       <span className={`good__level ${row.level < 0.95 ? 'is-cheap' : row.level > 1.05 ? 'is-dear' : ''}`}>{pct(row.level - 1)}</span>
       <span className="good__price">
-        <b>{soldOut ? 'Ausverkauft' : num(row.buy)}</b>
-        {lot
-          ? <small className={gain >= 0 ? 'is-up' : 'is-down'}><Heat heat={lot.heat} /> {lot.qty} an Bord · {gain >= 0 ? '+' : '−'}{num(Math.abs(Math.round(gain)))}</small>
-          : <small>Verkauf {num(row.sell)}</small>}
+        <b>{soldOut ? 'Ausverkauft' : num(lot ? row.sell : row.buy)}</b>
       </span>
     </button>
   );
@@ -196,7 +195,7 @@ export function Market() {
       {mode === 'auction' ? <Auction /> : (
         <div className="market__list">
           {view.events.filter((e) => e.stationId === view.location).map((e) => (
-            <p key={e.category} className="market__event market__event--crisis"><b>{e.name}:</b> {CATEGORY_NAME[e.category]} +{Math.round((e.mult - 1) * 100)} %. Bedarf noch {e.demand} Einheiten, jede verkaufte zählt.</p>
+            <p key={e.category} className="market__event market__event--crisis"><b>{e.name}:</b> {CATEGORY_NAME[e.category]} +{Math.round((e.mult - 1) * 100)} % · Bedarf {e.demand}</p>
           ))}
           {view.orders.active.map((o) => {
             const good = GOOD_BY_ID.get(o.goodId)!;
@@ -205,8 +204,8 @@ export function Market() {
               return (
                 <div key={o.id} className={`market__order${missing === 0 ? ' is-ready' : ''}`}>
                   <span>
-                    <b>Lieferauftrag hier: {o.qty} × {good.name}</b>
-                    <small>{missing === 0 ? `${num(o.total)} Credits zum festen Preis, dazu ${num(o.deposit)} Pfand zurück` : orderStatus(o)}</small>
+                    <b>Auftrag: {o.qty} × {good.name}</b>
+                    <small>{missing === 0 ? `${num(o.total)} Credits · ${num(o.deposit)} Pfand zurück` : orderStatus(o)}</small>
                   </span>
                   {missing === 0 && <button className="mission__btn" disabled={busy} onClick={() => { audio.tap(); void send({ type: 'DeliverOrder', id: o.id }); }}>Abliefern</button>}
                 </div>
@@ -216,13 +215,13 @@ export function Market() {
             return (
               <button key={o.id} className="market__order market__order--load" onClick={() => { audio.tap(); setOpen(o.goodId); }}>
                 <span>
-                  <b>Für {STATION_BY_ID.get(o.to)!.name}: {missing} × {good.name} fehlen</b>
-                  <small>Hier laden für {num(o.buyHere)} · der Auftrag zahlt {num(missing * o.pay)} · noch {jumps(o.left)}</small>
+                  <b>Auftrag {STATION_BY_ID.get(o.to)!.name}: {missing} × {good.name} fehlen</b>
+                  <small>Hier laden für {num(o.buyHere)} · noch {jumps(o.left)}</small>
                 </span>
               </button>
             );
           })}
-          {view.weekend.active && <p className="market__event">Blockade-Lauf: Hehler zahlen {Math.round(CONFIG.weekend.fenceBonus * 100)} % mehr, der Zoll kontrolliert öfter.</p>}
+          {view.weekend.active && <p className="market__event">Blockade-Lauf: Hehler +{Math.round(CONFIG.weekend.fenceBonus * 100)} %, mehr Zoll</p>}
           {aboard.length > 0 && <h4 className="market__section">An Bord</h4>}
           {list(aboard)}
           <h4 className="market__section">Offener Markt</h4>

@@ -43,18 +43,18 @@ await page.evaluate(() => {
 });
 await start('');
 await shot('210-hub-crises');
-check('the hub reports both crises', await page.locator('.news--crisis').count() === 2);
+check('the hub marks both crises on one symbol', await page.locator('.rail__btn--crisis i').innerText() === '2');
 await page.locator('.hub > .cta').tap(); await settle(900);
 await shot('211-sector-chart');
 check('the chart shows all twelve stations', await page.locator('.sector__node').count() === 12);
 check('four lanes lead away from the hub station', await page.locator('.sector__lane.is-open').count() === 4);
 
 // Set a course for the war, two jumps away.
-await page.locator('.crisis', { hasText: 'Eisenfurt' }).tap(); await settle(900);
+await page.locator('.target--crisis', { hasText: 'Eisenfurt' }).tap(); await settle(900);
 await shot('212-course-set');
 check('the course is two jumps long', await page.locator('.sector__lane.is-course').count() === 2);
 check('the first jump of the course comes first', await page.locator('.route').first().evaluate((el) => el.classList.contains('route--course')));
-check('the course says what will be left on arrival', await page.locator('.course__crisis').innerText().then((t) => t.includes('bleiben 28')));
+check('the course says what will be left on arrival', await page.locator('.course__crisis').innerText().then((t) => t.includes('Bedarf 28')));
 const demandBefore = await app(() => window.__nova.app.getState().view.events.find((e) => e.stationId === 'eisenfurt').demand);
 
 // Follow it.

@@ -1,4 +1,4 @@
-# 07 Design-Prüfung: Befunde und Runde 1
+# 07 Design-Prüfung: Befunde und Runden
 
 Stand: 26.11.2026. Zwei unabhängige Prüfungen über alle Bildschirme: eine als Art Director (Optik), eine als UX-Designer mit Schwerpunkt Belohnungsgefühl und Fairness. Grundlage waren 60 Screenshots und der Code.
 
@@ -53,13 +53,62 @@ Nach Wirkung geordnet. S unter einer halben Stunde, M Stunden, L ein Tag oder me
 | 6 | Erledigt am 26.11.: Beschriftung läuft von der Nabe zum Rand und steht in Ruhe nie kopf, Rand mit Lichtern, Ticken und Haptik pro Feld, Gewinnfeld leuchtet | |
 | 7 | Schriftgrössen vereinheitlichen: 25 Grössen auf 6 | M |
 | 8 | Kartenrahmen soll die Seltenheit tragen, nicht nur die Farbe | M |
-| 9 | Station: Mitte des Bildschirms ist leer. Platz für Schiff oder Station | M, mit Grafik aus Paket A oder K |
+| 9 | Erledigt am 26.11.: Das eigene Schiff liegt in der Mitte der Station am Dock | |
 | 10 | Erledigt am 26.11.: Hangar in Container, Shop und Werft. Deck in Brücke, Sammlung und Konvois. Manifeste liegen bei der Sammlung. Das Wochenend-Event steht oben in "Heute", solange es läuft | |
 | 11 | Erledigt am 26.11.: Zahnrad oben rechts öffnet Ton, Haptik und Erinnerungen | |
 | 12 | Erledigt am 26.11.: Plätze zeigen "▲ +N", wenn die Reserve jemand Besseren hat. Nach einem Container bietet die Zusammenfassung "Crew neu aufstellen" an | |
 | 13 | Teilweise am 26.11.: "Alle abholen" bei zwei oder mehr fertigen Aufträgen. Offen: Truhe mit Fortschritt im Kopf | Rest S |
 | 14 | Konvoi-Rückkehr als kurzer Moment mit Chance und Ergebnis | M |
 | 15 | Radien vereinheitlichen, weniger Leuchten pro Bildschirm | S |
+
+## Runde 3: Entschlackung (26.11.2026)
+
+Anlass: Nach dem ersten Spielen auf dem Handy wirkte vieles überladen. Die Informationen liessen sich nicht sauber aufnehmen.
+
+### Befund
+
+Jedes neue System hatte eine weitere Textkarte auf denselben Bildschirm gelegt. Auf der Station standen im vollsten Zustand rund 30 Elemente: bis zu fünf Chips, bis zu vier Textkarten mit ganzen Sätzen, ein laufender Ticker, das Schiff, drei Kacheln, der Hauptknopf. Dieselbe Krise stand an drei Stellen: als Karte, im Ticker und nochmals in der Routenwahl. In der Routenwahl schob das die eigentlichen Sprungziele aus dem Bild.
+
+### Wie andere Mobile-Games das lösen
+
+Aus meiner Kenntnis der Genre-Vertreter, nicht aus einer neuen Recherche:
+
+| Muster | Beispiele | Für Nova |
+|---|---|---|
+| Der Startbildschirm hat eine Figur in der Mitte und einen grossen Knopf. Alles andere sind kleine Symbole am Rand mit einer Marke | Clash Royale, Brawl Stars | Schiff in der Mitte, ein Hauptknopf, Symbolleiste am Rand |
+| Symbole und Zahlen statt Sätze. Der Satz kommt erst nach dem Tipp | Fast alle | Karten mit ganzen Sätzen ersetzt |
+| Ereignisse erscheinen nacheinander, nicht gestapelt | Monopoly Go, Coin Master | Meldungen und grosse Momente laufen schon in einer Warteschlange |
+| Listenzeilen zeigen zwei bis drei Werte | Handels- und Aufbauspiele | Marktzeile: Name, Abweichung, Preis |
+| Systeme werden über die ersten Stunden freigeschaltet, jedes mit einem kleinen Auftritt | Fast alle | Noch offen, siehe unten |
+| Der Hauptknopf beantwortet immer "was jetzt" | Clash Royale (Kampf), Marvel Snap (Spielen) | Abliefern, Fracht kaufen, Weiter nach X, Sternkarte |
+
+Nichts davon nimmt eine Mechanik weg. Es ändert nur, wann und wie viel man davon sieht.
+
+### Umgesetzt
+
+| Bereich | Vorher | Nachher |
+|---|---|---|
+| Station | Textkarten für Krisen, Lieferaufträge und Bergung, dazu ein laufender Ticker | Symbolleiste am rechten Rand: je ein rundes Symbol mit Marke für Fracht, Krisen und Bergung. Der Ticker ist weg |
+| Station, Chips | Bis zu fünf (Zoll, gefragte Ware, Event, Serie, Fahndung) | Zoll und höchstens ein Zustand. Rangfolge: Fahndung, Serie in Gefahr, Event |
+| Station, Hauptknopf | Sternkarte oder Fracht kaufen | Zuerst "Abliefern", wenn eine Lieferung hier bereit ist |
+| Sternkarte | Je eine Textkarte pro Krise und Auftrag unter der Karte | Eine Zeile mit Zielen zum Antippen |
+| Sprungziele | Name, Fraktion und Beiname, Risiken, alle Warenhinweise, Hinweistext | Name, Risiken, die zwei besten Waren. Krise als ein Etikett |
+| Kurs | Weg über alle Zwischenstationen, Krise als ganzer Satz | Sprünge und Treibstoff, Krise und Auftrag je eine kurze Zeile |
+| Markt | Kategorie und Verkaufspreis in jeder Zeile | Name, Abweichung, Preis. Eine zweite Zeile nur für Ware an Bord oder verbotene Ware |
+| Frachtbörse | Drei Zeilen Fliesstext pro Angebot | Drei Werte: Frist, Pfand, Gewinn. Erklärung in einem Satz |
+| Vibration im Browser | Jeder Tipp vibrierte | Nur noch Ereignisse: Geld, Warnung, Verlust, Sprung, Karten. In der App bleibt der leichte Tipp |
+
+### Vorschlag für die nächste Runde
+
+Nach Wirkung geordnet.
+
+| # | Thema | Aufwand |
+|---|---|---|
+| 1 | Schrittweise Freischaltung: Neue Spieler sehen zuerst nur Station, Markt und Hangar. Deck, Aufträge, Handelsposten, Frachtbörse, Auktionen, Liga und Konvois kommen über die ersten Stufen dazu, jedes mit einem kurzen Auftritt | M |
+| 2 | Sprung direkt auf der Sternkarte: Nachbarstation antippen, ein Feld zeigt Risiko und beste Ware, darunter der Sprung-Knopf. Die Liste der Sprungziele entfällt | M |
+| 3 | Tab "Aufträge" unter "Heute": Serie, Glücksrad und Kalender als Symbolreihe oben, darunter nur die Tagesaufträge | M |
+| 4 | Schriftgrössen und Leuchten vereinheitlichen (Punkte 7 und 15 aus Runde 2) | M |
+| 5 | Die drei Kacheln auf der Station (Posten, Tank, Container) in die Symbolleiste holen | S |
 
 ## Bewusst nicht umgesetzt
 

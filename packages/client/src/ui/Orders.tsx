@@ -12,19 +12,17 @@ export const jumps = (n: number): string => (n === 1 ? '1 Sprung' : `${n} Sprün
 export type OrderState = 'here' | 'lost' | 'tight' | 'ok';
 export const orderState = (o: OrderView): OrderState => (o.here ? 'here' : o.left < o.hops ? 'lost' : o.left === o.hops ? 'tight' : 'ok');
 
-/** One line for an order you took: what is left to do and how long you have. */
+/** One short line for an order you took: how long you have and what is aboard. */
 export function orderStatus(o: OrderView): string {
   const missing = Math.max(0, o.qty - o.have);
   const state = orderState(o);
   if (state === 'here') {
-    if (missing === 0) return 'Ware an Bord: hier abliefern';
-    return o.left > 0
-      ? `Es fehlen ${missing}. Diese Station hat selbst keine. Du hast noch ${jumps(o.left)}, um sie zu holen`
-      : `Es fehlen ${missing}. Wenn du ablegst, verfällt der Auftrag`;
+    if (missing === 0) return 'Ware an Bord';
+    return o.left > 0 ? `Es fehlen ${missing} · noch ${jumps(o.left)}` : `Es fehlen ${missing} · verfällt beim Ablegen`;
   }
-  if (state === 'lost') return `Nicht mehr zu schaffen: noch ${jumps(o.left)}, der Weg braucht ${o.hops}. Das Pfand verfällt`;
-  const cargo = missing === 0 ? 'Ware an Bord' : `an Bord ${o.have} von ${o.qty}`;
-  return state === 'tight' ? `Noch ${jumps(o.left)}: kein Umweg mehr · ${cargo}` : `Noch ${jumps(o.left)}, direkt ${o.hops} · ${cargo}`;
+  if (state === 'lost') return 'Nicht mehr zu schaffen · Pfand verfällt';
+  const cargo = missing === 0 ? 'Ware an Bord' : `${o.have} von ${o.qty} an Bord`;
+  return state === 'tight' ? `Noch ${jumps(o.left)}, kein Umweg mehr · ${cargo}` : `Noch ${jumps(o.left)} · ${cargo}`;
 }
 
 export function OrderCard({ order: o, active }: { order: OrderView; active: boolean }) {
@@ -50,31 +48,29 @@ export function OrderCard({ order: o, active }: { order: OrderView; active: bool
         {picture && <img className="order__icon" src={picture} alt="" draggable={false} />}
         <span className="order__main">
           <b>{o.qty} × {good.name}</b>
-          <small>nach {station.name}{o.here ? '' : ` · ${jumps(o.hops)} direkt`}</small>
+          <small>{station.name}{o.here ? '' : ` · ${jumps(o.hops)} entfernt`}</small>
         </span>
         <span className="order__pay">
           <b><Credits />{num(o.total)}</b>
           <small>je {num(o.pay)}</small>
         </span>
       </div>
-      <div className="order__foot">
-        {active
-          ? <small className="order__status">{orderStatus(o)}</small>
-          : (
-            <small className={`order__status${view.wallet.credits < stake ? ' is-warn' : ''}`}>
-              Frist {jumps(o.left)} · Pfand {num(o.deposit)}
-              {o.buyHere !== null ? ` · hier laden ${num(o.buyHere)}` : ' · Ware schon an Bord'}
-              {view.wallet.credits < stake ? ' · dein Geld reicht nicht für beides' : ''}
-              <i>Auf dem Markt dort brächte die Menge {num(o.market)}</i>
-            </small>
-          )}
-        {active ? (
-          ready ? (
+      {active ? (
+        <div className="order__foot">
+          <small className="order__status">{orderStatus(o)}</small>
+          {ready ? (
             <button className="mission__btn" disabled={busy} onClick={() => { audio.tap(); void send({ type: 'DeliverOrder', id: o.id }); }}>Abliefern</button>
           ) : !o.here ? (
             <button className="mission__btn mission__btn--plain" onClick={() => { audio.tap(); setCourse(o.to); setSheet(null); openRoutes(true); }}>Kurs</button>
-          ) : null
-        ) : (
+          ) : null}
+        </div>
+      ) : (
+        <div className="order__foot">
+          <dl className="facts">
+            <div><dt>Frist</dt><dd>{jumps(o.left)}</dd></div>
+            <div><dt>Pfand</dt><dd>{num(o.deposit)}</dd></div>
+            <div className="is-gain"><dt>Gewinn</dt><dd>{o.buyHere !== null ? `≈ ${num(o.total - o.buyHere)}` : 'an Bord'}</dd></div>
+          </dl>
           <SpendButton
             className="mission__btn mission__btn--plain"
             disabled={busy || full || short}
@@ -83,8 +79,11 @@ export function OrderCard({ order: o, active }: { order: OrderView; active: bool
           >
             {full ? 'Voll' : 'Annehmen'}
           </SpendButton>
-        )}
-      </div>
+        </div>
+      )}
+      {!active && o.buyHere !== null && view.wallet.credits < stake && (
+        <small className="order__status is-warn">Dein Geld reicht nicht für Pfand und Einkauf hier ({num(o.buyHere)})</small>
+      )}
     </div>
   );
 }
@@ -101,14 +100,11 @@ export function OrderSheet() {
         <CloseX onClick={() => close(null)} />
         <span className="eyebrow">Frachtbörse · {here.name}</span>
         <h3>Lieferaufträge</h3>
-        <p className="trade__note">
-          Feste Menge, fester Preis, feste Frist in Sprüngen. Das Pfand bekommst du bei der Lieferung zurück.
-          Läuft die Frist ab, ist es weg. Wer bestellt, verkauft die Ware selbst nicht: Du musst sie mitbringen.
-        </p>
+        <p className="trade__note">Rechtzeitig liefern, sonst ist das Pfand weg. Am Ziel gibt es die Ware nicht zu kaufen. Gewinn gerechnet mit Einkauf hier.</p>
         <div className="picker__list">
           {active.length > 0 && <h4 className="market__section">Angenommen <span>{active.length} von {max}</span></h4>}
           {active.map((o) => <OrderCard key={o.id} order={o} active />)}
-          <h4 className="market__section">Aushang hier <span>gilt, solange du angedockt bist</span></h4>
+          <h4 className="market__section">Aushang hier <span>nur an dieser Station</span></h4>
           {offers.map((o) => <OrderCard key={o.id} order={o} active={false} />)}
           {offers.length === 0 && (
             <p className="trade__note">

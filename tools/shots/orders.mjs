@@ -57,11 +57,11 @@ await page.evaluate(() => {
 });
 await start('');
 await shot('220-hub-board');
-check('the hub announces the freight board', await page.locator('.news--order').innerText().then((t) => t.includes('3 Lieferaufträge')));
-await page.locator('.news--order').tap(); await settle(700);
+check('the hub announces the freight board', await page.locator('.rail__btn--orders').getAttribute('aria-label').then((t) => t.includes('3 Lieferaufträge')));
+await page.locator('.rail__btn--orders').tap(); await settle(700);
 await shot('221-board');
 check('three offers hang on the board', await page.locator('.orders .order').count() === 3);
-check('every offer says what loading here costs', await page.locator('.orders .order__status').allInnerTexts().then((all) => all.every((t) => t.includes('hier laden') && t.includes('Pfand'))));
+check('every offer says deadline, deposit and what it earns', await page.locator('.orders .facts').allInnerTexts().then((all) => all.length === 3 && all.every((t) => t.toUpperCase().includes('GEWINN') && t.toUpperCase().includes('PFAND') && t.toUpperCase().includes('FRIST'))));
 
 // Accepting takes two taps: the first says what the deposit is.
 const before = await state();
@@ -88,13 +88,13 @@ check('with the lot aboard the market stops asking', await page.locator('.market
 // The chart marks where the order goes.
 await page.locator('.nav__item', { hasText: 'Station' }).tap(); await settle(800);
 await shot('225-hub-order-running');
-check('the hub follows the order', await page.locator('.news--order').innerText().then((t) => t.toUpperCase().includes('LIEFERAUFTRAG KESSIN') && t.includes('Ware an Bord')));
+check('the hub follows the order', await page.locator('.rail__btn--orders').getAttribute('aria-label').then((t) => t.includes('Lieferauftrag Kessin') && t.includes('Ware an Bord')));
 await page.locator('.hub > .cta').tap(); await settle(900);
 check('the chart marks the destination', await page.locator('.sector__order').count() === 1 && await page.locator('.sector__due').innerHTML().then((t) => t.includes('noch 3')));
 check('express lanes are drawn', await page.locator('.sector__express').count() === 6);
-await page.locator('.crisis--order').tap(); await settle(900);
+await page.locator('.target--order').tap(); await settle(900);
 await shot('226-chart-order-course');
-check('the course takes the way that burns less fuel', await page.locator('.course small').first().innerText().then((t) => t.includes('über Eisenfurt') && t.includes('2 Treibstoff')));
+check('the course takes the way that burns less fuel', await page.locator('.course small').first().innerText().then((t) => t.includes('2 Sprünge') && t.includes('2 Treibstoff')));
 check('the course knows about the order', await page.locator('.course__order').count() === 1);
 await jump();
 const half = await state();
@@ -123,7 +123,7 @@ await page.evaluate(() => {
 });
 await start('');
 await shot('229-hub-order-lost');
-check('the hub warns that the order is out of reach', await page.locator('.news--order-lost').innerText().then((t) => t.includes('Nicht mehr zu schaffen')));
+check('the hub warns that the order is out of reach', await page.locator('.rail__btn--lost').getAttribute('aria-label').then((t) => t.includes('Nicht mehr zu schaffen')));
 await page.locator('.hub > .cta, .hub__skip').last().tap(); await settle(900);
 await shot('230-chart-order-lost');
 await page.locator('.route').first().tap();
@@ -134,6 +134,6 @@ await page.waitForFunction(() => { const s = window.__nova.app.getState(); retur
 await page.waitForFunction(() => window.__nova.app.getState().view.orders.active.length === 0, null, { timeout: 15000 });
 check('the arrival card carries the lost deposit', await page.waitForSelector('.arrive__chip.is-down', { timeout: 12000 }).then((el) => el.innerText()).then((t) => t.includes('1\u2019180') || t.includes("1'180"), () => false));
 await shot('231-order-failed');
-check('the lost order is gone from the hub', await page.waitForFunction(() => !window.__nova.app.getState().travel, null, { timeout: 15000 }).then(() => page.locator('.news--order-lost').count()).then((n) => n === 0));
+check('the lost order is gone from the hub', await page.waitForFunction(() => !window.__nova.app.getState().travel, null, { timeout: 15000 }).then(() => page.locator('.rail__btn--lost').count()).then((n) => n === 0));
 await browser.close();
 console.log(problems.length ? `PROBLEMS:\n${problems.join('\n')}` : 'no console errors');

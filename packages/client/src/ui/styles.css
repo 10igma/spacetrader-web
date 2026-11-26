@@ -2146,3 +2146,59 @@ i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(-
 .market__order.is-ready { background: rgba(255, 194, 74, 0.14); border-color: var(--r-legend); box-shadow: 0 0 22px -10px var(--r-legend); }
 .market__order.is-ready b { color: var(--r-legend); }
 .trade__order { margin: 0; padding: 8px 11px; border-radius: 12px; font-size: 11px; line-height: 1.35; color: #c9ffe9; background: rgba(77, 255, 181, 0.1); border: 1px solid rgba(77, 255, 181, 0.45); }
+
+/* ---------------------------------------------------------------------------
+   Calm pass: symbols with marks at the edge instead of text cards, numbers instead of sentences.
+   --------------------------------------------------------------------------- */
+.hub__stage { position: relative; flex: 1; min-height: 0; display: flex; }
+.hub__stage .hub__dock { flex: 1; }
+.rail { position: absolute; right: 0; top: 10px; display: flex; flex-direction: column; gap: 12px; }
+.rail__btn { --tone: var(--ok); display: flex; flex-direction: column; align-items: center; gap: 3px; width: 60px; animation: rise 0.4s var(--out) both; }
+.rail__btn:nth-child(2) { animation-delay: 0.08s; }
+.rail__btn:nth-child(3) { animation-delay: 0.16s; }
+.rail__icon { position: relative; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: var(--tone); background: rgba(6, 10, 20, 0.82); border: 1.5px solid color-mix(in srgb, var(--tone) 70%, transparent); box-shadow: 0 0 18px -8px var(--tone); }
+.rail__icon svg { width: 22px; height: 22px; }
+.rail__icon i { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: grid; place-items: center; font-style: normal; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: #02030a; background: var(--tone); }
+.rail__btn small { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); text-shadow: 0 1px 6px #000; }
+.rail__btn:active .rail__icon { transform: scale(0.92); }
+.rail__btn--tight, .rail__btn--crisis { --tone: var(--amber); }
+.rail__btn--lost { --tone: var(--danger); }
+.rail__btn--ready, .rail__btn--here { --tone: var(--r-legend); }
+.rail__btn--salvage { --tone: var(--r-elite); }
+.rail__btn--ready .rail__icon { animation: pulse-soft 1.6s ease-in-out infinite; }
+@keyframes pulse-soft { 50% { box-shadow: 0 0 22px -2px var(--tone); } }
+
+.targets { display: flex; gap: 6px; margin-inline: -4px; padding-inline: 4px; overflow-x: auto; scrollbar-width: none; flex: none; }
+.targets::-webkit-scrollbar { display: none; }
+.target { --tone: var(--amber); flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; font-size: 12px; color: var(--ink); background: rgba(6, 10, 20, 0.86); border: 1px solid color-mix(in srgb, var(--tone) 60%, transparent); }
+.target b { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tone); }
+.target--order { --tone: var(--ok); }
+.target--order-tight { --tone: var(--amber); }
+.target--order-lost { --tone: var(--danger); }
+.target.is-on { background: color-mix(in srgb, var(--tone) 22%, rgba(6, 10, 20, 0.86)); border-color: var(--tone); }
+.course small.is-short { color: var(--amber); }
+
+.route { gap: 8px; padding: 11px 12px 11px 16px; }
+.route__title .route__risks { display: flex; gap: 12px; margin-top: 3px; }
+.route__risks .risk { font-size: 11px; gap: 5px; }
+.route__risks .risk b { font-size: 12px; }
+.hint--event { color: #2a1600; background: var(--amber); border-color: transparent; font-weight: 700; }
+.legend { gap: 2px 14px; }
+
+.good__name small.good__aboard { color: var(--ok); }
+.good__name small.good__aboard.is-down { color: var(--danger); }
+.good--owned .good__price b { color: var(--ink); }
+
+.order__foot { align-items: flex-end; }
+.facts { flex: 1; min-width: 0; display: flex; gap: 14px; margin: 0; }
+.facts div { min-width: 0; }
+.facts dt { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.facts dd { margin: 1px 0 0; font-family: var(--font-display); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.facts .is-warn dd { color: var(--amber); }
+.order__pay small.is-gain { color: var(--ok); }
+.facts dt { white-space: nowrap; }
+.facts .is-gain dd { color: var(--ok); }
+.order__main b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.order__foot .mission__btn { min-width: 96px; }
+.rail__btn { width: 68px; }
+.rail__btn small { display: block; max-width: 68px; }

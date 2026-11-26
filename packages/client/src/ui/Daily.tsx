@@ -11,7 +11,7 @@ import { SpendButton } from './Spend.tsx';
 const STREAK_TEXT = {
   none: 'Spring heute einmal, um eine Serie zu starten.',
   safe: 'Für heute gesichert. Morgen geht es weiter.',
-  atRisk: 'Noch kein Sprung heute. Ohne Sprung reisst die Serie um Mitternacht.',
+  atRisk: 'Ein Sprung heute hält die Serie.',
   frozen: 'Tag verpasst. Dein Urlaubsschein rettet die Serie beim nächsten Sprung.',
   broken: 'Serie gerissen. Der nächste Sprung startet eine neue.',
 } as const;
