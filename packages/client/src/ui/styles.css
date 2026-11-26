@@ -1689,6 +1689,11 @@ button.lot:active { transform: scale(0.98); }
 
 .gear, .hull, .convoy { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-m); text-align: left; background: var(--glass-strong); border: 1px solid var(--stroke); }
 .gear.is-fitted { border-color: rgba(59, 227, 255, 0.45); }
+.gear__icon { width: 46px; height: 46px; flex: none; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)); }
+.gear__icon.is-unowned { filter: grayscale(0.7) brightness(0.7); }
+.slotbox.is-filled { align-items: flex-start; padding: 7px 9px 8px; }
+.slotbox.is-filled img { width: 34px; height: 34px; margin-bottom: 2px; object-fit: contain; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.5)); }
+.slotbox b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gear__main, .hull__main, .convoy__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .gear__main b, .hull__main b, .convoy__main b { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 15px; letter-spacing: 0.02em; }
 .gear__main small, .hull__main small, .convoy__main small { font-size: 11px; color: var(--ink-dim); line-height: 1.3; }

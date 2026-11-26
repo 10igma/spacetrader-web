@@ -99,6 +99,7 @@ export function Shipyard() {
           const def = id ? MODULES.find((m) => m.id === id)! : null;
           return def ? (
             <button key={i} className="slotbox is-filled" disabled={busy} onClick={tap(() => void send({ type: 'UnfitModule', module: def.id }))}>
+              {art('modules', def.id) && <img src={art('modules', def.id)} alt="" draggable={false} />}
               <b>{def.name}</b>
               <small>Stufe {fleet.modules[def.id]} · ausbauen</small>
             </button>
@@ -113,6 +114,7 @@ export function Shipyard() {
         const price = level < MODULE_MAX ? def.prices[level]! : null;
         return (
           <div key={def.id} className={`gear${fitted ? ' is-fitted' : ''}`}>
+            {art('modules', def.id) && <img className={`gear__icon${level === 0 ? ' is-unowned' : ''}`} src={art('modules', def.id)} alt="" draggable={false} />}
             <span className="gear__main">
               <b>{def.name}<span className="gear__pips">{[1, 2, 3].map((l) => <i key={l} className={l <= level ? 'on' : ''} />)}</span></b>
               <small>{level > 0 ? moduleValue(def, level) : moduleValue(def, 1)}</small>
