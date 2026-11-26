@@ -7,6 +7,7 @@
 **Ein Weltraum-Handelsspiel fürs Handy: handeln, schmuggeln, Crew sammeln.**
 
 [![Deploy to GitHub Pages](https://github.com/10igma/spacetrader-web/actions/workflows/deploy.yml/badge.svg)](https://github.com/10igma/spacetrader-web/actions/workflows/deploy.yml)
+[![Mobile builds](https://github.com/10igma/spacetrader-web/actions/workflows/mobile.yml/badge.svg)](https://github.com/10igma/spacetrader-web/actions/workflows/mobile.yml)
 
 [**Im Browser spielen**](https://10igma.github.io/spacetrader-web/) · [Spielkonzept](docs/redesign/02-mechanik-katalog.md) · [Roadmap](docs/redesign/03-roadmap.md) · [Architektur](docs/redesign/01-architektur.md)
 
@@ -51,15 +52,15 @@ Alle Screenshots stammen aus automatischen Durchläufen in Handy-Auflösung (390
 
 <table>
   <tr>
-    <td align="center"><img src="docs/redesign/preview/01-splash.jpg" width="200" alt="Startbild"><br><sub>Startbild</sub></td>
-    <td align="center"><img src="docs/redesign/preview/120-hub-ticker.jpg" width="200" alt="Station mit Ticker"><br><sub>Station</sub></td>
-    <td align="center"><img src="docs/redesign/preview/21-routes.jpg" width="200" alt="Routenwahl aus drei Zielen"><br><sub>Routenwahl</sub></td>
-    <td align="center"><img src="docs/redesign/preview/22-market.jpg" width="200" alt="Markt mit Waren und Preisen"><br><sub>Markt</sub></td>
+    <td align="center"><img src="docs/redesign/preview/216-splash-keyart.jpg" width="200" alt="Startbild mit Titelbild"><br><sub>Startbild</sub></td>
+    <td align="center"><img src="docs/redesign/preview/217-hub-ship.jpg" width="200" alt="Station mit angedocktem Schiff"><br><sub>Station</sub></td>
+    <td align="center"><img src="docs/redesign/preview/211-sector-chart.jpg" width="200" alt="Sternkarte mit Sprungbahnen und Krisen"><br><sub>Sternkarte</sub></td>
+    <td align="center"><img src="docs/redesign/preview/200-market-icons.jpg" width="200" alt="Markt mit Waren und Preisen"><br><sub>Markt</sub></td>
   </tr>
   <tr>
     <td align="center"><img src="docs/redesign/preview/12-warp.jpg" width="200" alt="Warp-Tunnel"><br><sub>Warp</sub></td>
     <td align="center"><img src="docs/redesign/preview/162-encounter.jpg" width="200" alt="Begegnung mit Piraten und sichtbaren Chancen"><br><sub>Begegnung</sub></td>
-    <td align="center"><img src="docs/redesign/preview/165-arrival.jpg" width="200" alt="Ankunft am Ziel"><br><sub>Ankunft</sub></td>
+    <td align="center"><img src="docs/redesign/preview/221-board.jpg" width="200" alt="Frachtbörse mit Lieferaufträgen"><br><sub>Lieferaufträge</sub></td>
     <td align="center"><img src="docs/redesign/preview/23-fence-trade.jpg" width="200" alt="Schmuggelware beim Hehler verkaufen"><br><sub>Verkauf beim Hehler</sub></td>
   </tr>
 </table>
@@ -86,18 +87,18 @@ Alle Screenshots stammen aus automatischen Durchläufen in Handy-Auflösung (390
   </tr>
 </table>
 
-Weitere 60 Screenshots liegen in [`docs/redesign/preview`](docs/redesign/preview).
+Rund 100 weitere Screenshots liegen in [`docs/redesign/preview`](docs/redesign/preview).
 
 ## So spielt es sich
 
 ### Ein Sprung
 
 1. **Fracht kaufen.** Der Markt zeigt, was an der Station billig ist.
-2. **Route wählen.** Drei Ziele stehen zur Wahl. Jedes zeigt vorab Preis-Hinweise, Zoll- und Piratenrisiko.
+2. **Kurs setzen.** Die Sternkarte zeigt den Sektor mit seinen Sprungbahnen. Ein Sprung folgt einer Bahn, ferne Ziele brauchen bis zu vier Sprünge. Jedes Ziel zeigt vorab Preis-Hinweise, Zoll- und Piratenrisiko.
 3. **Warp.** Unterwegs kommt es zu Begegnungen: Piraten (kämpfen, fliehen, Tribut zahlen) oder Zoll (durchbrechen, bestechen, kontrollieren lassen). Die Chance jeder Wahl steht daneben.
 4. **Ankommen und verkaufen.** Der Gewinn zählt hoch, dazu gibt es Erfahrung und manchmal Beute.
 
-Ein Sprung kostet eine Treibstoffzelle. Der Tank fasst fünf, alle 20 Minuten lädt eine nach.
+Ein Sprung auf der Ringbahn kostet eine Treibstoffzelle, eine Expressroute durch die Mitte des Sektors zwei: Sie spart dafür Sprünge. Der Tank fasst fünf Zellen, alle 20 Minuten lädt eine nach.
 
 ### Schmuggel
 
@@ -109,18 +110,21 @@ Die 27 Waren haben drei Legalitätsstufen. Was verboten ist, hängt von der Frak
 | Sanktioniert | In einzelnen Fraktionen verboten, hohe Marge | Störsender, Stimulanzien, Reflexbooster, Xeno-Artefakte |
 | Geächtet | Fast überall verboten, sehr hohe Marge | Kampfimplantate, KI-Kerne, Plasmagewehre, Neurostaub |
 
-Wer verbotene Ware behält, statt sie zu verkaufen, erhöht mit jedem Sprung den Multiplikator und das Risiko («heisse Fracht»). Wird man erwischt, ist die Ware weg und die Fahndungsstufe steigt.
+Wer verbotene Ware durch Gebiete trägt, in denen sie verboten ist, erhöht mit jedem Sprung ihren Preis und das Risiko («heisse Fracht»). Im Kartellraum ohne Zoll gibt es keinen Aufschlag. Wird man erwischt, ist die Ware weg und die Fahndungsstufe steigt.
 
 ### Die Welt
 
-Acht Stationen in vier Fraktionen, jede mit eigenem prozeduralem Planeten und eigenem Preisprofil.
+Zwölf Stationen in vier Fraktionen, jede mit eigenem prozeduralem Planeten und eigenem Preisprofil. Sie liegen auf einer Sternkarte: Meridian Hoch in der Mitte, darum ein Ring, verbunden durch Sprungbahnen.
 
 | Fraktion | Charakter | Stationen | Lichtfarbe |
 |---|---|---|---|
-| Freie Gilde Tessera | Händler, pragmatisch | Meridian Hoch, Lumen-Reede | Cyan |
-| Aschenorden | Werftleute, Soldaten | Kessin Tief, Varn-Gürtel | Orange |
-| Helix-Kartell | Schmuggler, kein Zoll, viele Piraten | Helix-Tor, Corvus-Schatten | Magenta |
-| Zenit-Konsortium | Konzern, strenger Zoll | Zenit Prime, Aurel-Station | Weissblau |
+| Freie Gilde Tessera | Händler, pragmatisch | Meridian Hoch, Lumen-Reede, Tessera-Kreuz | Cyan |
+| Aschenorden | Werftleute, Soldaten | Kessin Tief, Varn-Gürtel, Eisenfurt | Orange |
+| Helix-Kartell | Schmuggler, kein Zoll, viele Piraten | Helix-Tor, Corvus-Schatten, Nimbus-Riff | Magenta |
+| Zenit-Konsortium | Konzern, strenger Zoll | Zenit Prime, Aurel-Station, Solace-Labor | Weissblau |
+
+- **Krisen:** Krieg, Seuche oder Versorgungskrise treiben an einer fernen Station den Preis einer Warengruppe hoch. Der Bedarf sinkt mit jedem Sprung um eine angezeigte Menge, weil andere liefern. Wer rechtzeitig ankommt, verdient am meisten.
+- **Lieferaufträge:** Ab Stufe 3 bestellt die Frachtbörse feste Mengen zu festem Preis mit einer Frist in Sprüngen. Beim Annehmen wird ein Pfand fällig, das bei Lieferung zurückkommt.
 
 ### Crew und Karten
 
@@ -187,25 +191,35 @@ Die Bühne ist prozedural: Planeten, Nebel, Warp-Tunnel und Kartenfolien sind Sh
 
 <table>
   <tr>
-    <td align="center"><img src="docs/media/good-water.jpg" width="88" alt="Wasser"><br><sub>Wasser</sub></td>
-    <td align="center"><img src="docs/media/good-ore.jpg" width="88" alt="Erze"><br><sub>Erze</sub></td>
-    <td align="center"><img src="docs/media/good-meds.jpg" width="88" alt="Medikamente"><br><sub>Medikamente</sub></td>
-    <td align="center"><img src="docs/media/good-neurolinks.jpg" width="88" alt="Neuro-Schnittstellen"><br><sub>Neuro-Links</sub></td>
-    <td align="center"><img src="docs/media/good-aicores.jpg" width="88" alt="KI-Kerne"><br><sub>KI-Kerne</sub></td>
-    <td align="center"><img src="docs/media/good-plasma.jpg" width="88" alt="Plasmagewehre"><br><sub>Plasmagewehre</sub></td>
-    <td align="center"><img src="docs/media/good-neurostaub.jpg" width="88" alt="Neurostaub"><br><sub>Neurostaub</sub></td>
-    <td align="center"><img src="docs/media/good-artifacts.jpg" width="88" alt="Xeno-Artefakte"><br><sub>Xeno-Artefakte</sub></td>
+    <td align="center"><img src="packages/client/src/assets/goods/water.webp" width="88" alt="Wasser"><br><sub>Wasser</sub></td>
+    <td align="center"><img src="packages/client/src/assets/goods/ore.webp" width="88" alt="Erze"><br><sub>Erze</sub></td>
+    <td align="center"><img src="packages/client/src/assets/goods/meds.webp" width="88" alt="Medikamente"><br><sub>Medikamente</sub></td>
+    <td align="center"><img src="packages/client/src/assets/goods/neurolinks.webp" width="88" alt="Neuro-Schnittstellen"><br><sub>Neuro-Links</sub></td>
+    <td align="center"><img src="packages/client/src/assets/goods/aicores.webp" width="88" alt="KI-Kerne"><br><sub>KI-Kerne</sub></td>
+    <td align="center"><img src="packages/client/src/assets/goods/plasma.webp" width="88" alt="Plasmagewehre"><br><sub>Plasmagewehre</sub></td>
+    <td align="center"><img src="packages/client/src/assets/goods/neurostaub.webp" width="88" alt="Neurostaub"><br><sub>Neurostaub</sub></td>
+    <td align="center"><img src="packages/client/src/assets/goods/artifacts.webp" width="88" alt="Xeno-Artefakte"><br><sub>Xeno-Artefakte</sub></td>
   </tr>
 </table>
 
 <table>
   <tr>
-    <td align="center"><img src="docs/media/module-shield.jpg" width="88" alt="Schildgitter"><br><sub>Schildgitter</sub></td>
-    <td align="center"><img src="docs/media/module-drive.jpg" width="88" alt="Nachbrenner"><br><sub>Nachbrenner</sub></td>
-    <td align="center"><img src="docs/media/module-jammer.jpg" width="88" alt="Signalstörer"><br><sub>Signalstörer</sub></td>
-    <td align="center"><img src="docs/media/module-pods.jpg" width="88" alt="Frachtgondeln"><br><sub>Frachtgondeln</sub></td>
-    <td align="center"><img src="docs/media/module-charger.jpg" width="88" alt="Fusionslader"><br><sub>Fusionslader</sub></td>
-    <td align="center"><img src="docs/media/module-stash.jpg" width="88" alt="Schmuggelfach"><br><sub>Schmuggelfach</sub></td>
+    <td align="center"><img src="packages/client/src/assets/modules/shield.webp" width="88" alt="Schildgitter"><br><sub>Schildgitter</sub></td>
+    <td align="center"><img src="packages/client/src/assets/modules/drive.webp" width="88" alt="Nachbrenner"><br><sub>Nachbrenner</sub></td>
+    <td align="center"><img src="packages/client/src/assets/modules/jammer.webp" width="88" alt="Signalstörer"><br><sub>Signalstörer</sub></td>
+    <td align="center"><img src="packages/client/src/assets/modules/pods.webp" width="88" alt="Frachtgondeln"><br><sub>Frachtgondeln</sub></td>
+    <td align="center"><img src="packages/client/src/assets/modules/charger.webp" width="88" alt="Fusionslader"><br><sub>Fusionslader</sub></td>
+    <td align="center"><img src="packages/client/src/assets/modules/stash.webp" width="88" alt="Schmuggelfach"><br><sub>Schmuggelfach</sub></td>
+  </tr>
+</table>
+
+### Saison-Banner und Titelbild
+
+<table>
+  <tr>
+    <td align="center"><img src="packages/client/src/assets/banners/keyart.webp" width="120" alt="Titelbild"><br><sub>Titelbild</sub></td>
+    <td align="center"><img src="packages/client/src/assets/banners/season-3.webp" width="330" alt="Banner der Saison Glut über Varn"><br><sub>Saison «Glut über Varn»</sub></td>
+    <td align="center"><img src="packages/client/src/assets/banners/event-blockade.webp" width="330" alt="Banner des Wochenend-Events Blockade-Lauf"><br><sub>Event «Blockade-Lauf»</sub></td>
   </tr>
 </table>
 
@@ -218,12 +232,12 @@ Die Bühne ist prozedural: Planeten, Nebel, Warp-Tunnel und Kartenfolien sind Sh
 | C | Saison-Karten «Glut über Varn» | 6 | im Spiel |
 | D | Elite-Karten | 20 | 19 im Spiel, `g094` wird neu erzeugt |
 | E | Begegnungen | 4 | im Spiel |
-| F | Waren | 27 | geliefert, liegt in `art-inbox/goods`, noch nicht im Markt eingebaut |
-| G | Module | 6 | geliefert, liegt in `art-inbox/modules`, noch nicht in der Werft eingebaut |
-| H | Embleme und Liga-Abzeichen | 10 | offen |
-| I | Saison-Banner, Event, Titelbild | 7 | offen |
+| F | Waren | 27 | im Spiel |
+| G | Module | 6 | im Spiel |
+| H | Embleme und Liga-Abzeichen | 10 | im Spiel |
+| I | Saison-Banner, Event, Titelbild, Store-Bild | 7 | im Spiel, Store-Bild unter `docs/store` |
 | J | Archetypen und Währungen | 23 | im Spiel |
-| K | Weitere Saison-Karten, Stationen | 14 | optional |
+| K | Weitere Saison-Karten, Stationen | 14 | optional. 6 Saison-Karten und 2 Stationen liegen in `art-inbox`, noch nicht eingebaut |
 
 Dazu kommen die zehn Legenden und Singularitäten (`c21` bis `c30`), die als Erste entstanden sind. Die 100 seltenen und Standard-Karten teilen sich 20 Archetypen, einen pro Fraktion und Rolle. Fehlt ein Bild, zeichnet das Spiel einen prozeduralen Avatar.
 
@@ -264,7 +278,9 @@ Der Client läuft danach im Offline-Modus auf `http://localhost:5173`. Am besten
 
 **Veröffentlichung:** Jeder Push auf `main` läuft durch Typprüfung, Tests und Build und landet auf GitHub Pages ([`deploy.yml`](.github/workflows/deploy.yml)).
 
-**Android und iOS:** Die App ist dieselbe Web-App, verpackt mit Capacitor. Anleitung in [Dokument 05](docs/redesign/05-mobile.md). Android braucht JDK 21 und das Android SDK, iOS einen Mac mit Xcode.
+**Android und iOS:** Die App ist dieselbe Web-App, verpackt mit Capacitor. Der Workflow [`mobile.yml`](.github/workflows/mobile.yml) baut bei jedem Push auf `main`, der `packages/` betrifft, eine Android-Debug-APK und eine unsignierte iOS-App für den Simulator. Beide liegen danach als Download auf der Seite des Laufs unter [Actions](https://github.com/10igma/spacetrader-web/actions/workflows/mobile.yml). Ein Build für ein echtes iPhone braucht eine Signatur mit einem Apple-Developer-Account und ist nicht eingerichtet.
+
+Lokal bauen: Anleitung in [Dokument 05](docs/redesign/05-mobile.md). Android braucht JDK 21 und das Android SDK, iOS einen Mac mit Xcode.
 
 ## Projektaufbau
 
@@ -282,7 +298,7 @@ tools/
 art-inbox/    Rohmaterial der Grafik-Pakete in Originalgrösse
 docs/
   redesign/   Konzept, Architektur, Roadmap, Grafik-Auftrag, Screenshots
-  media/      Kleine Bilder für dieses README
+  store/      Bild für den Store-Eintrag
 legacy/
   classic/    Früherer Space-Trader-Port, unverändert, nicht Teil des Builds
 ```
@@ -308,7 +324,8 @@ Inhalte sind Daten im Kern. Die meisten Erweiterungen brauchen eine Zeile in ein
 |---|---|---|
 | Crew-Karte | `ROWS` in [`packages/core/src/content.ts`](packages/core/src/content.ts) | ID, Name, Beiname, Rolle, Fraktion, Seltenheit, Wertung, vier Werte |
 | Ware | `ROWS` und Typ `GoodId` in [`packages/core/src/world.ts`](packages/core/src/world.ts) | Grundpreis, Schwankung, Legalitätsstufe, verbotene Fraktionen |
-| Station | `STATIONS` und Typ `StationId` in [`packages/core/src/world.ts`](packages/core/src/world.ts) | Fraktion, Zoll und Piraten, Preisprofil, Farben des Planeten |
+| Station | `STATIONS` und Typ `StationId` in [`packages/core/src/world.ts`](packages/core/src/world.ts) | Fraktion, Zoll und Piraten, Preisprofil, Platz auf der Sternkarte, Farben des Planeten |
+| Sprungbahn | `LANES` und `EXPRESS` in [`packages/core/src/world.ts`](packages/core/src/world.ts) | Jede Station braucht mindestens eine Bahn. Ein Test prüft, dass die Karte zusammenhängt |
 | Schiff oder Modul | `SHIPS`, `MODULES` in [`packages/core/src/fleet.ts`](packages/core/src/fleet.ts) | Preis, Stufengrenze, Laderaum, Tank, Plätze, Boni |
 | Saison | `season.names` in [`packages/core/src/config.ts`](packages/core/src/config.ts), Beinamen in `EDITION_EPITHETS` in `content.ts` | Die zwölf Sonderkarten entstehen aus der Saison-Nummer |
 | Quoten, Preise, Timer | `CONFIG` in [`packages/core/src/config.ts`](packages/core/src/config.ts) | Jede Zahl der Wirtschaft steht hier |
@@ -400,7 +417,7 @@ Hintergrund und Einordnung jeder Mechanik stehen im [Mechanik-Katalog](docs/rede
 
 ## Qualität und Balance
 
-- **Über 150 Tests** im Kern prüfen Regeln, Quoten (Monte Carlo über zehntausende Würfe), Tagesgrenzen und Spielstand-Übernahme.
+- **Über 170 Tests** im Kern prüfen Regeln, Quoten (Monte Carlo über zehntausende Würfe), Tagesgrenzen und Spielstand-Übernahme.
 - **Bot-Simulation:** Zwei Spielertypen (legal und Schmuggel) spielen 90 Tage. Daraus stammen die Planungswerte, zum Beispiel erste Legende zwischen Tag 4 und 14, erstes volles Album um Tag 17 bis 27.
 - **Server-Prüfung:** Der Server weist erfundene und unerlaubte Befehle ab. Seed und Zufallszustand erreichen den Client nie.
 - **Screenshot-Durchläufe** in `tools/shots` spielen die Bildschirme in Handy-Auflösung durch und melden Konsolenfehler.
@@ -419,9 +436,11 @@ Hintergrund und Einordnung jeder Mechanik stehen im [Mechanik-Katalog](docs/rede
 | 5 | Mobile-Hülle | gebaut, Gerätetest steht aus |
 | 6 | Monetarisierung | nicht begonnen, nur nach bewusstem Entscheid und Rechtsprüfung |
 
-**Als Nächstes:** Waren- und Modul-Bilder in Markt und Werft einbauen, Grafik-Pakete H und I, Gerätetest, Design-Runde 2 (Markt mit Symbolen, Glücksrad, Neuordnung der Tabs).
+**Zuletzt dazugekommen:** der Sektor mit Sternkarte, Sprungbahnen, Krisen und Lieferaufträgen, Design-Runde 2 und alle Grafik-Pakete A bis J.
 
-**Bekannte Grenzen:** Der Spielstand liegt lokal auf dem Gerät, ein Konto mit Cloud-Speicher fehlt. Tages- und Wochengrenzen folgen mitteleuropäischer Winterzeit. Der Server hält Sitzungen nur im Arbeitsspeicher.
+**Als Nächstes:** Gerätetest auf Android und iOS, Rest der Design-Runde 2 (Schriftgrössen und Radien vereinheitlichen, Kartenrahmen nach Seltenheit), Sektor ausbauen (Aufträge für Schmuggelware, sichtbare Konkurrenten, Bots, die Aufträge und Krisen anfahren).
+
+**Bekannte Grenzen:** Sektor und Lieferaufträge sind neu und kaum gespielt, ihre Balance ist nur teilweise von Bots gemessen. Der Spielstand liegt lokal auf dem Gerät, ein Konto mit Cloud-Speicher fehlt. Tages- und Wochengrenzen folgen mitteleuropäischer Winterzeit. Der Server hält Sitzungen nur im Arbeitsspeicher.
 
 Vollständig in der [Roadmap](docs/redesign/03-roadmap.md).
 
