@@ -10,6 +10,7 @@ Der frühere Space-Trader-Port liegt unverändert unter `legacy/classic` und ist
 - [Spielkonzept und Mechanik-Katalog](docs/redesign/02-mechanik-katalog.md)
 - [Roadmap und Stand](docs/redesign/03-roadmap.md)
 - [Mobile-Hülle: Android und iOS bauen](docs/redesign/05-mobile.md)
+- [Grafik-Auftrag: Anleitung und Prompts für die Bildgenerierung](docs/redesign/06-grafik-prompts.md)
 - [Kartenkunst](docs/redesign/04-kartenkunst.md)
 
 ## Aufbau
