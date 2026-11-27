@@ -8,15 +8,25 @@ import { CONFIG } from '../config.ts';
 import { CARD_BY_ID, CARDS_BY_FACTION, FACTIONS, rarityRank, seasonCards, seasonOf, type FactionId } from '../content.ts';
 import { convoyChance, convoyStrength, MODULE_BY_ID, MODULE_MAX, SHIPS, type ModuleId } from '../fleet.ts';
 import { applyCommand, createInitialState, forgeCost, quote, toClientView, type ClientView, type Command, type GameState } from '../game.ts';
-import { GOOD_BY_ID, isBanned, STATION_BY_ID, type GoodId } from '../world.ts';
+import { courseFuel, courseTo, GOOD_BY_ID, isBanned, STATION_BY_ID, type Category, type GoodId, type StationId } from '../world.ts';
 
-export type Policy = 'legal' | 'smuggler';
+/**
+ * How a bot plays. `legal` and `smuggler` trade from lane to lane. `courier` is a legal trader who also
+ * takes delivery orders and runs to far crises: it measures what those two systems are worth.
+ */
+export type Policy = 'legal' | 'smuggler' | 'courier';
 
 const HOUR = 3_600_000;
 
 export interface DaySample { prestige: number; edition: number; ship: number; modules: number; league: number; charter: number; charterPremium: boolean; posts: number; day: number; worth: number; profit: number; crates: number; level: number; cards: number; legends: number; quanta: number; shards: number; streak: number; albums: number; jumps: number; caught: number; wantedMax: number }
 
-interface Ctx { state: GameState; now: number; policy: Policy; log: Record<string, number> }
+interface Ctx {
+  state: GameState; now: number; policy: Policy; log: Record<string, number>;
+  /** Where the bot is heading over several jumps, like the course a player sets on the chart. */
+  course: StationId | null;
+  /** The crisis it bought cargo for. That cargo is not for sale on the way. */
+  crisis: { stationId: StationId; category: Category } | null;
+}
 
 function act(ctx: Ctx, cmd: Command): ClientView {
   const res = applyCommand(ctx.state, cmd, ctx.now);
@@ -25,6 +35,8 @@ function act(ctx: Ctx, cmd: Command): ClientView {
     ctx.log[ev.type] = (ctx.log[ev.type] ?? 0) + 1;
     // Where the money is made: profit by station and good, for finding lanes that pay too well.
     if (ev.type === 'Sold') ctx.log[`profit:${ctx.state.location}:${ev.goodId}`] = (ctx.log[`profit:${ctx.state.location}:${ev.goodId}`] ?? 0) + ev.profit;
+    if (ev.type === 'OrderDelivered') ctx.log['order:profit'] = (ctx.log['order:profit'] ?? 0) + ev.profit;
+    if (ev.type === 'OrderFailed') ctx.log['order:lost'] = (ctx.log['order:lost'] ?? 0) + ev.order.deposit;
     if (ev.type === 'ConvoyReturned') ctx.log[ev.success ? 'convoy:ok' : 'convoy:fail'] = (ctx.log[ev.success ? 'convoy:ok' : 'convoy:fail'] ?? 0) + 1;
     if (ev.type === 'CommandRejected') ctx.log[`rejected:${ev.reason}`] = (ctx.log[`rejected:${ev.reason}`] ?? 0) + 1;
     if (ev.type === 'EncounterResolved') ctx.log[`${ev.kind}:${ev.choice}:${ev.success ? 'ok' : 'fail'}`] = (ctx.log[`${ev.kind}:${ev.choice}:${ev.success ? 'ok' : 'fail'}`] ?? 0) + 1;
@@ -37,11 +49,25 @@ const cargoValue = (view: ClientView): number =>
 
 export const netWorth = (view: ClientView): number => view.wallet.credits + cargoValue(view);
 
+/** Units of a good that are spoken for: cargo for an order that can still be delivered, or for a crisis ahead. */
+function reserved(ctx: Ctx, view: ClientView, goodId: GoodId): number {
+  let keep = 0;
+  for (const o of view.orders.active) {
+    const reachable = o.here ? o.have >= o.qty : o.left >= o.hops;
+    if (o.goodId === goodId && reachable) keep += o.qty;
+  }
+  if (ctx.crisis && ctx.crisis.stationId !== view.location && GOOD_BY_ID.get(goodId)!.category === ctx.crisis.category) keep = Infinity;
+  return keep;
+}
+
 function sellWhatPays(ctx: Ctx, view: ClientView): ClientView {
   for (const row of view.market) {
     const lot = view.cargo.items[row.goodId];
     if (!lot) continue;
-    let qty = lot.qty;
+    let qty = Math.max(0, lot.qty - reserved(ctx, view, row.goodId));
+    if (qty === 0) continue;
+    const crisisHere = view.events.some((e) => e.stationId === view.location && e.category === GOOD_BY_ID.get(row.goodId)!.category);
+    const before = view.stats.profit;
     if (row.channel === 'fence') {
       if (view.fence.closed) continue;
       qty = Math.min(qty, view.fence.left);
@@ -51,15 +77,23 @@ function sellWhatPays(ctx: Ctx, view: ClientView): ClientView {
     const clogged = view.cargo.used >= view.cargo.cap;
     while (qty > 0 && !clogged && quote(row, 'sell', qty) <= lot.avgCost * qty) qty = Math.floor(qty / 2);
     if (qty > 0) view = act(ctx, { type: 'Sell', goodId: row.goodId, qty });
+    if (crisisHere && qty > 0) {
+      ctx.log['crisis:profit'] = (ctx.log['crisis:profit'] ?? 0) + view.stats.profit - before;
+      ctx.log['crisis:units'] = (ctx.log['crisis:units'] ?? 0) + qty;
+    }
   }
   return view;
 }
 
 interface Plan { to: ClientView['routes'][number]; score: number; basket: { goodId: GoodId; qty: number }[] }
 
-function plan(ctx: Ctx, view: ClientView): Plan | null {
+/** The best lane to take and what to load for it. With `only`, what to load for that one lane. */
+function plan(ctx: Ctx, view: ClientView, only?: StationId): Plan | null {
   let best: Plan | null = null;
+  // The station that waits for an order has none of that good to sell.
+  const soldOut = new Set(view.orders.active.filter((o) => o.here).map((o) => o.goodId));
   for (const route of view.routes) {
+    if (only && route.stationId !== only) continue;
     // Express lanes cost two units: not with one left in the tank.
     if (route.fuel > view.fuel.amount) continue;
     const destFaction = STATION_BY_ID.get(route.stationId)!.faction;
@@ -74,7 +108,8 @@ function plan(ctx: Ctx, view: ClientView): Plan | null {
         const good = GOOD_BY_ID.get(h.goodId)!;
         const row = view.market.find((m) => m.goodId === h.goodId)!;
         const hot = isBanned(good, destFaction);
-        if (ctx.policy === 'legal' && (hot || row.channel === 'fence')) return null;
+        if (soldOut.has(h.goodId)) return null;
+        if (ctx.policy !== 'smuggler' && (hot || row.channel === 'fence')) return null;
         const risk = hot ? route.customsChance * 0.6 : 0;
         const perUnit = row.buy * h.pct * (1 - risk) - row.buy * risk;
         return { h, row, perUnit };
@@ -132,6 +167,7 @@ const FACTION_LIST = Object.keys(FACTIONS) as FactionId[];
 /** Which modules a player of this style wants, most wanted first. */
 const MODULE_WISH: Record<Policy, ModuleId[]> = {
   legal: ['pods', 'charger', 'shield', 'drive', 'jammer', 'stash'],
+  courier: ['pods', 'charger', 'shield', 'drive', 'jammer', 'stash'],
   smuggler: ['pods', 'charger', 'jammer', 'stash', 'drive', 'shield'],
 };
 
@@ -247,9 +283,82 @@ function housekeeping(ctx: Ctx, view: ClientView): ClientView {
   return view;
 }
 
+/** Hand in every order whose lot is aboard at its destination. */
+function deliver(ctx: Ctx, view: ClientView): ClientView {
+  for (const o of view.orders.active) if (o.here && o.have >= o.qty) view = act(ctx, { type: 'DeliverOrder', id: o.id });
+  return view;
+}
+
+/**
+ * A courier looks further than the next lane: is there an order or a crisis that pays better than
+ * ordinary trade would for the same share of the hold? If so it loads up and sets a course.
+ */
+function chooseTarget(ctx: Ctx, view: ClientView, ordinary: number): ClientView {
+  const free = view.cargo.cap - view.cargo.used;
+  const spare = view.wallet.credits - 300;
+  let best: { perFuel: number; go: () => void; to: StationId } | null = null;
+  const consider = (to: StationId, profit: number, units: number, go: () => void): void => {
+    const fuel = courseFuel(view.location, courseTo(view.location, to));
+    if (fuel <= 0 || profit <= 0) return;
+    const perFuel = profit / fuel;
+    // Worth it if the lot earns more than ordinary trade would with the same part of the hold.
+    // On a course the rest of the hold can only trade along that course, so the lot has to beat its share clearly.
+    if (perFuel > 1.3 * ordinary * (units / Math.max(1, view.cargo.cap)) && (!best || perFuel > best.perFuel)) best = { perFuel, go, to };
+  };
+  if (view.orders.active.length === 0) {
+    for (const o of view.orders.offers) {
+      // `buyHere` is the price of what is still missing: some of the lot may be aboard already.
+      const missing = o.qty - o.have;
+      if (o.buyHere === null || missing > free || o.deposit + o.buyHere > spare) continue;
+      consider(o.to, o.total - o.buyHere, o.qty, () => {
+        view = act(ctx, { type: 'AcceptOrder', id: o.id });
+        view = act(ctx, { type: 'Buy', goodId: o.goodId, qty: missing });
+      });
+    }
+  }
+  for (const e of view.events) {
+    if (e.stationId === view.location || e.onArrival <= 0) continue;
+    const dest = STATION_BY_ID.get(e.stationId)!.faction;
+    // What this station sells of the wanted kind, legal at both ends, cheapest relative to its usual price first.
+    const rows = view.market
+      .filter((m) => m.channel === 'open' && GOOD_BY_ID.get(m.goodId)!.category === e.category && !isBanned(GOOD_BY_ID.get(m.goodId)!, dest) && !view.cargo.items[m.goodId]
+        && !view.orders.active.some((o) => o.here && o.goodId === m.goodId))
+      .sort((a, b) => a.level - b.level)
+      .slice(0, 2);
+    let units = 0, profit = 0, cost = 0;
+    const lots: { goodId: GoodId; qty: number }[] = [];
+    for (const row of rows) {
+      let qty = Math.min(free - units, e.onArrival - units, CONFIG.market.hintLot + 4);
+      while (qty > 0 && cost + quote(row, 'buy', qty) > spare) qty--;
+      if (qty <= 0) continue;
+      const pay = quote(row, 'buy', qty);
+      // What it should fetch there: its usual price, raised by the crisis, less what a sale of that size costs.
+      const fetch = (row.buy / row.level) * e.mult * CONFIG.travel.sellFactor * qty * (1 - CONFIG.market.impact * qty / 2);
+      lots.push({ goodId: row.goodId, qty });
+      units += qty; cost += pay; profit += fetch - pay;
+    }
+    if (units > 0) consider(e.stationId, profit, units, () => {
+      for (const l of lots) view = act(ctx, { type: 'Buy', goodId: l.goodId, qty: l.qty });
+      ctx.crisis = { stationId: e.stationId, category: e.category };
+      ctx.log['crisis:runs'] = (ctx.log['crisis:runs'] ?? 0) + 1;
+    });
+  }
+  const pick = best as { perFuel: number; go: () => void; to: StationId } | null;
+  if (pick) { pick.go(); ctx.course = pick.to; }
+  return view;
+}
+
 function session(ctx: Ctx): void {
   let view = housekeeping(ctx, toClientView(ctx.state, ctx.now));
   for (let guard = 0; guard < 80; guard++) {
+    // Arrived, or the reason for the trip is gone: the course is done.
+    if (ctx.course === view.location) ctx.course = null;
+    if (ctx.crisis && (ctx.crisis.stationId === view.location || !view.events.some((e) => e.stationId === ctx.crisis!.stationId && e.category === ctx.crisis!.category))) {
+      if (ctx.crisis.stationId !== view.location) ctx.course = view.orders.active[0]?.to ?? null;
+      ctx.crisis = null;
+    }
+    if (ctx.course && !ctx.crisis && !view.orders.active.some((o) => o.to === ctx.course)) ctx.course = null;
+    view = deliver(ctx, view);
     view = sellWhatPays(ctx, view);
     // A typical player: buys a crate when it is comfortably affordable, a couple per day.
     // Buys what the daily limit allows once it is comfortably affordable.
@@ -275,7 +384,15 @@ function session(ctx: Ctx): void {
     if (view.holdUpgrade && view.wallet.credits > view.holdUpgrade.cost * 1.6) view = act(ctx, { type: 'UpgradeHold' });
     view = shipyard(ctx, view);
     if (view.fuel.amount < 1) return;
-    const p = plan(ctx, view);
+    let p = plan(ctx, view);
+    if (ctx.policy === 'courier' && !ctx.course) view = chooseTarget(ctx, view, p?.score ?? 0);
+    if (ctx.course && ctx.course !== view.location) {
+      // On a course: take its next lane and fill what is left of the hold for that lane.
+      const hop = courseTo(view.location, ctx.course)[0]!;
+      const route = view.routes.find((r) => r.stationId === hop)!;
+      if (route.fuel > view.fuel.amount) return;
+      p = plan(ctx, view, hop) ?? { to: route, score: 0, basket: [] };
+    }
     if (!p) return;
     for (const b of p.basket) view = act(ctx, { type: 'Buy', goodId: b.goodId, qty: b.qty });
     view = act(ctx, { type: 'Jump', to: p.to.stationId });
@@ -288,7 +405,7 @@ const endSession = (ctx: Ctx): void => { housekeeping(ctx, toClientView(ctx.stat
 
 export function simulate(seed: string, policy: Policy, days: number, sessionsPerDay = 3): { samples: DaySample[]; log: Record<string, number> } {
   const t0 = 1_800_000_000_000;
-  const ctx: Ctx = { state: createInitialState(seed, t0), now: t0, policy, log: {} };
+  const ctx: Ctx = { state: createInitialState(seed, t0), now: t0, policy, log: {}, course: null, crisis: null };
   const samples: DaySample[] = [];
   for (let day = 1; day <= days; day++) {
     for (let s = 0; s < sessionsPerDay; s++) {

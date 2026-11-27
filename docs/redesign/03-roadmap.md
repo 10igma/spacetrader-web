@@ -53,7 +53,7 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Begegnungen mit Spannungsmoment, kürzerer und überspringbarer Warp, Ankunft mit Kurierpost, Serie und Frachtwert. Währungen als Bilder im Charter | fertig | Durchlauf prüft, dass das Ergebnis erst nach dem Spannungsmoment erscheint |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
-| Bot-Simulation | fertig | Zwei Spielertypen, je 10 Spieler über 90 Tage, dazu Leitplanken-Test |
+| Bot-Simulation | fertig | Drei Spielertypen (legal, Schmuggel, Kurier mit Lieferaufträgen und Krisen), dazu Leitplanken-Test für alle drei |
 | Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus 16 gegen Werft und Konvois und 14 gegen Saison-Album, Titel, Lackierungen und Prestige, dazu 9 gegen Lieferaufträge |
 | Bühne, UI, Musik und Effekte | fertig | Vierzehn automatische Durchläufe ohne Konsolenfehler |
 
@@ -112,12 +112,24 @@ Die Bots spielen diszipliniert und holen jeden Tag alles ab. Echte Spieler lasse
 | Vermögen Median | 609'000 | 683'000 |
 | Erwischt | 0.3 mal | 14 mal |
 
-Schmuggler springen seltener, weil ihre Wege öfter über die teuren Expressrouten führen. Ein Lieferauftrag bringt im Schnitt rund 100 Credits pro Einheit Laderaum und Sprung, normaler Handel 70 bis 80. Das gilt für jede Schiffsgrösse, weil der Auftrag den Preisanstieg grosser Einkäufe zur Hälfte mitbezahlt. Die Bots nehmen keine Aufträge an: Die Tabelle oben ist ohne sie gemessen.
+Schmuggler springen seltener, weil ihre Wege öfter über die teuren Expressrouten führen.
+
+**Nachtrag Kurier (27.11.2026):** Ein dritter Bot nimmt Lieferaufträge an und fährt ferne Krisen an. Er handelt legal und füllt den Rest des Laderaums unterwegs normal. Die erste Messung zeigte, dass Aufträge sich nicht lohnten: pro Sprung 8 % mehr als normaler Handel, über den Tag aber 12 % weniger, weil ein Kurs die wenigsten Sprünge nimmt und damit die Expressrouten zu zwei Einheiten Treibstoff. Aufträge zahlen deshalb jetzt 35 % statt 20 % über dem Marktpreis am Ziel und 9 % statt 6 % pro Sprung des direkten Wegs. Stand nach 30 Tagen mit 8 Spielern je Typ:
+
+| | legal | Kurier | Schmuggel |
+|---|---|---|---|
+| Gewinn pro Sprung | 7'100 | 9'900 | 10'000 |
+| Sprünge in 30 Tagen | 551 | 446 | 482 |
+| Handelsgewinn gesamt | 3.9 Millionen | 4.4 Millionen (13 % mehr) | 4.8 Millionen (23 % mehr) |
+| Erwischt | 0.3 mal | 0.5 mal | 14 mal |
+
+Der Kurier nimmt 4.6 Aufträge pro Tag an und liefert 95 % davon. Die übrigen platzen meist, weil Piraten unterwegs einen Teil der Ladung nehmen. Eine Lieferung bringt im Schnitt 20'800 Credits Gewinn, Aufträge machen 64 % seines Handelsgewinns aus und Krisen 5 % (0.4 Fahrten pro Tag, 384 Credits pro verkaufter Einheit). Die Reihenfolge stimmt damit: Aufträge sind besser als Pendeln, Schmuggel bleibt wegen des Risikos am einträglichsten.
+
 
 **Offen:**
 - **Sektor ist neu und kaum gespielt.** Die Karte hat zwölf Stationen, vier davon neu (Tessera-Kreuz, Eisenfurt, Nimbus-Riff, Solace-Labor). Ihre Preise sind gesetzt, aber nur von Bots geprüft. Die Bots planen keine fernen Krisen an, sie handeln nur von Bahn zu Bahn.
 - **Krisen kennen nur den Bedarf.** Es gibt noch keine Gegenspieler, die sichtbar unterwegs sind, und keine Blockaden auf Bahnen.
-- **Lieferaufträge sind neu und nur von Hand geprüft.** Die Bots nehmen keine an. Ob Frist (direkter Weg plus ein bis zwei Sprünge) und Aufpreis sich richtig anfühlen, zeigt erst das Spielen. Aufträge für Schmuggelware gibt es noch nicht.
+- **Lieferaufträge sind gemessen, aber kaum gespielt.** Der Kurier-Bot fährt stur den direkten Weg. Ob Frist (direkter Weg plus ein bis zwei Sprünge) und Aufpreis sich für einen Menschen richtig anfühlen, zeigt erst das Spielen. Aufträge für Schmuggelware gibt es noch nicht, und ein Schmuggler, der auch Aufträge fährt, ist nicht gemessen.
 - **Treibstoff kennt zwei Preise.** Ringbahn eine Einheit, Expressroute zwei. Die Länge einer Bahn auf der Karte spielt sonst keine Rolle.
 - **Auktionshaus und Liga sind simuliert.** Gegenbieter, Käufer und Liga-Rivalen sind Zufallsgrössen mit festen Grenzen, keine echten Spieler. Die Liga sagt das auf dem Bildschirm. Echte Mitspieler brauchen Konten, Datenbank und Schutz gegen Absprachen (zweiter Teil von Phase 4).
 - **Rest von Phase 4:** Telemetrie und alles, was echte Mitspieler braucht (Konten, Datenbank, echte Ranglisten).
@@ -289,5 +301,5 @@ Hier kommt der grösste Teil des Katalogs.
 1. **Grafiken:** Alle Pakete A bis M sind eingebaut. Die nächste Lieferung sind sechs Porträts für die übernächste Saison.
 2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
 3. **Design, Rest** (Dokument 07): Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment.
-4. **Sektor weiter ausbauen:** Bots, die Aufträge und ferne Krisen anfahren, damit die Balance sie mitmisst. Aufträge für Schmuggelware. Sichtbare Konkurrenten auf der Karte.
+4. **Sektor weiter ausbauen:** Aufträge für Schmuggelware. Sichtbare Konkurrenten auf der Karte.
 5. Danach zur Wahl: Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.

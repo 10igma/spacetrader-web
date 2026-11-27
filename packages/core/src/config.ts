@@ -358,8 +358,8 @@ export const CONFIG = {
     holdMin: 0.4,
     holdRange: 0.4,
     /** Price per unit over the plain market price at the destination: premium + premiumPerHop per jump of the direct way. */
-    premium: 1.2,
-    premiumPerHop: 0.06,
+    premium: 1.35,
+    premiumPerHop: 0.09,
     /** Share of the price rise a lot of this size causes when bought in one place that the order pays on top. */
     bulk: 0.5,
     /** Share of the total pay you put down when you accept. */

@@ -7,7 +7,7 @@ import { simulate } from './bots.ts';
  * as a real client, so this is also an end-to-end test of the rules.
  */
 describe('balance guard rails', () => {
-  for (const policy of ['legal', 'smuggler'] as const) {
+  for (const policy of ['legal', 'smuggler', 'courier'] as const) {
     it(`${policy}: three days of play stay inside the intended corridor`, () => {
       const runs = [0, 1, 2, 3, 4, 5].map((i) => simulate(`guard-${i}`, policy, 3));
       for (const run of runs) {

@@ -7,7 +7,8 @@ const q = (xs: number[], p: number): number => [...xs].sort((a, b) => a - b)[Mat
 const fmt = (n: number): string => Math.round(n).toLocaleString('de-CH').padStart(10);
 const dayText = (d: number, horizon: number): string => (Number.isFinite(d) ? `Tag ${d}` : `nach Tag ${horizon}`);
 
-for (const policy of ['legal', 'smuggler'] as Policy[]) {
+// A fourth argument picks the player types, for example "courier" or "legal,courier".
+for (const policy of (process.argv[4]?.split(',') ?? ['legal', 'smuggler', 'courier']) as Policy[]) {
   const runs: DaySample[][] = [];
   const log: Record<string, number> = {};
   for (let i = 0; i < seeds; i++) {
@@ -51,6 +52,12 @@ for (const policy of ['legal', 'smuggler'] as Policy[]) {
   console.log(`Konvois: ${back} zurück (${(back / runs.length / days).toFixed(1)} pro Spieler und Tag), davon ${back ? Math.round(((log['convoy:ok'] ?? 0) / back) * 100) : 0} % erfolgreich`);
   console.log(`Auktionen: ${log.BidPlaced ?? 0} Gebote, ${log.CardListed ?? 0} eigene Angebote`);
   console.log(`Verlorene Container (Hangar voll): ${log.CrateLost ?? 0} bei ${log.CrateEarned ?? 0} verdienten`);
+  if (policy === 'courier') {
+    const taken = log.OrderAccepted ?? 0, done = log.OrderDelivered ?? 0, failed = log.OrderFailed ?? 0;
+    console.log(`Lieferaufträge: ${taken} angenommen (${(taken / runs.length / days).toFixed(1)} pro Spieler und Tag), ${done} geliefert, ${failed} geplatzt. Gewinn pro Lieferung ${fmt((log['order:profit'] ?? 0) / Math.max(1, done)).trim()}, verlorenes Pfand gesamt ${fmt(log['order:lost'] ?? 0).trim()}`);
+    console.log(`Krisen: ${log['crisis:runs'] ?? 0} Fahrten (${((log['crisis:runs'] ?? 0) / runs.length / days).toFixed(1)} pro Spieler und Tag), ${log['crisis:units'] ?? 0} Einheiten in Krisen verkauft, Gewinn pro Einheit ${fmt((log['crisis:profit'] ?? 0) / Math.max(1, log['crisis:units'] ?? 0)).trim()}`);
+    console.log(`Anteil am Handelsgewinn: Aufträge ${Math.round(((log['order:profit'] ?? 0) / Math.max(1, runs.reduce((a, r) => a + r[days - 1]!.profit, 0))) * 100)} %, Krisen ${Math.round(((log['crisis:profit'] ?? 0) / Math.max(1, runs.reduce((a, r) => a + r[days - 1]!.profit, 0))) * 100)} %`);
+  }
   const broke = runs.filter((r) => r[days - 1]!.worth < 500).length;
   console.log(`Pleite am Ende (unter 500): ${broke} von ${seeds}`);
 }
