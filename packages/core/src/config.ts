@@ -326,11 +326,26 @@ export const CONFIG = {
     multMin: 1.5,
     multRange: 0.6,
     /** Units other traders deliver per jump: between drainMin and drainMin + drainRange. */
+    /** How big the demand is: this many units per jump of its intended life, between drainMin and drainMin + drainRange. */
     drainMin: 5,
     drainRange: 4,
     /** It lasts as many jumps as the direct way takes, plus this much slack: between slackMin and slackMin + slackRange. */
     slackMin: 1.5,
     slackRange: 2,
+    /** Small traders deliver a little with every jump you make: between trickleMin and trickleMin + trickleRange. */
+    trickleMin: 2,
+    trickleRange: 1,
+    /**
+     * Rivals: named traders on their way to the crisis. They move one lane per jump you make and deliver
+     * their whole lot on arrival. Where they are and what they carry is on the chart.
+     */
+    rivalsMin: 2,
+    rivalsRange: 1,
+    /** A rival's lot as a share of the demand: between rivalShareMin and rivalShareMin + rivalShareRange. */
+    rivalShareMin: 0.2,
+    rivalShareRange: 0.15,
+    /** A direct run from where you are when it starts always finds at least this share of the demand. */
+    leftMin: 0.3,
   },
   /**
    * What a new captain is shown when, by level. Nothing here changes a rule: every system runs from the
@@ -364,6 +379,12 @@ export const CONFIG = {
     bulk: 0.5,
     /** Share of the total pay you put down when you accept. */
     deposit: 0.1,
+    /**
+     * Some orders are for goods that are banned where they are wanted. They pay more, and customs on the
+     * way can end them. They are only offered where the lot can be loaded legally.
+     */
+    hotChance: 0.3,
+    hotBonus: 1.3,
   },
   shardsPerDuplicate: {
     standard: 5,

@@ -46,6 +46,10 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Sternkarte mit Fraktionsgebieten, Kurs über mehrere Stationen, Anzeige "bei Ankunft noch N". Der Hauptknopf folgt dem Kurs | fertig | Eigener Durchlauf mit 13 Prüfungen |
 | Expressrouten: sechs Bahnen durch die Mitte des Sektors sparen Sprünge und kosten zwei Einheiten Treibstoff statt einer. Der Kurs nimmt den Weg mit den wenigsten Sprüngen und bei Gleichstand den sparsameren. Neue Spieler starten am Ring (Lumen-Reede) | fertig | Tests: Kosten je Bahn, Kurs und Treibstoff, Sprung scheitert bei zu wenig Treibstoff |
 | Lieferaufträge mit Frist (Frachtbörse, ab Stufe 3): Eine Station bestellt eine feste Menge zu festem Preis über ihrem Markt, lieferbar innert einer Anzahl Sprünge. Pfand von 10 % beim Annehmen, zurück bei Lieferung, weg bei Fristablauf. Die bestellende Station verkauft die Ware selbst nicht. Höchstens zwei gleichzeitig, drei neue Angebote an jeder Station | fertig | 10 Tests: Preis über Markt, Frist, Pfand, letzter Sprung zählt, Ausverkauf am Ziel, alte Spielstände. Eigener Durchlauf mit 23 Prüfungen |
+| Rivalen bei Krisen: Zwei bis drei namentliche Händler sind mit je einem Teil des Bedarfs unterwegs. Sie rücken pro eigenem Sprung eine Bahn vor und liefern bei Ankunft ihre ganze Ladung. Die Sternkarte zeigt, wo sie sind, die Zielkarte, wer wann wie viel liefert. "Bei Ankunft Bedarf N" rechnet sie ein | fertig | Tests: Rivalen rücken genau eine Bahn vor, liefern bei Ankunft, und was die Anzeige für eine direkte Fahrt verspricht, findet man vor |
+| Aufträge für Schmuggelware: Rund jeder dritte Aushang verlangt Ware, die am Ziel verboten ist. Er zahlt 30 % mehr, und der Zoll kann die Ladung unterwegs nehmen. Angeboten nur dort, wo sich die Ware legal laden lässt | fertig | Test über 60 Börsen: Anteil, Legalität an beiden Enden, Lieferung am Hehler vorbei |
+| Konvoi-Rückkehr als Moment: zuerst die Chance, mit der er losfuhr, dann nach einem immer gleich langen Augenblick das Ergebnis | fertig | Durchlauf prüft, dass das Ergebnis erst nach dem Augenblick erscheint, für Erfolg und Misserfolg gleich |
+| Kartenrahmen nach Seltenheit: Standard dünn und matt, Selten schimmernd, Elite mit Eckwinkeln, Legende in Gold, Singularität als Prisma | fertig | Sichtprüfung aller fünf nebeneinander |
 | Schrittweise Freischaltung: Ein neuer Kapitän beginnt mit Station, Markt und Containern. Der Rest kommt bis Stufe 6 dazu, jeweils im Stufenaufstieg angekündigt und mit einer Marke versehen, bis man es geöffnet hat. Ändert keine Regel | fertig | 6 Tests, eigener Durchlauf mit 19 Prüfungen |
 | Sprung direkt auf der Sternkarte: eine Zielkarte mit Sprung-Knopf statt einer Liste von Sprungzielen | fertig | Durchläufe angepasst |
 | Einheitliche Gestaltung: sechs Textgrössen, vier Eckenradien, Leuchten nur für Hauptknopf, Abholbares und Seltenheit | fertig | Sichtprüfung aller Durchläufe |
@@ -123,13 +127,13 @@ Schmuggler springen seltener, weil ihre Wege öfter über die teuren Expressrout
 | Handelsgewinn gesamt | 3.9 Millionen | 4.4 Millionen (13 % mehr) | 4.8 Millionen (23 % mehr) |
 | Erwischt | 0.3 mal | 0.5 mal | 14 mal |
 
-Der Kurier nimmt 4.6 Aufträge pro Tag an und liefert 95 % davon. Die übrigen platzen meist, weil Piraten unterwegs einen Teil der Ladung nehmen. Eine Lieferung bringt im Schnitt 20'800 Credits Gewinn, Aufträge machen 64 % seines Handelsgewinns aus und Krisen 5 % (0.4 Fahrten pro Tag, 384 Credits pro verkaufter Einheit). Die Reihenfolge stimmt damit: Aufträge sind besser als Pendeln, Schmuggel bleibt wegen des Risikos am einträglichsten.
+Der Kurier nimmt 4.6 Aufträge pro Tag an und liefert 95 % davon. Die übrigen platzen meist, weil Piraten unterwegs einen Teil der Ladung nehmen. Eine Lieferung bringt im Schnitt 20'800 Credits Gewinn, Aufträge machen 64 % seines Handelsgewinns aus und Krisen 5 % (0.4 Fahrten pro Tag, 384 Credits pro verkaufter Einheit). Die Reihenfolge stimmt damit: Aufträge sind besser als Pendeln, Schmuggel bleibt wegen des Risikos am einträglichsten. Mit Rivalen bei Krisen und heissen Aufträgen auf der Börse blieb das Bild in einer weiteren Messung gleich: legal 3.8 Millionen, Kurier 4.3 Millionen (13 % mehr), Schmuggel 4.6 Millionen (22 % mehr).
 
 
 **Offen:**
 - **Sektor ist neu und kaum gespielt.** Die Karte hat zwölf Stationen, vier davon neu (Tessera-Kreuz, Eisenfurt, Nimbus-Riff, Solace-Labor). Ihre Preise sind gesetzt, aber nur von Bots geprüft. Die Bots planen keine fernen Krisen an, sie handeln nur von Bahn zu Bahn.
-- **Krisen kennen nur den Bedarf.** Es gibt noch keine Gegenspieler, die sichtbar unterwegs sind, und keine Blockaden auf Bahnen.
-- **Lieferaufträge sind gemessen, aber kaum gespielt.** Der Kurier-Bot fährt stur den direkten Weg. Ob Frist (direkter Weg plus ein bis zwei Sprünge) und Aufpreis sich für einen Menschen richtig anfühlen, zeigt erst das Spielen. Aufträge für Schmuggelware gibt es noch nicht, und ein Schmuggler, der auch Aufträge fährt, ist nicht gemessen.
+- **Rivalen sind simuliert.** Die Händler, die zu Krisen unterwegs sind, haben Namen, Ladung und einen Weg, aber sie sind keine echten Spieler und handeln sonst nicht. Blockaden auf Bahnen gibt es nicht.
+- **Lieferaufträge sind gemessen, aber kaum gespielt.** Der Kurier-Bot fährt stur den direkten Weg. Ob Frist (direkter Weg plus ein bis zwei Sprünge) und Aufpreis sich für einen Menschen richtig anfühlen, zeigt erst das Spielen. Aufträge für Schmuggelware nimmt kein Bot an: Ihr Aufpreis von 30 % ist geschätzt, nicht gemessen.
 - **Treibstoff kennt zwei Preise.** Ringbahn eine Einheit, Expressroute zwei. Die Länge einer Bahn auf der Karte spielt sonst keine Rolle.
 - **Auktionshaus und Liga sind simuliert.** Gegenbieter, Käufer und Liga-Rivalen sind Zufallsgrössen mit festen Grenzen, keine echten Spieler. Die Liga sagt das auf dem Bildschirm. Echte Mitspieler brauchen Konten, Datenbank und Schutz gegen Absprachen (zweiter Teil von Phase 4).
 - **Rest von Phase 4:** Telemetrie und alles, was echte Mitspieler braucht (Konten, Datenbank, echte Ranglisten).
@@ -141,7 +145,6 @@ Der Kurier nimmt 4.6 Aufträge pro Tag an und liefert 95 % davon. Die übrigen p
 - **Geld im Spätspiel.** Die Werft bindet das Geld bis etwa Tag 50, Prestige setzt es zurück. Nach Rang 5 (rund 230 Tage) fehlt wieder ein Ziel.
 - **Vermögen der Bots täuscht.** Sie sparen stur auf das nächste Schiff und kaufen dann nur zwei Container pro Tag. Echte Spieler verteilen ihr Geld anders.
 - **Kartenkunst.** 42 Karten haben ein eigenes Porträt (10 Legenden, 20 Elite, je 6 Karten der laufenden und der nächsten Saison), die 100 seltenen und Standard-Karten teilen sich 20 Archetypen. Alle zwölf Stationen haben ein Bild.
-- **Schiff im Sprung.** Vor der Station zeigt das Spiel die neuen Rückansichten (Paket M). Die Sprung-Szene nutzt noch die Draufsicht.
 - **Kippeffekt nicht auf einem Gerät geprüft.** Die Folie aller Karten folgt dem Lagesensor. Geprüft ist das nur mit nachgestellten Sensordaten im Browser. Auf dem iPhone fragt das System beim ersten Öffnen von Deck oder Hangar um Erlaubnis.
 - **Tages- und Wochengrenze.** Mitternacht und Montag nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
 - **Erinnerungen sind lokal.** Sie werden auf dem Gerät geplant, wenn die App in den Hintergrund geht. Was erst danach passiert (zum Beispiel ein überbotenes Gebot), kann die App nicht melden. Dafür braucht es einen Server.
@@ -300,6 +303,5 @@ Hier kommt der grösste Teil des Katalogs.
 
 1. **Grafiken:** Alle Pakete A bis M sind eingebaut. Die nächste Lieferung sind sechs Porträts für die übernächste Saison.
 2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
-3. **Design, Rest** (Dokument 07): Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment.
-4. **Sektor weiter ausbauen:** Aufträge für Schmuggelware. Sichtbare Konkurrenten auf der Karte.
+3. **Sektor messen:** ein Schmuggler-Bot, der heisse Aufträge fährt, damit ihr Aufpreis gemessen ist.
 5. Danach zur Wahl: Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.

@@ -50,8 +50,8 @@ export function charterReward(tier: number, track: 'free' | 'premium'): Reward {
 // League
 // ---------------------------------------------------------------------------
 
-const RIVAL_FIRST = ['Mara', 'Jonn', 'Sile', 'Okta', 'Brix', 'Vela', 'Tarn', 'Ines', 'Kolja', 'Remy', 'Asha', 'Dario', 'Nuri', 'Pavel', 'Lotte', 'Ezra', 'Saga', 'Milo', 'Thea', 'Arno', 'Zuri', 'Hakon', 'Lien', 'Corin', 'Maud', 'Ravi', 'Elke', 'Jude', 'Noor'];
-const RIVAL_LAST = ['Varek', 'Sund', 'Okonjo', 'Lindt', 'Harrow', 'Quade', 'Meszaros', 'Tilden', 'Abendroth', 'Castellan', 'Wray', 'Dunmore', 'Iversen', 'Solano', 'Brecht', 'Nakamura', 'Fenn', 'Osei', 'Kruger', 'Valmont'];
+export const RIVAL_FIRST = ['Mara', 'Jonn', 'Sile', 'Okta', 'Brix', 'Vela', 'Tarn', 'Ines', 'Kolja', 'Remy', 'Asha', 'Dario', 'Nuri', 'Pavel', 'Lotte', 'Ezra', 'Saga', 'Milo', 'Thea', 'Arno', 'Zuri', 'Hakon', 'Lien', 'Corin', 'Maud', 'Ravi', 'Elke', 'Jude', 'Noor'];
+export const RIVAL_LAST = ['Varek', 'Sund', 'Okonjo', 'Lindt', 'Harrow', 'Quade', 'Meszaros', 'Tilden', 'Abendroth', 'Castellan', 'Wray', 'Dunmore', 'Iversen', 'Solano', 'Brecht', 'Nakamura', 'Fenn', 'Osei', 'Kruger', 'Valmont'];
 
 export interface Standing { name: string; score: number; you: boolean }
 

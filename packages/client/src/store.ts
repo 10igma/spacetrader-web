@@ -20,7 +20,7 @@ export interface Travel {
   /** True when we reconnected into a pending encounter and skip the launch. */
   resumed: boolean;
   /** Courier pay on arrival, once known. */
-  courier: number; /** Deposits of orders that ran out of jumps on this jump. */ depositLost: number;
+  courier: number; /** Deposits of orders that ran out of jumps on this jump. */ depositLost: number; /** What rivals delivered on this jump to the crisis the course leads to. */ rivalCargo: number;
   /** The streak moved on this jump: shown on arrival. */
   streak: { count: number; kind: 'started' | 'extended' | 'saved' } | null;
 }
@@ -34,6 +34,7 @@ export type MilestoneMoment = { id: number } & (
   | { kind: 'album' }
   | { kind: 'charter' }
   | { kind: 'prestige'; rank: number }
+  | { kind: 'convoy'; success: boolean; chance: number; reward: Reward; xp: number }
 );
 type MomentInput = MilestoneMoment extends infer M ? (M extends { id: number } ? Omit<M, 'id'> : never) : never;
 export type Sheet = 'posts' | 'wheel' | 'salvage' | 'profile' | 'settings' | 'orders' | null;
@@ -180,7 +181,7 @@ export const useApp = create<AppState>((set, get) => ({
     const view = await get().service.connect();
     set({ view, clockOffset: view.serverTime - Date.now() });
     // Reconnected in the middle of an encounter: pick the scene up where it stopped.
-    if (view.encounter) set({ travel: { from: view.location, to: view.encounter.to, outcome: null, resumed: true, courier: 0, streak: null, depositLost: 0 } });
+    if (view.encounter) set({ travel: { from: view.location, to: view.encounter.to, outcome: null, resumed: true, courier: 0, streak: null, depositLost: 0, rivalCargo: 0 } });
   },
 
   async send(cmd) {
@@ -211,8 +212,11 @@ export const useApp = create<AppState>((set, get) => ({
         if (ev.type === 'ModuleBought') { audio.coins(800); get().showToast(`${MODULE_BY_ID.get(ev.module)!.name} Stufe ${ev.level}`, 'good'); }
         if (ev.type === 'ConvoySent') get().showToast(`Konvoi unterwegs · Chance ${Math.round(ev.chance * 100)} %`, 'good');
         if (ev.type === 'ConvoyReturned') {
-          if (ev.success) audio.coins(ev.reward.credits ?? 500);
-          get().showToast(ev.success ? `Konvoi erfolgreich: ${rewardText(ev.reward)}` : `Konvoi gescheitert: nur ${rewardText(ev.reward)}`, ev.success ? 'good' : 'bad');
+          // The return is a moment of its own: chance first, then how it went. With the big moments off it is one line.
+          if (new URLSearchParams(location.search).has('calm')) {
+            if (ev.success) audio.coins(ev.reward.credits ?? 500);
+            get().showToast(ev.success ? `Konvoi erfolgreich: ${rewardText(ev.reward)}` : `Konvoi gescheitert: nur ${rewardText(ev.reward)}`, ev.success ? 'good' : 'bad');
+          } else get().celebrate({ kind: 'convoy', success: ev.success, chance: ev.chance, reward: ev.reward, xp: ev.xp });
         }
         if (ev.type === 'SeasonAlbumClaimed' && ev.complete) get().celebrate({ kind: 'album' });
         if (ev.type === 'PaintBought') { audio.coins(600); get().showToast('Neue Lackierung aufgetragen', 'good'); }
@@ -230,11 +234,16 @@ export const useApp = create<AppState>((set, get) => ({
           if (travel) set({ travel: { ...travel, depositLost: travel.depositLost + ev.order.deposit } });
           else { audio.deny(); get().showToast(`Lieferauftrag ${STATION_BY_ID.get(ev.order.to)!.name} geplatzt: Pfand ${num(ev.order.deposit)} verloren`); }
         }
+        if (ev.type === 'RivalDelivered' && get().course === ev.stationId) {
+          // Someone got there first on the way you are flying. The arrival card says by how much.
+          const travel = get().travel;
+          if (travel) set({ travel: { ...travel, rivalCargo: travel.rivalCargo + ev.cargo } });
+        }
         if (ev.type === 'CharterBought') get().celebrate({ kind: 'charter' });
         if (ev.type === 'LeagueClaimed' && ev.moved > 0) get().celebrate({ kind: 'league', tier: view.league.tier, tierName: view.league.tierName, rank: ev.rank });
         if (ev.type === 'LeagueClaimed' && ev.moved < 0) get().showToast('Abgestiegen');
         if (ev.type === 'CrateOpened') set({ reveal: ev.pulls, revealCrate: ev.source === 'reward' ? null : ev.tier });
-        if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0, streak: null, depositLost: 0 }, routesOpen: false });
+        if (ev.type === 'JumpStarted') set({ travel: { from: ev.from, to: ev.to, outcome: null, resumed: false, courier: 0, streak: null, depositLost: 0, rivalCargo: 0 }, routesOpen: false });
         if (ev.type === 'Arrived') {
           const travel = get().travel;
           if (travel) set({ travel: { ...travel, courier: ev.courier } });

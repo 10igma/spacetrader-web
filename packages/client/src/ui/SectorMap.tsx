@@ -49,6 +49,13 @@ export function SectorMap({ view, course, proposed = null, onPick }: { view: Cli
   const onPath = (a: StationId, b: StationId): boolean => path.some((p, i) => (p === a && path[i + 1] === b) || (p === b && path[i + 1] === a));
   const crisisAt = new Map(view.events.map((e) => [e.stationId, e]));
   const orderAt = new Map(view.orders.active.map((o) => [o.to, o]));
+  // Rivals on their way to a crisis: drawn on the lane they take next, pointing where they go.
+  const rivals = view.events.flatMap((e) => e.rivals.map((r, i) => {
+    const next = courseTo(r.at, e.stationId)[0] ?? e.stationId;
+    const p = POS.get(r.at)!, q = POS.get(next)!;
+    const k = 0.26 + (i % 3) * 0.1;
+    return { key: `${e.stationId}-${r.name}`, x: p[0] + (q[0] - p[0]) * k, y: p[1] + (q[1] - p[1]) * k, angle: (Math.atan2(q[1] - p[1], q[0] - p[0]) * 180) / Math.PI, eta: r.eta };
+  }));
 
   return (
     <svg className="sector" viewBox="-5 -6 110 124" role="img" aria-label="Sternkarte des Sektors">
@@ -70,6 +77,11 @@ export function SectorMap({ view, course, proposed = null, onPick }: { view: Cli
           </g>
         );
       })}
+      {rivals.map((r) => (
+        <g key={r.key} className="sector__rival" transform={`translate(${r.x.toFixed(1)} ${r.y.toFixed(1)}) rotate(${r.angle.toFixed(0)})`}>
+          <path d="M2.4 0 L-1.6 1.7 L-0.7 0 L-1.6 -1.7 Z" />
+        </g>
+      ))}
       {STATIONS.map((s) => {
         const [x, y] = s.pos;
         const crisis = crisisAt.get(s.id);

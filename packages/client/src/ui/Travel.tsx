@@ -136,7 +136,7 @@ export function Travel({ travel }: { travel: TravelState }) {
     <div className={`overlay travel travel--${phase}`} style={{ ['--faction' as string]: FACTION_COLOR[dest.faction] }} onClick={skip}>
       {(phase === 'launch' || phase === 'cruise') && (
         <div className="travel__ship" key={phase} style={{ animationDuration: `${phase === 'launch' ? launchMs : CRUISE_MS}ms` }}>
-          <ShipArt id={view.fleet.active} paint={view.captain.paints.find((p) => p.id === view.captain.paint)?.tone ?? null} />
+          <ShipArt id={view.fleet.active} view="rear" paint={view.captain.paints.find((p) => p.id === view.captain.paint)?.tone ?? null} />
         </div>
       )}
       {(phase === 'launch' || phase === 'cruise') && (
@@ -228,6 +228,12 @@ export function Travel({ travel }: { travel: TravelState }) {
               <span className="arrive__chip arrive__chip--streak">
                 <small>{travel.streak.kind === 'saved' ? 'Serie gerettet' : 'Serie'}</small>
                 <b>{travel.streak.count} {travel.streak.count === 1 ? 'Tag' : 'Tage'}</b>
+              </span>
+            )}
+            {travel.rivalCargo > 0 && (
+              <span className="arrive__chip is-down">
+                <small>Rivale lieferte</small>
+                <b>−{num(travel.rivalCargo)} Bedarf</b>
               </span>
             )}
             {travel.depositLost > 0 && (

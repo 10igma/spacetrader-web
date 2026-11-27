@@ -126,6 +126,14 @@ Anlass: Die Öffnung wirkte zu brav. Der Container stand im Leeren, wackelte kur
 
 **Fairness, unverändert:** Die Karten stehen fest, bevor die Öffnung beginnt. Aufprall, Schläge und Explosion sind für jeden Container gleich und sagen nichts über den Inhalt. Das erste Signal ist die Farbe hinter der Karte, und sie ist immer die echte Seltenheit. Beim Aufwertungs-Moment zeigt sie zuerst die gewürfelte und dann die höhere Seltenheit, wie die Regeln es entschieden haben. Es gibt kein Beinahe-Treffer-Bild.
 
+### Letzte Reste aus Runde 2 (27.11.2026)
+
+| Thema | Stand |
+|---|---|
+| Kartenrahmen trägt die Seltenheit | Erledigt. Der Rahmen wird Stufe um Stufe dicker und reicher: Standard dünn und matt, Selten schimmernd, Elite mit Eckwinkeln, Legende in Gold, Singularität als Prisma. Auch in der Miniatur ohne Schrift lesbar |
+| Konvoi-Rückkehr als Moment | Erledigt. Zuerst die Chance als Ring, dann nach einem immer gleich langen Augenblick das Ergebnis mit Belohnung. Kein Zeiger, der knapp daneben stehen bleibt |
+| Schiff im Sprung | Erledigt. Die Sprung-Szene zeigt das Schiff von hinten, in den Tunnel gedreht |
+
 ## Bewusst nicht umgesetzt
 
 - **Prestige mit gedrückt halten:** Die Bestätigung in zwei Schritten mit Verlustliste reicht fürs Erste.

@@ -21,11 +21,11 @@ import {
 import { PAINT_BY_ID, PAINTS, titleList, type Facts } from './profile.ts';
 import { nextFloat, pick, seedRng, type RngState } from './rng.ts';
 import {
-  charterReward, charterTier, leagueMove, leagueReward, seasonEndsAt, seasonIndex, seasonName, standings, weekEndsAt,
+  charterReward, charterTier, leagueMove, leagueReward, RIVAL_FIRST, RIVAL_LAST, seasonEndsAt, seasonIndex, seasonName, standings, weekEndsAt,
   weekendActive, weekendStartsAt, weekIndex, weekStartsAt, type Standing,
 } from './season.ts';
 import {
-  CRISIS_NAME, GOOD_BY_ID, GOODS, hopsBetween, isBanned, laneFuel, neighbours, STATION_BY_ID, STATIONS, stationMod,
+  courseTo, CRISIS_NAME, GOOD_BY_ID, GOODS, hopsBetween, isBanned, laneFuel, neighbours, STATION_BY_ID, STATIONS, stationMod,
   type Category, type GoodDef, type GoodId, type StationId,
 } from './world.ts';
 
@@ -33,7 +33,7 @@ import {
 // State
 // ---------------------------------------------------------------------------
 
-export const STATE_VERSION = 12;
+export const STATE_VERSION = 13;
 
 export type EncounterKind = 'pirates' | 'customs';
 export type EncounterChoice = 'fight' | 'flee' | 'pay' | 'submit' | 'bribe' | 'breakThrough';
@@ -49,9 +49,15 @@ export interface MarketEvent {
   mult: number;
   /** Units still wanted. The crisis is over when this reaches zero. */
   demand: number;
-  /** Units other traders deliver with every jump you make. */
+  /** Units small traders deliver with every jump you make. */
   drain: number;
+  /** Named traders on their way here. Each delivers a whole lot when it arrives. */
+  rivals?: Rival[];
 }
+/** Someone else heading for a crisis: where they are now and what they carry. */
+export interface Rival { name: string; at: StationId; cargo: number }
+/** A rival as the client sees it: with the jumps left until it delivers. */
+export interface RivalView extends Rival { eta: number }
 /** A delivery order: `qty` units of a good to a station within `left` jumps, for a fixed price per unit. */
 export interface Order {
   id: number;
@@ -65,6 +71,8 @@ export interface Order {
   deposit: number;
   /** Jumps left to arrive. For an offer: the jumps you would get. */
   left: number;
+  /** The good is banned where it is wanted: better pay, and customs on the way can take the lot. */
+  hot?: boolean;
 }
 /** An order as the client sees it. `market`: what the same lot would sell for there today. */
 export interface OrderView extends Order {
@@ -77,7 +85,7 @@ export interface OrderView extends Order {
   buyHere: number | null;
 }
 /** A crisis as the client sees it: with the way there and what will be left on a direct run. */
-export interface CrisisView extends MarketEvent { name: string; hops: number; onArrival: number }
+export interface CrisisView extends Omit<MarketEvent, 'rivals'> { name: string; hops: number; onArrival: number; rivals: RivalView[] }
 
 /** Authoritative state. Lives on the server side of the GameService boundary. */
 export interface GameState {
@@ -436,7 +444,7 @@ export type GameEvent =
   | { type: 'ModuleBought'; module: ModuleId; level: number }
   | { type: 'ModulesChanged' }
   | { type: 'ConvoySent'; hours: number; chance: number }
-  | { type: 'ConvoyReturned'; success: boolean; reward: Reward; xp: number }
+  | { type: 'ConvoyReturned'; success: boolean; reward: Reward; xp: number; /** The chance it was sent with, for showing the roll. */ chance: number }
   | { type: 'LeagueClaimed'; rank: number; moved: -1 | 0 | 1; tier: number }
   | { type: 'StreakChanged'; count: number; kind: 'started' | 'extended' | 'saved' | 'lost'; previous: number }
   | { type: 'Bought'; goodId: GoodId; qty: number; cost: number }
@@ -462,6 +470,7 @@ export type GameEvent =
   | { type: 'OrderDelivered'; order: Order; revenue: number; profit: number }
   | { type: 'OrderFailed'; order: Order }
   | { type: 'MarketEventEnded'; stationId: StationId; category: Category; byYou: boolean }
+  | { type: 'RivalDelivered'; name: string; stationId: StationId; category: Category; cargo: number }
   | { type: 'DeckChanged' }
   | { type: 'HoldUpgraded'; level: number; cap: number }
   | { type: 'LevelUp'; level: number }
@@ -937,14 +946,17 @@ function rollOrders(state: GameState): void {
     // Legal at both ends, so the lot can always be loaded where the order hangs.
     const legal = GOODS.filter((g) => !bannedAt(g, station.id) && !bannedAt(g, here));
     const wanted = legal.filter((g) => stationMod(station, g) >= 1);
+    // Now and then someone wants what is banned at their own station. It still has to be legal to load here.
+    const contraband = GOODS.filter((g) => bannedAt(g, station.id) && !bannedAt(g, here));
+    const hot = contraband.length > 0 && nextFloat(rng) < cfg.hotChance;
     // Nobody sends for a courier over cheap bulk: dear goods are asked for more often.
-    const pool = wanted.length > 0 ? wanted : legal;
+    const pool = hot ? contraband : wanted.length > 0 ? wanted : legal;
     const good = pool[pickWeighted(rng, pool.map((g) => Math.sqrt(g.base)))]!;
     const hops = hopsBetween(here, station.id);
     const qty = Math.max(3, Math.round(cargoCap(state) * (cfg.holdMin + nextFloat(rng) * cfg.holdRange)));
     // A big lot drives the price up wherever you buy it. The order pays for that, so it is worth it for any ship.
     const bulk = CONFIG.market.impact * qty * cfg.bulk;
-    const pay = Math.round(plainPrice(station.id, good) * (cfg.premium + cfg.premiumPerHop * hops + bulk));
+    const pay = Math.round(plainPrice(station.id, good) * (cfg.premium + cfg.premiumPerHop * hops + bulk) * (hot ? cfg.hotBonus : 1));
     state.orders.seq += 1;
     offers.push({
       id: state.orders.seq,
@@ -955,6 +967,7 @@ function rollOrders(state: GameState): void {
       pay,
       deposit: Math.round(qty * pay * cfg.deposit),
       left: hops + cfg.slackMin + Math.floor(nextFloat(rng) * (cfg.slackRange + 1)),
+      ...(hot ? { hot: true } : {}),
     });
   }
   state.orders.offers = offers;
@@ -1125,8 +1138,17 @@ function arrive(state: GameState, to: StationId, events: GameEvent[], now: numbe
   }
   driftMarkets(state);
 
-  // Crises: other traders deliver too, so the demand drops with every jump.
-  for (const e of state.events) e.demand -= e.drain;
+  // Crises: other traders deliver too. Small ones a little with every jump, rivals a whole lot when they get there.
+  for (const e of state.events) {
+    e.demand -= e.drain;
+    for (const r of e.rivals ?? []) {
+      r.at = courseTo(r.at, e.stationId)[0] ?? e.stationId;
+      if (r.at !== e.stationId) continue;
+      e.demand -= r.cargo;
+      events.push({ type: 'RivalDelivered', name: r.name, stationId: e.stationId, category: e.category, cargo: r.cargo });
+    }
+    if (e.rivals) e.rivals = e.rivals.filter((r) => r.at !== e.stationId);
+  }
   for (const e of state.events.filter((x) => x.demand <= 0)) events.push({ type: 'MarketEventEnded', stationId: e.stationId, category: e.category, byYou: false });
   state.events = state.events.filter((e) => e.demand > 0);
   const cfg = CONFIG.marketEvent;
@@ -1136,17 +1158,32 @@ function arrive(state: GameState, to: StationId, events: GameEvent[], now: numbe
     const far = STATIONS.filter((s) => !taken.has(s.id) && hopsBetween(to, s.id) >= cfg.minHops);
     const station = pick(state.rng.market, far.length > 0 ? far : STATIONS.filter((s) => s.id !== to && !taken.has(s.id)));
     const categories = [...new Set(GOODS.map((g) => g.category))];
-    const drain = cfg.drainMin + Math.floor(nextFloat(state.rng.market) * (cfg.drainRange + 1));
-    const jumps = hopsBetween(to, station.id) + cfg.slackMin + nextFloat(state.rng.market) * cfg.slackRange;
+    const size = cfg.drainMin + Math.floor(nextFloat(state.rng.market) * (cfg.drainRange + 1));
+    const hops = hopsBetween(to, station.id);
+    const jumps = hops + cfg.slackMin + nextFloat(state.rng.market) * cfg.slackRange;
+    let demand = Math.round(size * jumps);
+    const drain = cfg.trickleMin + Math.floor(nextFloat(state.rng.market) * (cfg.trickleRange + 1));
+    // Rivals set out from other stations with a share of the demand each.
+    const rng = state.rng.market;
+    const starts = STATIONS.filter((s) => s.id !== station.id);
+    const rivals: Rival[] = Array.from({ length: cfg.rivalsMin + Math.floor(nextFloat(rng) * (cfg.rivalsRange + 1)) }, () => ({
+      name: `${pick(rng, RIVAL_FIRST)} ${pick(rng, RIVAL_LAST)}`,
+      at: pick(rng, starts).id,
+      cargo: Math.max(4, Math.round(demand * (cfg.rivalShareMin + nextFloat(rng) * cfg.rivalShareRange))),
+    }));
+    // A direct run from here must find demand: if those who get there first would take too much, the need is bigger.
+    const before = drain * hops + rivals.filter((r) => hopsBetween(r.at, station.id) <= hops).reduce((sum, r) => sum + r.cargo, 0);
+    demand = Math.max(demand, Math.ceil(before / (1 - cfg.leftMin)));
     const event: MarketEvent = {
       stationId: station.id,
       category: pick(state.rng.market, categories),
       mult: Math.round((cfg.multMin + nextFloat(state.rng.market) * cfg.multRange) * 100) / 100,
-      demand: Math.round(drain * jumps),
+      demand,
       drain,
+      rivals,
     };
     state.events.push(event);
-    events.push({ type: 'MarketEventStarted', event: { ...event } });
+    events.push({ type: 'MarketEventStarted', event: { ...event, rivals: rivals.map((r) => ({ ...r })) } });
   }
 
   // Now and then a sealed wreck container is on offer at the dock.
@@ -1691,6 +1728,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       if (profit > 0) state.league.score += profit;
       events.push({ type: 'OrderDelivered', order: { ...order }, revenue, profit });
       progress(state, 'sellUnits', order.qty);
+      if (order.hot) progress(state, 'hotUnits', order.qty);
       progress(state, 'profit', profit);
       if (profit > 0) addXp(state, CONFIG.travel.xpPerSaleLog * Math.log10(1 + profit), events, now);
       break;
@@ -1877,7 +1915,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       const success = nextFloat(state.rng.convoy) < convoy.chance;
       const { reward, xp } = convoyPayout(convoy.offer, success);
       if (success) state.stats.convoys += 1;
-      events.push({ type: 'ConvoyReturned', success, reward, xp });
+      events.push({ type: 'ConvoyReturned', success, reward, xp, chance: convoy.chance });
       grantReward(state, reward, events);
       addXp(state, xp, events, now);
       break;
@@ -2006,7 +2044,10 @@ export function toClientView(state: GameState, now: number): ClientView {
   });
   const crises: CrisisView[] = s.events.map((e) => {
     const hops = hopsBetween(here, e.stationId);
-    return { ...e, name: CRISIS_NAME[e.category], hops, onArrival: Math.max(0, e.demand - e.drain * hops) };
+    const rivals = (e.rivals ?? []).map((r) => ({ ...r, eta: hopsBetween(r.at, e.stationId) })).sort((a, b) => a.eta - b.eta);
+    // Whoever gets there no later than you has delivered before you sell.
+    const first = rivals.filter((r) => r.eta <= hops).reduce((sum, r) => sum + r.cargo, 0);
+    return { ...e, rivals, name: CRISIS_NAME[e.category], hops, onArrival: Math.max(0, e.demand - e.drain * hops - first) };
   }).sort((a, b) => a.hops - b.hops);
 
   const routes: RouteView[] = s.routes.map((id) => {

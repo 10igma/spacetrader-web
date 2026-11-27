@@ -37,6 +37,8 @@ export function upgradeSave(raw: unknown, now: number): GameState | null {
   }
   // Orders came with version 12. The board fills at the next station.
   if ((raw.version as number) < 12) saved.orders = { offers: [], active: [], seq: 0 };
+  // Rivals came with version 13. Crises that are already running keep their steady drain and have none.
+  if ((raw.version as number) < 13 && Array.isArray(saved.events)) for (const e of saved.events as { rivals?: unknown[] }[]) e.rivals ??= [];
   saved.version = STATE_VERSION;
   return saved as unknown as GameState;
 }

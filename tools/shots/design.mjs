@@ -78,6 +78,19 @@ await app(() => window.__nova.app.getState().celebrate({ kind: 'prestige', rank:
 await shot('157-moment-prestige');
 await page.locator('.moment').tap(); await settle(500);
 check('moments close on tap', await page.locator('.moment').count() === 0);
+// A convoy returns: the chance, a beat, then the result. The beat is the same whatever the outcome.
+await app(() => window.__nova.app.getState().celebrate({ kind: 'convoy', success: true, chance: 0.78, reward: { credits: 2400, shards: 30 }, xp: 60 })); await settle(500);
+await shot('157b-convoy-beat');
+check('the convoy result waits for the beat', await page.locator('.moment--convoy.is-pending').count() === 1 && await page.locator('.moment--convoy .moment__lines li').count() === 0);
+await page.waitForSelector('.moment--convoy.is-won', { timeout: 4000 }); await settle(700);
+await shot('157c-convoy-won');
+check('then it says how it went and what it brought', await page.locator('.moment--convoy .moment__lines li').first().innerText().then((t) => t.includes("2'400") || t.includes('2’400')));
+await page.locator('.moment').tap(); await settle(400);
+await app(() => window.__nova.app.getState().celebrate({ kind: 'convoy', success: false, chance: 0.78, reward: { credits: 300 }, xp: 15 }));
+await page.waitForSelector('.moment--convoy.is-lost', { timeout: 4000 }); await settle(700);
+await shot('157d-convoy-lost');
+check('a failed convoy takes the same beat and says so', await page.locator('.moment--convoy .moment__title').innerText().then((t) => t.toUpperCase().includes('GESCHEITERT')));
+await page.locator('.moment').tap(); await settle(400);
 
 // Two taps to spend premium currency
 await tab('Hangar');

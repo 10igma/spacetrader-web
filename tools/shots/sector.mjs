@@ -36,7 +36,8 @@ await page.evaluate(() => {
   s.cargo = { huntarms: { qty: 18, avgCost: 400, heat: 0 } };
   // A war at the far end of the Asche territory, and a plague one jump away.
   s.events = [
-    { stationId: 'eisenfurt', category: 'waffen', mult: 1.85, demand: 44, drain: 8 },
+    // A rival sets out from Varn-Gürtel with six units: two lanes away, so it gets there when we do.
+    { stationId: 'eisenfurt', category: 'waffen', mult: 1.85, demand: 44, drain: 8, rivals: [{ name: 'Vela Wray', at: 'varn', cargo: 6 }] },
     { stationId: 'zenit', category: 'medizin', mult: 1.6, demand: 21, drain: 6 },
   ];
   localStorage.setItem('nova.save', JSON.stringify(s));
@@ -55,7 +56,8 @@ await shot('212-course-set');
 check('the course is two jumps long', await page.locator('.sector__lane.is-course').count() === 2);
 check('the jump button names the first leg of the course', await page.locator('.jump small').innerText().then((t) => /Lumen-Reede|Kessin Tief/.test(t)));
 check('there is one destination card, not a list', await page.locator('.dest').count() === 1 && await page.locator('.route').count() === 0);
-check('the course says what will be left on arrival', await page.locator('.course__crisis').innerText().then((t) => t.includes('Bedarf 28')));
+check('the course says what will be left on arrival', await page.locator('.course__crisis').innerText().then((t) => t.includes('Bedarf 22')));
+check('the rival is on the chart and named with what it carries', await page.locator('.sector__rival').count() === 1 && await page.locator('.course__rivals').innerText().then((t) => t.includes('Vela Wray') && t.includes('6') && t.includes('2 Sprüngen')));
 const demandBefore = await app(() => window.__nova.app.getState().view.events.find((e) => e.stationId === 'eisenfurt').demand);
 
 // Follow it.
@@ -82,6 +84,7 @@ await page.waitForFunction(() => { const s = window.__nova.app.getState(); retur
 await page.waitForFunction(() => !window.__nova.app.getState().travel, null, { timeout: 15000 }); await settle(900);
 const arrived = await app(() => { const s = window.__nova.app.getState(); return { at: s.view.location, course: s.course, tab: s.tab }; });
 check('arrived at the war', arrived.at === 'eisenfurt');
+check('the rival delivered on the way: what is left is what the chart promised', await app(() => window.__nova.app.getState().view.events.find((e) => e.stationId === 'eisenfurt')?.demand) === 22);
 check('the course is cleared on arrival', arrived.course === null);
 await shot('215-market-in-crisis');
 check('the market announces the crisis', await page.locator('.market__event--crisis').count() === 1);

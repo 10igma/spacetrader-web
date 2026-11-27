@@ -51,8 +51,10 @@ describe('delivery orders', () => {
         expect(hops).toBeLessThanOrEqual(cfg.maxHops);
         expect(o.left).toBeGreaterThanOrEqual(hops + cfg.slackMin);
         expect(o.left).toBeLessThanOrEqual(hops + cfg.slackMin + cfg.slackRange);
-        expect(isBanned(good, station.faction)).toBe(false);
-        expect(stationMod(station, good)).toBeGreaterThanOrEqual(1);
+        // Always legal to load where the order hangs. An ordinary order is legal at its destination and for something wanted there.
+        expect(isBanned(good, STATION_BY_ID.get(s.location)!.faction)).toBe(false);
+        expect(isBanned(good, station.faction)).toBe(!!o.hot);
+        if (!o.hot) expect(stationMod(station, good)).toBeGreaterThanOrEqual(1);
         expect(o.qty).toBeGreaterThanOrEqual(3);
         expect(o.qty).toBeLessThanOrEqual(toClientView(s, T0).cargo.cap);
         expect(o.deposit).toBe(Math.round(o.qty * o.pay * cfg.deposit));
@@ -78,6 +80,36 @@ describe('delivery orders', () => {
     }
     load(s, s.orders.offers[0]!);
     expect(toClientView(s, T0).orders.offers[0]!.buyHere).toBeNull();
+  });
+
+  it('some orders are for contraband: banned where it is wanted, legal where it hangs, and better paid', () => {
+    let hot = 0, plain = 0;
+    for (let i = 0; i < 60; i++) {
+      const s = fresh(`hot-${i}`);
+      for (const o of s.orders.offers) { if (o.hot) hot++; else plain++; }
+      const o = s.orders.offers.find((x) => x.hot);
+      if (!o) continue;
+      const good = GOOD_BY_ID.get(o.goodId)!;
+      expect(good.tier).not.toBe('free');
+      // The view carries the flag, and loading here is an ordinary purchase.
+      const view = toClientView(s, T0).orders.offers.find((x) => x.id === o.id)!;
+      expect(view.hot).toBe(true);
+      expect(view.buyHere).toBeGreaterThan(0);
+      expect(toClientView(s, T0).market.find((m) => m.goodId === o.goodId)!.channel).toBe('open');
+      // It delivers like any other order, past the fence and its limit.
+      let st = accept(s, o).state;
+      load(st, o, 10);
+      for (const next of courseTo(st.location, o.to)) st = hop(st, next).state;
+      const lot = st.cargo[o.goodId];
+      // Customs may have taken it on the way: that is the risk the bonus pays for.
+      if (!lot || lot.qty < o.qty || !st.orders.active.some((x) => x.id === o.id)) continue;
+      const res = applyCommand(st, { type: 'DeliverOrder', id: o.id }, T0);
+      expect(of(res.events, 'OrderDelivered')).toMatchObject({ revenue: o.qty * o.pay });
+    }
+    expect(hot).toBeGreaterThan(10);
+    // Roughly the configured share, where a suitable good exists.
+    expect(hot / (hot + plain)).toBeGreaterThan(0.1);
+    expect(hot / (hot + plain)).toBeLessThan(CONFIG.order.hotChance + 0.1);
   });
 
   it('accepting costs the deposit, and two at a time is the limit', () => {

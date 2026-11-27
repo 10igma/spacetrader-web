@@ -1,9 +1,10 @@
 import { featuresAt, SHIP_BY_ID, SHIPS, type ShipId } from '@nova/core';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp, type MilestoneMoment } from '../store.ts';
 import { art } from './art.ts';
 import { leagueBadge } from './Emblem.tsx';
+import { rewardText } from './format.ts';
 import { ShipArt } from './Shipyard.tsx';
 import { FEATURE_TEXT } from './unlocks.ts';
 
@@ -38,14 +39,65 @@ function content(m: MilestoneMoment, level: number): { eyebrow: string; title: s
       return { eyebrow: 'Saison-Edition', title: 'Komplett', rank: 4, hero: <b className="moment__number">12</b>, lines: ['Neuer Titel freigeschaltet', 'Lackierung Prisma freigeschaltet', 'Beides bleibt dir für immer'] };
     case 'charter':
       return { eyebrow: 'Saison', title: 'Premium-Charter', rank: 3, hero: <b className="moment__number">★</b>, lines: ['Zweite Belohnung auf jeder Stufe', 'Schon Erspieltes kannst du jetzt abholen'] };
+    case 'convoy':
+      // Shown by ConvoyMoment below: it has a beat before the result.
+      return { eyebrow: '', title: '', hero: null, lines: [], rank: 3 };
     case 'prestige':
       return { eyebrow: 'Prestige', title: `Rang ${m.rank}`, rank: 4, hero: art('emblems', 'prestige') ? <div className="moment__prestige"><img className="moment__badge" src={art('emblems', 'prestige')} alt="" draggable={false} /><b>{'★'.repeat(m.rank)}</b></div> : <b className="moment__number">{'★'.repeat(m.rank)}</b>, lines: [`+${m.rank * 3} % Verkaufspreis auf Dauer`, 'Crew, Titel und Liga bleiben', `Du startest neu auf Stufe ${level}`] };
   }
 }
 
+/** How long the convoy's roll hangs in the air. The same for every convoy, whatever the outcome. */
+const CONVOY_BEAT_MS = 1300;
+
+/**
+ * A convoy comes back: first the chance it was sent with, then, after a beat that is the same
+ * every time, how it went. The result was decided by the rules before this is shown.
+ */
+function ConvoyMoment({ moment }: { moment: Extract<MilestoneMoment, { kind: 'convoy' }> }) {
+  const next = useApp((s) => s.nextMilestone);
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    setSettled(false);
+    audio.riser(CONVOY_BEAT_MS / 1000);
+    const timer = window.setTimeout(() => setSettled(true), CONVOY_BEAT_MS);
+    return () => window.clearTimeout(timer);
+  }, [moment.id]);
+  useEffect(() => {
+    if (!settled) return;
+    if (moment.success) { audio.reveal(2); audio.coins(moment.reward.credits ?? 500); } else audio.deny();
+  }, [settled]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pct = Math.round(moment.chance * 100);
+
+  return (
+    <div className={`overlay overlay--dim moment moment--convoy${settled ? (moment.success ? ' is-won' : ' is-lost') : ' is-pending'}`} onClick={() => { audio.tap(); if (settled) next(); else setSettled(true); }}>
+      {settled && moment.success && <div className="reveal__rays" />}
+      <span className="eyebrow moment__eyebrow">Konvoi kehrt zurück</span>
+      <div className="moment__hero">
+        <div className="dial" style={{ ['--p' as string]: moment.chance }}>
+          <b>{pct} %</b>
+          <small>Chance</small>
+        </div>
+      </div>
+      <h2 className="moment__title" key={String(settled)}>{settled ? (moment.success ? 'Erfolg' : 'Gescheitert') : '...'}</h2>
+      <ul className="moment__lines">
+        {settled && <li>{moment.success ? rewardText(moment.reward) : `Nur ${rewardText(moment.reward)}`}</li>}
+        {settled && moment.xp > 0 && <li style={{ animationDelay: '0.1s' }}>+{moment.xp} Erfahrung</li>}
+        {settled && <li style={{ animationDelay: '0.2s' }}>Die Crew ist wieder frei</li>}
+      </ul>
+      <button className="cta moment__cta" style={{ visibility: settled ? 'visible' : 'hidden' }}><span>Weiter</span></button>
+    </div>
+  );
+}
+
 /** The full-screen beat for the few moments that deserve one. */
 export function Milestone() {
   const moment = useApp((s) => s.milestone)!;
+  if (moment.kind === 'convoy') return <ConvoyMoment moment={moment} />;
+  return <BigMoment moment={moment} />;
+}
+
+function BigMoment({ moment }: { moment: MilestoneMoment }) {
   const next = useApp((s) => s.nextMilestone);
   const level = useApp((s) => s.view!.profile.level);
   const c = content(moment, level);

@@ -43,12 +43,12 @@ export function OrderCard({ order: o, active }: { order: OrderView; active: bool
   const stake = o.deposit + (o.buyHere ?? 0);
 
   return (
-    <div className={`order order--${state}${ready ? ' order--ready' : ''}`}>
+    <div className={`order order--${state}${ready ? ' order--ready' : ''}${o.hot ? ' order--hot' : ''}`}>
       <div className="order__top">
         {picture && <img className="order__icon" src={picture} alt="" draggable={false} />}
         <span className="order__main">
           <b>{o.qty} × {good.name}</b>
-          <small>{station.name}{o.here ? '' : ` · ${jumps(o.hops)}`}</small>
+          <small>{station.name}{o.here ? '' : ` · ${jumps(o.hops)}`}{o.hot ? <i className="order__hot">dort verboten</i> : null}</small>
         </span>
         <span className="order__pay">
           <b><Credits />{num(o.total)}</b>
@@ -100,7 +100,7 @@ export function OrderSheet() {
         <CloseX onClick={() => close(null)} />
         <span className="eyebrow">Frachtbörse · {here.name}</span>
         <h3>Lieferaufträge</h3>
-        <p className="trade__note">Rechtzeitig liefern, sonst ist das Pfand weg. Am Ziel gibt es die Ware nicht zu kaufen. Gewinn gerechnet mit Einkauf hier.</p>
+        <p className="trade__note">Rechtzeitig liefern, sonst ist das Pfand weg. Am Ziel gibt es die Ware nicht zu kaufen. Gewinn gerechnet mit Einkauf hier. Heisse Aufträge zahlen mehr, aber der Zoll kann die Ladung unterwegs nehmen.</p>
         <div className="picker__list">
           {active.length > 0 && <h4 className="market__section">Angenommen <span>{active.length} von {max}</span></h4>}
           {active.map((o) => <OrderCard key={o.id} order={o} active />)}

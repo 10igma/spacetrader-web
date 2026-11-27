@@ -72,7 +72,7 @@ export function RouteSheet() {
             ))}
             {view.orders.active.filter((o) => !o.here).map((o) => (
               <button key={o.id} className={`target target--order target--order-${orderState(o)}${o.to === chosen ? ' is-on' : ''}`} onClick={() => pick(o.to)}>
-                <b>Auftrag</b>{STATION_BY_ID.get(o.to)!.name} · noch {o.left}
+                <b>{o.hot ? 'Heisser Auftrag' : 'Auftrag'}</b>{STATION_BY_ID.get(o.to)!.name} · noch {o.left}
               </button>
             ))}
           </div>
@@ -94,6 +94,11 @@ export function RouteSheet() {
               </small>
             )}
             {targetCrisis && <small className="course__crisis">{targetCrisis.name}: {CATEGORY_NAME[targetCrisis.category]} +{Math.round((targetCrisis.mult - 1) * 100)} % · bei Ankunft Bedarf {targetCrisis.onArrival}</small>}
+            {targetCrisis && targetCrisis.rivals[0] && (
+              <small className="course__rivals">
+                {targetCrisis.rivals.length === 1 ? '1 Rivale unterwegs' : `${targetCrisis.rivals.length} Rivalen unterwegs`}: {targetCrisis.rivals[0].name} liefert {targetCrisis.rivals[0].cargo} in {targetCrisis.rivals[0].eta === 1 ? '1 Sprung' : `${targetCrisis.rivals[0].eta} Sprüngen`}
+              </small>
+            )}
             {targetOrder && <small className={`course__order course__order--${orderState(targetOrder)}`}>Auftrag: {targetOrder.qty} × {GOOD_BY_ID.get(targetOrder.goodId)!.name} · {orderStatus(targetOrder)}</small>}
             <div className="route__risks">
               <Risk label="Zoll" chance={hop.customsChance} />

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from './config.ts';
 import { CARDS } from './content.ts';
 import { applyCommand, createInitialState, deckInfo, parseCommand, toClientView, type GameEvent, type GameState } from './game.ts';
-import { CRISIS_NAME, GOOD_BY_ID, GOODS, hopsBetween, isBanned, STATIONS } from './world.ts';
+import { courseTo, CRISIS_NAME, GOOD_BY_ID, GOODS, hopsBetween, isBanned, neighbours, STATIONS } from './world.ts';
 
 const T0 = 1_800_000_000_000;
 const fresh = (seed = 'smug'): GameState => createInitialState(seed, T0);
@@ -267,10 +267,14 @@ describe('crises', () => {
         const hops = hopsBetween(s.location, e.stationId);
         expect(hops).toBeGreaterThanOrEqual(CONFIG.marketEvent.minHops);
         expect(e.mult).toBeGreaterThanOrEqual(CONFIG.marketEvent.multMin);
-        // A direct run arrives while there is still demand.
-        expect(e.demand - e.drain * hops).toBeGreaterThan(0);
+        // Rivals are on their way with a share of the demand each. The view says where they are and when they arrive.
+        expect(e.rivals!.length).toBeGreaterThanOrEqual(CONFIG.marketEvent.rivalsMin);
         const view = toClientView(s, T0).events.find((x) => x.stationId === e.stationId)!;
-        expect(view).toMatchObject({ hops, onArrival: e.demand - e.drain * hops, name: CRISIS_NAME[e.category] });
+        for (const r of view.rivals) { expect(r.eta).toBe(hopsBetween(r.at, e.stationId)); expect(r.eta).toBeGreaterThan(0); expect(r.cargo).toBeGreaterThan(0); }
+        // A direct run arrives while there is still demand, after everyone who gets there no later than you.
+        const first = e.rivals!.filter((r) => hopsBetween(r.at, e.stationId) <= hops).reduce((sum, r) => sum + r.cargo, 0);
+        expect(view).toMatchObject({ hops, onArrival: e.demand - e.drain * hops - first, name: CRISIS_NAME[e.category] });
+        expect(view.onArrival).toBeGreaterThanOrEqual(Math.ceil(e.demand * CONFIG.marketEvent.leftMin) - 1);
       }
     });
     expect(started).toBeGreaterThan(8);
@@ -279,14 +283,54 @@ describe('crises', () => {
   it('the demand drops by the announced amount with every jump, and the crisis ends when it is met', () => {
     let checked = 0;
     let ended = 0;
+    let delivered = 0;
     wander('drain', 120, (s, before) => {
       for (const old of before.events) {
         const now = s.events.find((x) => x.stationId === old.stationId && x.category === old.category);
-        if (now) { expect(now.demand).toBe(old.demand - old.drain); checked++; } else { expect(old.demand - old.drain).toBeLessThanOrEqual(0); ended++; }
+        // What was announced: the steady trickle, and the lot of every rival that was one jump away.
+        const arriving = (old.rivals ?? []).filter((r) => hopsBetween(r.at, old.stationId) === 1);
+        const expected = old.demand - old.drain - arriving.reduce((sum, r) => sum + r.cargo, 0);
+        if (now) {
+          expect(now.demand).toBe(expected);
+          // Everyone else is one lane closer.
+          for (const r of now.rivals ?? []) {
+            const was = old.rivals!.find((x) => x.name === r.name)!;
+            expect(hopsBetween(r.at, old.stationId)).toBe(hopsBetween(was.at, old.stationId) - 1);
+          }
+          expect((now.rivals ?? []).length).toBe((old.rivals ?? []).length - arriving.length);
+          delivered += arriving.length;
+          checked++;
+        } else { expect(expected).toBeLessThanOrEqual(0); ended++; }
       }
     });
     expect(checked).toBeGreaterThan(20);
+    expect(delivered).toBeGreaterThan(5);
     expect(ended).toBeGreaterThan(3);
+  });
+
+  it('a rival that arrives says so, and what the view promised for a direct run is what you find', () => {
+    let s = fresh('race');
+    s.fuel.amount = 99;
+    s.wallet.credits = 1_000_000;
+    const target = STATIONS.find((x) => hopsBetween(s.location, x.id) === 2)!.id;
+    const near = neighbours(target).find((n) => n !== s.location)!;
+    s.events = [{ stationId: target, category: 'waffen', mult: 1.8, demand: 60, drain: 2, rivals: [{ name: 'Vela Wray', at: near, cargo: 20 }, { name: 'Brix Okonjo', at: s.location, cargo: 15 }] }];
+    const promised = toClientView(s, T0).events[0]!;
+    expect(promised.rivals.map((r) => r.eta)).toEqual([1, 2]);
+    expect(promised.onArrival).toBe(60 - 2 * 2 - 20 - 15);
+    const seen: string[] = [];
+    for (const next of courseTo(s.location, target)) {
+      let res = applyCommand(s, { type: 'Jump', to: next }, T0);
+      const evs = [...res.events];
+      while (res.state.pending) { res = applyCommand(res.state, { type: 'Encounter', choice: res.state.pending.kind === 'pirates' ? 'pay' : 'submit' }, T0); evs.push(...res.events); }
+      for (const e of evs) if (e.type === 'RivalDelivered') seen.push(`${e.name}:${e.cargo}`);
+      s = res.state;
+      // No other crisis may start and blur the count.
+      s.events = s.events.filter((e) => e.stationId === target);
+    }
+    expect(seen).toEqual(['Vela Wray:20', 'Brix Okonjo:15']);
+    expect(s.events[0]!.demand).toBe(promised.onArrival);
+    expect(s.events[0]!.rivals).toEqual([]);
   });
 
   it('your own delivery counts against the demand and can end the crisis', () => {

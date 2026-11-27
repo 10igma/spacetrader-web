@@ -309,6 +309,8 @@ function chooseTarget(ctx: Ctx, view: ClientView, ordinary: number): ClientView 
     for (const o of view.orders.offers) {
       // `buyHere` is the price of what is still missing: some of the lot may be aboard already.
       const missing = o.qty - o.have;
+      // A legal trader leaves contraband orders on the board.
+      if (o.hot && ctx.policy !== 'smuggler') continue;
       if (o.buyHere === null || missing > free || o.deposit + o.buyHere > spare) continue;
       consider(o.to, o.total - o.buyHere, o.qty, () => {
         view = act(ctx, { type: 'AcceptOrder', id: o.id });

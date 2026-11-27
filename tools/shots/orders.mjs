@@ -49,7 +49,7 @@ await page.evaluate(() => {
     active: [],
     offers: [
       { id: 11, from: 'lumen', to: 'kessin', goodId: 'meds', qty: 14, pay: 520, deposit: 728, left: 3 },
-      { id: 12, from: 'lumen', to: 'solace', goodId: 'drones', qty: 12, pay: 960, deposit: 1152, left: 4 },
+      { id: 12, from: 'lumen', to: 'solace', goodId: 'drones', qty: 12, pay: 960, deposit: 1152, left: 4, hot: true },
       { id: 13, from: 'lumen', to: 'corvus', goodId: 'art', qty: 10, pay: 1180, deposit: 1180, left: 5 },
     ],
   };
@@ -61,6 +61,7 @@ check('the hub announces the freight board', await page.locator('.rail__btn--ord
 await page.locator('.rail__btn--orders').tap(); await settle(700);
 await shot('221-board');
 check('three offers hang on the board', await page.locator('.orders .order').count() === 3);
+check('an order for contraband is marked', await page.locator('.orders .order--hot').count() === 1 && await page.locator('.order__hot').innerText().then((t) => t.includes('dort verboten')));
 check('every offer says deadline, deposit and what it earns', await page.locator('.orders .facts').allInnerTexts().then((all) => all.length === 3 && all.every((t) => t.toUpperCase().includes('GEWINN') && t.toUpperCase().includes('PFAND') && t.toUpperCase().includes('FRIST'))));
 
 // Accepting takes two taps: the first says what the deposit is.
