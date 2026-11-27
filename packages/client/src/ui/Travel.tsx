@@ -7,6 +7,7 @@ import { art } from './art.ts';
 import { Emblem } from './Emblem.tsx';
 import { FACTION_COLOR, num } from './format.ts';
 import { ShipArt } from './Shipyard.tsx';
+import { vfx } from './VfxCanvas.tsx';
 
 type Phase = 'launch' | 'encounter' | 'resolve' | 'outcome' | 'cruise' | 'arrive';
 
@@ -77,9 +78,9 @@ export function Travel({ travel }: { travel: TravelState }) {
       stage.setPlanet(-1.6, 0.4, 1.8); // the world slides past as we accelerate
       timer = window.setTimeout(() => setPhase(encounter ? 'encounter' : 'arrive'), launchMs);
     } else if (phase === 'encounter') {
-      stage.setWarp(0.3);
+      stage.setWarp(0.25);
       stage.snapPlanet(0, 3, 0.3);
-      stage.setRift(encounter?.kind === 'pirates' ? [1, 0.18, 0.2] : [0.25, 0.55, 1], 0.28);
+      stage.setAlert(encounter?.kind === 'pirates' ? [1, 0.16, 0.22] : [0.22, 0.58, 1], 0.72);
       stage.pulse(0.3);
       audio.alert(encounter?.kind ?? 'customs');
     } else if (phase === 'resolve') {
@@ -89,16 +90,18 @@ export function Travel({ travel }: { travel: TravelState }) {
       timer = window.setTimeout(() => setBeatOver(true), RESOLVE_MS);
     } else if (phase === 'outcome') {
       const ok = travel.outcome!.success;
-      stage.setRift(ok ? [0.3, 1, 0.7] : [1, 0.2, 0.2], 0.4);
+      stage.setAlert(ok ? [0.22, 0.92, 0.65] : [1, 0.18, 0.22], ok ? 0.45 : 0.78);
       stage.pulse(ok ? 0.25 : 0.45);
+      vfx.burst(window.innerWidth / 2, window.innerHeight * 0.42, ok ? '#38e89e' : '#ff4d6d', ok ? 26 : 34, { speed: 280 });
+      vfx.ring(window.innerWidth / 2, window.innerHeight * 0.42, ok ? '#38e89e' : '#ff4d6d', 200);
       if (ok) audio.reveal(travel.outcome!.creditsDelta > 0 ? 2 : 1); else audio.loss();
     } else if (phase === 'cruise') {
-      stage.setRift(null, 0);
+      stage.setAlert(null, 0);
       stage.setWarp(1);
       audio.warp(CRUISE_MS / 1000);
       timer = window.setTimeout(() => setPhase('arrive'), CRUISE_MS);
     } else {
-      stage.setRift(null, 0);
+      stage.setAlert(null, 0);
       stage.setWorld(dest.look);
       stage.snapPlanet(0.9, -0.2, 0.12); // a dot ahead that grows into the destination
       stage.setPlanet(0.3, 0.52, 0.62);
@@ -136,7 +139,7 @@ export function Travel({ travel }: { travel: TravelState }) {
     <div className={`overlay travel travel--${phase}`} style={{ ['--faction' as string]: FACTION_COLOR[dest.faction] }} onClick={skip}>
       {(phase === 'launch' || phase === 'cruise') && (
         <div className="travel__ship" key={phase} style={{ animationDuration: `${phase === 'launch' ? launchMs : CRUISE_MS}ms` }}>
-          <ShipArt id={view.fleet.active} view="rear" paint={view.captain.paints.find((p) => p.id === view.captain.paint)?.tone ?? null} />
+          <ShipArt id={view.fleet.active} view="rear" mode="warp" paint={view.captain.paints.find((p) => p.id === view.captain.paint)?.tone ?? null} />
         </div>
       )}
       {(phase === 'launch' || phase === 'cruise') && (
@@ -150,7 +153,14 @@ export function Travel({ travel }: { travel: TravelState }) {
 
       {phase === 'encounter' && encounter && (
         <div className={`enc enc--${encounter.kind}`}>
-          {scene && <div className="enc__art"><img src={scene} alt="" draggable={false} /></div>}
+          {scene && (
+            <div className="enc__art">
+              <img src={scene} alt="" draggable={false} />
+              <div className="enc__hud" aria-hidden="true">
+                <span className={encounter.kind === 'pirates' ? 'enc__reticle' : 'enc__scanbar'} />
+              </div>
+            </div>
+          )}
           <span className="eyebrow">{encounter.kind === 'pirates' ? 'Angriff' : `Zoll · ${FACTIONS[dest.faction].name}`}</span>
           <h3>{encounter.kind === 'pirates' ? 'Piraten!' : 'Zollkontrolle'}</h3>
           <p>
@@ -181,7 +191,12 @@ export function Travel({ travel }: { travel: TravelState }) {
 
       {phase === 'resolve' && (
         <div className="enc enc--resolve">
-          {scene && <div className="enc__art enc__art--held"><img src={scene} alt="" draggable={false} /></div>}
+          {scene && (
+            <div className="enc__art enc__art--held">
+              <img src={scene} alt="" draggable={false} />
+              <div className="enc__hud enc__hud--lock" aria-hidden="true"><span className="enc__lock" /></div>
+            </div>
+          )}
           <span className="eyebrow">{chosen ? OPTION[chosen].label : ''}</span>
           <div className="enc__beat"><i /><i /><i /></div>
           {chosenChance < 1 && <small className="enc__chance">Chance {Math.round(chosenChance * 100)} %</small>}

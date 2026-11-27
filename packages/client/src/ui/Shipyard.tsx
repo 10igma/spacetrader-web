@@ -18,24 +18,42 @@ const HULL: Record<ShipId, { d: string; engines: number[]; tone: string }> = {
 /** Renders are trimmed to the hull, so all arrive the same size. This puts the fleet back in proportion. */
 const SIZE: Record<ShipId, number> = { sperling: 0.72, kormoran: 0.82, lanze: 0.84, nachtfalter: 0.88, basilisk: 0.94, leviathan: 1 };
 
+/** Rear-view thruster nozzle anchors (% of image box) so engines glow and pulse dynamically. */
+const ENGINES_REAR: Record<ShipId, { x: number; y: number; s: number }[]> = {
+  sperling: [{ x: 64, y: 74, s: 1.05 }],
+  kormoran: [{ x: 56, y: 72, s: 0.95 }, { x: 68, y: 76, s: 0.95 }],
+  lanze: [{ x: 60, y: 73, s: 0.9 }, { x: 69, y: 76, s: 0.9 }],
+  nachtfalter: [{ x: 58, y: 72, s: 0.9 }, { x: 67, y: 75, s: 0.9 }],
+  basilisk: [{ x: 54, y: 72, s: 0.95 }, { x: 63, y: 75, s: 1.05 }, { x: 72, y: 77, s: 0.9 }],
+  leviathan: [{ x: 52, y: 71, s: 0.95 }, { x: 61, y: 74, s: 1.1 }, { x: 70, y: 76, s: 1.0 }],
+};
+
 /**
  * A ship. `view`: the yard shows the plan from above. In space the ship is seen from behind,
  * with its own render if there is one, otherwise the plan laid back in perspective.
  */
-export function ShipArt({ id, locked = false, paint = null, view = 'top' }: { id: ShipId; locked?: boolean; paint?: string | null; view?: 'top' | 'rear' }) {
+export function ShipArt({ id, locked = false, paint = null, view = 'top', mode = 'yard' }: { id: ShipId; locked?: boolean; paint?: string | null; view?: 'top' | 'rear'; mode?: 'yard' | 'dock' | 'warp' }) {
   const prisma = paint === 'prisma';
   const rear = view === 'rear' ? art('ships-rear', id) : undefined;
   const render = rear ?? art('ships', id);
   if (render) {
-    // A rendered hull is neutral grey. Paint is laid over it and follows its shape.
+    const thrusters = view === 'rear' && (mode === 'dock' || mode === 'warp') ? ENGINES_REAR[id] : [];
     return (
       <div
-        className={`shipart shipart--img${locked ? ' is-locked' : ''}${prisma ? ' shipart--prisma' : ''}${view === 'rear' ? (rear ? ' shipart--rear' : ' shipart--laidback') : ''}`}
+        className={`shipart shipart--img shipart--${mode}${locked ? ' is-locked' : ''}${prisma ? ' shipart--prisma' : ''}${view === 'rear' ? (rear ? ' shipart--rear' : ' shipart--laidback') : ''}`}
         style={{ ['--tone' as string]: paint && !prisma ? paint : HULL[id].tone, ['--img' as string]: `url("${render}")`, ['--size' as string]: SIZE[id] }}
         aria-hidden="true"
       >
         <img src={render} alt="" draggable={false} />
         {paint && <i className="shipart__paint" />}
+        {thrusters.map((t, i) => (
+          <span
+            key={i}
+            className="shipart__plume"
+            style={{ left: `${t.x}%`, top: `${t.y}%`, ['--ps' as string]: t.s }}
+          />
+        ))}
+        {mode === 'dock' && view === 'rear' && <span className="shipart__strobes"><i /><i /></span>}
       </div>
     );
   }
@@ -106,9 +124,14 @@ export function Shipyard() {
             <button key={i} className="slotbox is-filled" disabled={busy} onClick={tap(() => void send({ type: 'UnfitModule', module: def.id }))}>
               {art('modules', def.id) && <img src={art('modules', def.id)} alt="" draggable={false} />}
               <b>{def.name}</b>
-              <small>Stufe {fleet.modules[def.id]} · ausbauen</small>
+              <small>Stufe {fleet.modules[def.id]} · entfernen ×</small>
             </button>
-          ) : <div key={i} className="slotbox"><small>Freier Platz</small></div>;
+          ) : (
+            <div key={i} className="slotbox slotbox--empty">
+              <span className="slotbox__code">SLOT 0{i + 1}</span>
+              <small>Frei</small>
+            </div>
+          );
         })}
       </div>
 

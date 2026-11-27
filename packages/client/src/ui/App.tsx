@@ -1,4 +1,4 @@
-import { CARD_BY_ID, CONFIG, forgeCost, STATION_BY_ID, upgradeCost } from '@nova/core';
+import { CARD_BY_ID, CONFIG, forgeCost, STATION_BY_ID, upgradeCost, type FactionId } from '@nova/core';
 import { useEffect } from 'react';
 import { audio } from '../audio/engine.ts';
 import { stage } from '../stage/index.ts';
@@ -22,6 +22,14 @@ import { OrderSheet } from './Orders.tsx';
 import { Splash } from './Splash.tsx';
 import { TopBar } from './TopBar.tsx';
 import { Travel } from './Travel.tsx';
+import { VfxCanvas } from './VfxCanvas.tsx';
+
+const FACTION_RGB: Record<FactionId, [number, number, number]> = {
+  tessera: [0.18, 0.85, 1.0],
+  asche: [1.0, 0.44, 0.16],
+  helix: [0.95, 0.25, 0.72],
+  zenit: [0.72, 0.82, 1.0],
+};
 
 /** Where the planet sits behind each screen (screen widths, y up). */
 const PLANET: Record<Tab, [number, number, number]> = {
@@ -51,15 +59,35 @@ export function App() {
   const busy = useApp((s) => s.busy);
 
   useEffect(() => { void connect(); }, [connect]);
-  // The planet behind the UI is always the world we are docked at.
+  // The planet and subtle nebula tint behind the UI always match the docked station.
   useEffect(() => {
-    if (location && !travel) stage.setWorld(STATION_BY_ID.get(location)!.look);
+    if (location && !travel) {
+      const st = STATION_BY_ID.get(location)!;
+      stage.setWorld(st.look);
+      stage.setFaction(FACTION_RGB[st.faction]);
+    }
   }, [location, travel]);
   useEffect(() => {
     if (travel) return; // the travel scene owns the stage while it runs
     if (started) stage.setPlanet(...PLANET[tab]);
     else stage.setPlanet(0.0, -1.12, 0.85);
   }, [tab, started, travel]);
+  // Throttle background WebGL when an opaque modal/sheet covers most of the screen.
+  useEffect(() => {
+    stage.setDimmed(Boolean(routesOpen || sheet || inspect || milestone));
+  }, [routesOpen, sheet, inspect, milestone]);
+  // Desktop Escape key closes any open overlay or sheet.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      const s = useApp.getState();
+      if (s.inspect) s.setInspect(null);
+      else if (s.sheet) s.setSheet(null);
+      else if (s.routesOpen) s.setRoutesOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   if (!started || !view) return <Splash ready={view !== null} />;
 
@@ -124,6 +152,7 @@ export function App() {
         </div>
       )}
       {toast && <div className={`toast toast--${toast.tone}`} role="status">{toast.text}</div>}
+      <VfxCanvas />
     </div>
   );
 }

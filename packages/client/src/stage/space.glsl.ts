@@ -9,9 +9,9 @@ void main() {
 `;
 
 /**
- * One full-screen pass: nebula, stars, planet with atmosphere and night-side
- * lights, reveal rift, grading. Everything is procedural, so there are no
- * textures to download and every world can look different via uniforms.
+ * One full-screen pass: nebula (faction-tinted), stars, planet with atmosphere
+ * and soft night-side city networks, warp tunnel with chromatic aberration,
+ * encounter alert vignette, reveal rift, and filmic grading.
  */
 export const SPACE_FRAG = /* glsl */ `#version 300 es
 precision highp float;
@@ -24,6 +24,8 @@ uniform vec2 uRes;
 uniform vec2 uPointer;
 uniform vec3 uPlanet;   // center x, center y, radius (units: screen widths, y up)
 uniform vec4 uRift;     // rgb = color, a = intensity 0..1
+uniform vec4 uAlert;    // rgb = color, a = intensity 0..1 (radial encounter vignette)
+uniform vec3 uFaction;  // current station faction tint for subtle nebula identity
 uniform float uFlash;
 uniform float uDetail;  // 0 = cheap, 1 = full
 uniform float uWarp;    // 0 = docked, 1 = full warp
@@ -65,10 +67,13 @@ vec3 nebula(vec2 p, float t) {
   float n2 = fbm(q * 2.1 - 1.6 * w + 7.1, oct);
   float dust = smoothstep(0.15, 0.8, fbm(q * 0.6 + 3.0, 3));
 
+  vec3 primary = mix(vec3(0.010, 0.085, 0.16), uFaction * 0.14, 0.34);
+  vec3 secondary = mix(vec3(0.14, 0.022, 0.15), uFaction * 0.18, 0.28);
+
   vec3 col = vec3(0.004, 0.006, 0.016);
-  col += vec3(0.010, 0.085, 0.16) * smoothstep(0.40, 0.95, n);
-  col += vec3(0.16, 0.022, 0.15) * smoothstep(0.42, 0.9, n2 * n * 1.9);
-  col += vec3(0.5, 0.22, 0.08) * pow(smoothstep(0.55, 1.0, n * n2 * 2.2), 3.0) * 0.5;
+  col += primary * smoothstep(0.40, 0.95, n);
+  col += secondary * smoothstep(0.42, 0.9, n2 * n * 1.9);
+  col += vec3(0.46, 0.20, 0.08) * pow(smoothstep(0.55, 1.0, n * n2 * 2.2), 3.0) * 0.45;
   return col * (0.12 + 1.0 * dust * dust);
 }
 
@@ -92,16 +97,9 @@ vec3 stars(vec2 p, float t) {
   return col;
 }
 
-vec3 planet(vec2 p, float t, vec3 bg) {
-  vec2 c = uPlanet.xy + uPointer * 0.006;
-  float r = uPlanet.z;
-  if (r <= 0.0) return bg;
-  vec2 d = (p - c) / r;
-  float dist = length(d);
+vec3 planet(vec2 p, float t, vec3 bg, vec2 d, float dist, float aa) {
   vec3 L = normalize(vec3(-0.80, 0.52, -0.02));
   vec3 col = bg;
-  float px = 1.5 / (uRes.x * r);
-  float aa = smoothstep(1.0, 1.0 - 2.0 * px, dist);
 
   if (dist < 1.0) {
     float z = sqrt(1.0 - dist * dist);
@@ -128,12 +126,12 @@ vec3 planet(vec2 p, float t, vec3 bg) {
     vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
     day += mix(vec3(1.0), uAtmo, 0.5) * pow(max(dot(n, H), 0.0), 180.0) * (1.0 - landMask) * (1.0 - clouds) * 0.2;
 
-    // Night side: city networks. Dense dots along coasts, thinning inland.
-    float grid = noise(sp * 120.0) * noise(sp * 230.0 + 4.0);
-    float urban = smoothstep(0.42, 0.72, fbm(sp * 5.0 + 50.0, 3));
-    float cities = smoothstep(0.16, 0.55, grid) * landMask * urban;
-    float lanes = smoothstep(0.012, 0.0, abs(fbm(sp * 9.0 + 80.0, 3) - 0.5)) * landMask * smoothstep(0.3, 0.6, urban);
-    vec3 night = mix(vec3(1.0, 0.60, 0.24), uAtmo, 0.22) * (cities * 2.4 + lanes * 1.3 + urban * landMask * 0.10) * (1.0 - clouds * 0.75);
+    // Night side: softer orbital city networks (less high-frequency pixel noise behind stations).
+    float grid = noise(sp * 58.0) * noise(sp * 112.0 + 4.0);
+    float urban = smoothstep(0.45, 0.74, fbm(sp * 4.8 + 50.0, 3));
+    float cities = smoothstep(0.24, 0.62, grid) * landMask * urban;
+    float lanes = smoothstep(0.014, 0.0, abs(fbm(sp * 8.0 + 80.0, 3) - 0.5)) * landMask * smoothstep(0.32, 0.62, urban);
+    vec3 night = mix(vec3(1.0, 0.62, 0.26), uAtmo, 0.25) * (cities * 1.45 + lanes * 0.95 + urban * landMask * 0.08) * (1.0 - clouds * 0.78);
     night += vec3(0.0, 0.02, 0.05) * clouds;
 
     vec3 body = mix(night, day, term);
@@ -169,36 +167,65 @@ vec3 rift(vec2 p, float t, vec3 col) {
   return col;
 }
 
+vec3 alertVignette(vec2 uv, float t, vec3 col) {
+  float a = uAlert.a;
+  if (a <= 0.001) return col;
+  vec2 q = (uv - 0.5) * vec2(1.05, 1.0);
+  float edge = smoothstep(0.24, 0.72, length(q));
+  float pulse = 0.72 + 0.28 * sin(t * 5.2);
+  float scan = 0.92 + 0.08 * sin(uv.y * 140.0 - t * 9.0);
+  col *= mix(1.0, 0.55, a * 0.65);
+  col += uAlert.rgb * edge * a * pulse * scan * 0.52;
+  return col;
+}
+
+vec3 warpLayer(float r, float a, float t, float w, float fl) {
+  float lanes = 170.0 + fl * 135.0;
+  float lane = a / 6.2831853 * lanes + fl * 0.37;
+  float id = floor(lane);
+  float h = hash21(vec2(id, 7.0 + fl * 13.0));
+  if (h < 0.54) return vec3(0.0);
+  float across = abs(fract(lane) - 0.5);
+  float speed = (1.1 + fl * 0.65) + h * 2.4;
+  float along = fract(log(r) * (0.85 + h * 0.9) - t * speed + h * 17.0);
+  // Soft tail + sharp bright head for volumetric depth.
+  float head = pow(along, mix(14.0, 4.2, w)) * smoothstep(1.0, 0.88, along);
+  float line = smoothstep(0.42, 0.04, across);
+  vec3 tint = mix(vec3(0.45, 0.82, 1.0), vec3(0.95, 0.55, 1.0), step(0.90, h));
+  float depthWeight = mix(0.45, 1.0, fl * 0.5);
+  return tint * head * line * (0.45 + h) * depthWeight;
+}
+
 vec3 warp(vec2 p, float t, vec3 col) {
   float w = uWarp;
   if (w <= 0.001) return col;
   float r = length(p) + 1e-4;
   float a = atan(p.y, p.x);
+
+  // Subtle radial chromatic aberration along tunnel depth.
+  float ca = 0.018 * w * smoothstep(0.05, 0.65, r);
   vec3 streaks = vec3(0.0);
-  for (int layer = 0; layer < 2; layer++) {
+  for (int layer = 0; layer < 3; layer++) {
     float fl = float(layer);
-    float lanes = 230.0 + fl * 170.0;
-    float lane = a / 6.2831853 * lanes + fl * 0.37;
-    float id = floor(lane);
-    float h = hash21(vec2(id, 7.0 + fl * 13.0));
-    if (h < 0.5) continue;
-    float across = abs(fract(lane) - 0.5);
-    float speed = 1.6 + h * 2.8;
-    // log(r) makes streaks stretch as they fly outward: the tunnel feeling.
-    float along = fract(log(r) * (0.9 + h) - t * speed + h * 17.0);
-    float head = pow(along, mix(16.0, 5.0, w));
-    float line = smoothstep(0.45, 0.05, across);
-    vec3 tint = mix(vec3(0.5, 0.8, 1.0), vec3(1.0, 0.5, 0.85), step(0.93, h));
-    streaks += tint * head * line * (0.5 + h);
+    vec3 mid = warpLayer(r, a, t, w, fl);
+    if (uDetail > 0.5 && layer == 1) {
+      vec3 redShift = warpLayer(r * (1.0 + ca), a, t, w, fl);
+      vec3 blueShift = warpLayer(r * (1.0 - ca), a, t, w, fl);
+      streaks += vec3(redShift.r, mid.g, blueShift.b);
+    } else {
+      streaks += mid;
+    }
   }
-  // Soft tunnel body behind the streaks.
-  float body = fbm(vec2(a * 9.0, log(r) * 2.5 - t * 2.2), 3);
-  float core = exp(-r * 8.0);
-  float fade = smoothstep(0.03, 0.4, r);
-  col *= mix(1.0, 0.15, w);
-  col += vec3(0.05, 0.16, 0.34) * body * body * fade * w * 1.2;
-  col += streaks * fade * w * 0.95;
-  col += vec3(0.5, 0.78, 1.0) * core * w * 0.55;
+
+  // Soft volumetric tunnel body behind the streaks.
+  float body = fbm(vec2(a * 8.0, log(r) * 2.4 - t * 2.3), 3);
+  float core = exp(-r * 7.2);
+  float fade = smoothstep(0.04, 0.42, r);
+  // Completely fade out the planet/background by w=0.55 so no planet ghosting leaks through.
+  col *= 1.0 - smoothstep(0.0, 0.55, w);
+  col += vec3(0.03, 0.14, 0.34) * body * body * fade * w * 1.25;
+  col += streaks * fade * w * 0.92;
+  col += vec3(0.52, 0.82, 1.0) * core * w * 0.62;
   return col;
 }
 
@@ -207,19 +234,37 @@ void main() {
   vec2 p = (vUV - 0.5) * vec2(1.0, aspect);
   float t = uTime;
 
-  vec3 col = nebula(p, t);
-  col += stars(p, t);
-  // Distant sun, off-screen top left: motivates the planet lighting.
-  float sun = length(p - vec2(-0.62, 0.5 * aspect + 0.08));
-  col += vec3(0.55, 0.75, 1.0) * (0.012 / (sun * sun + 0.03));
-  col = planet(p, t, col);
+  vec3 col = vec3(0.0);
+
+  // Early-out: skip nebula, stars, and planet completely during full warp.
+  if (uWarp < 0.96) {
+    vec2 pc = uPlanet.xy + uPointer * 0.006;
+    float pr = uPlanet.z;
+    vec2 pd = pr > 0.0 ? (p - pc) / pr : vec2(99.0);
+    float pdist = length(pd);
+    float px = pr > 0.0 ? 1.5 / (uRes.x * pr) : 0.01;
+    float paa = pr > 0.0 ? smoothstep(1.0, 1.0 - 2.0 * px, pdist) : 0.0;
+
+    // Early-out: inside the opaque planet disc, skip expensive nebula & star passes.
+    if (paa < 0.999) {
+      col = nebula(p, t);
+      col += stars(p, t);
+      float sun = length(p - vec2(-0.62, 0.5 * aspect + 0.08));
+      col += vec3(0.55, 0.75, 1.0) * (0.012 / (sun * sun + 0.03));
+    }
+    if (pr > 0.0) {
+      col = planet(p, t, col, pd, pdist, paa);
+    }
+  }
+
   col = warp(p, t, col);
+  col = alertVignette(vUV, t, col);
   col = rift(p, t, col);
 
   // Grade: filmic tone map, vignette, grain.
   col = col * (2.51 * col + 0.03) / (col * (2.43 * col + 0.59) + 0.14);
   col *= 1.0 - 0.55 * pow(length((vUV - 0.5) * vec2(0.9, 1.0)) * 1.25, 2.4);
-  col += (hash21(vUV * uRes + fract(t) * 91.0) - 0.5) * 0.010;
+  col += (hash21(vUV * uRes + fract(t) * 91.0) - 0.5) * 0.008;
   col += uFlash;
   finalColor = vec4(pow(max(col, 0.0), vec3(1.0 / 2.2)), 1.0);
 }

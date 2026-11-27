@@ -126,10 +126,18 @@ export function Hub() {
       </header>
 
       <div className={`hub__stage${stationArt ? ' has-station' : ''}`}>
+        {/* Atmospheric depth haze + orbital traffic so station and ship sit in one unified space. */}
+        {stationArt && <div className="hub__haze" aria-hidden="true" />}
+        {stationArt && (
+          <div className="hub__traffic" aria-hidden="true">
+            <i /><i /><i />
+          </div>
+        )}
         {/* The place you are at, and your ship docked in front of it. */}
         {stationArt && <img key={view.location} className="hub__station" src={stationArt} alt="" draggable={false} />}
+        {stationArt && <span className="hub__tether" aria-hidden="true" />}
         <button className="hub__dock" aria-label={unlocks.yard ? 'Zur Werft' : 'Dein Schiff'} onClick={() => { if (!unlocks.yard) return; audio.tap(); setHangarMode('yard'); setTab('hangar'); }}>
-          <ShipArt id={view.fleet.active} paint={paint} view={stationArt ? 'rear' : 'top'} />
+          <ShipArt id={view.fleet.active} paint={paint} view={stationArt ? 'rear' : 'top'} mode="dock" />
         </button>
         {/* Left: what you own and collect. Right: what the sector asks of you. */}
         <div className="rail rail--left">
@@ -171,6 +179,11 @@ export function Hub() {
         <button className="cta cta--gold" onClick={() => { audio.tap(); void send({ type: 'DeliverOrder', id: ready.id }); }}>
           <span>Abliefern</span>
           <small>{ready.qty} × {GOOD_BY_ID.get(ready.goodId)!.name} · {num(ready.total)} Credits</small>
+        </button>
+      ) : steps && steps.done === 0 ? (
+        <button className="cta cta--gold" onClick={() => { audio.tap(); setHangarMode('crates'); setTab('hangar'); }}>
+          <span>Gratis-Container öffnen</span>
+          <small>Deine erste Crew wartet</small>
         </button>
       ) : empty ? (
         <>

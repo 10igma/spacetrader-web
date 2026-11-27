@@ -32,10 +32,12 @@ export function OrderCard({ order: o, active }: { order: OrderView; active: bool
   const setCourse = useApp((s) => s.setCourse);
   const setSheet = useApp((s) => s.setSheet);
   const openRoutes = useApp((s) => s.setRoutesOpen);
+  const openMarketTrade = useApp((s) => s.openMarketTrade);
   const good = GOOD_BY_ID.get(o.goodId)!;
   const station = STATION_BY_ID.get(o.to)!;
   const picture = art('goods', good.id);
   const state = active ? orderState(o) : 'ok';
+  const missing = Math.max(0, o.qty - o.have);
   const ready = active && o.here && o.have >= o.qty;
   const full = view.orders.active.length >= view.orders.max;
   const short = view.wallet.credits < o.deposit;
@@ -60,6 +62,8 @@ export function OrderCard({ order: o, active }: { order: OrderView; active: bool
           <small className="order__status">{orderStatus(o)}</small>
           {ready ? (
             <button className="mission__btn" disabled={busy} onClick={() => { audio.tap(); void send({ type: 'DeliverOrder', id: o.id }); }}>Abliefern</button>
+          ) : !o.here && missing > 0 && o.buyHere !== null ? (
+            <button className="mission__btn mission__btn--go" onClick={() => { audio.tap(); openMarketTrade(o.goodId, missing); }}>Laden ({missing}×)</button>
           ) : !o.here ? (
             <button className="mission__btn mission__btn--plain" onClick={() => { audio.tap(); setCourse(o.to); setSheet(null); openRoutes(true); }}>Kurs</button>
           ) : null}

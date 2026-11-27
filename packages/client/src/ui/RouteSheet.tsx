@@ -51,6 +51,7 @@ export function RouteSheet() {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={() => close(false)}>
       <div className="routes" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet__handle" aria-hidden="true" />
         <CloseX onClick={() => close(false)} />
         <header className="routes__head">
           <div>

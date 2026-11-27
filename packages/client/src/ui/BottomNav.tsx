@@ -34,7 +34,12 @@ export function BottomNav() {
           aria-current={tab === t.id ? 'page' : undefined}
           onClick={() => { audio.tap(); setTab(t.id); }}
         >
-          <span className="nav__icon">{t.icon}{(count[t.id] ?? 0) > 0 ? <i className="dot" /> : fresh(...NEWS[t.id]) ? <i className="dot dot--new" /> : null}</span>
+          <span className="nav__icon">
+            {t.icon}
+            {tab !== t.id && (count[t.id] ?? 0) > 0
+              ? <i className="dot dot--num">{(count[t.id] ?? 0) > 9 ? '9+' : count[t.id]}</i>
+              : tab !== t.id && fresh(...NEWS[t.id]) ? <i className="dot dot--new" /> : null}
+          </span>
           <span className="nav__label">{t.label}</span>
         </button>
       ))}

@@ -11,6 +11,8 @@ interface Uniforms {
   uPointer: Float32Array;
   uPlanet: Float32Array;
   uRift: Float32Array;
+  uAlert: Float32Array;
+  uFaction: Float32Array;
   uFlash: number;
   uDetail: number;
   uWarp: number;
@@ -40,12 +42,15 @@ export class Stage {
   private pointer = { x: 0, y: 0, tx: 0, ty: 0 };
   private planet = { cur: [0.3, 0.52, 0.62] as Vec3, target: [0.3, 0.52, 0.62] as Vec3 };
   private rift = { color: [1, 1, 1] as Vec3, cur: 0, target: 0 };
+  private alert = { color: [1, 0.2, 0.25] as Vec3, cur: 0, target: 0 };
+  private faction = { cur: [0.22, 0.85, 1.0] as Vec3, target: [0.22, 0.85, 1.0] as Vec3 };
   private flash = 0;
   private warp = { cur: 0, target: 0 };
   private quality = 0;
   private frameTimes: number[] = [];
   private baseDpr = 1;
   private fixedQuality = false;
+  private dimmed = false;
 
   async init(canvas: HTMLCanvasElement): Promise<void> {
     const params = new URLSearchParams(location.search);
@@ -81,6 +86,8 @@ export class Stage {
           uPointer: { value: new Float32Array([0, 0]), type: 'vec2<f32>' },
           uPlanet: { value: new Float32Array(this.planet.cur), type: 'vec3<f32>' },
           uRift: { value: new Float32Array([1, 1, 1, 0]), type: 'vec4<f32>' },
+          uAlert: { value: new Float32Array([1, 0.2, 0.25, 0]), type: 'vec4<f32>' },
+          uFaction: { value: new Float32Array(this.faction.cur), type: 'vec3<f32>' },
           uFlash: { value: 0, type: 'f32' },
           uDetail: { value: 1, type: 'f32' },
           uWarp: { value: 0, type: 'f32' },
@@ -127,6 +134,11 @@ export class Stage {
     this.u.uLand.set(look.land);
   }
 
+  /** Subtle faction tint for the background nebula. */
+  setFaction(rgb: Vec3): void {
+    this.faction.target = rgb;
+  }
+
   setWarp(amount: number): void {
     this.warp.target = amount;
   }
@@ -134,6 +146,21 @@ export class Stage {
   setRift(color: Vec3 | null, intensity: number): void {
     if (color) this.rift.color = color;
     this.rift.target = intensity;
+  }
+
+  /** Radial edge vignette for encounters (replaces vertical rift behind text). */
+  setAlert(color: Vec3 | null, intensity: number): void {
+    if (color) this.alert.color = color;
+    this.alert.target = intensity;
+  }
+
+  /** Throttle background GPU work when an opaque modal/sheet covers the stage. */
+  setDimmed(dimmed: boolean): void {
+    if (this.dimmed === dimmed) return;
+    this.dimmed = dimmed;
+    if (this.app.ticker) {
+      this.app.ticker.maxFPS = dimmed ? 24 : 0;
+    }
   }
 
   pulse(amount = 0.6): void {
@@ -149,8 +176,10 @@ export class Stage {
     this.pointer.y += (this.pointer.ty - this.pointer.y) * k(4);
     for (let i = 0; i < 3; i++) {
       this.planet.cur[i]! += (this.planet.target[i]! - this.planet.cur[i]!) * k(2.2);
+      this.faction.cur[i]! += (this.faction.target[i]! - this.faction.cur[i]!) * k(1.8);
     }
     this.rift.cur += (this.rift.target - this.rift.cur) * k(this.rift.target > this.rift.cur ? 5 : 7);
+    this.alert.cur += (this.alert.target - this.alert.cur) * k(this.alert.target > this.alert.cur ? 5 : 6);
     this.flash *= Math.exp(-dt * 5);
     this.warp.cur += (this.warp.target - this.warp.cur) * k(this.warp.target > this.warp.cur ? 2.2 : 3.2);
     this.u.uWarp = this.warp.cur;
@@ -159,12 +188,15 @@ export class Stage {
     this.u.uRes[0] = w; this.u.uRes[1] = h;
     this.u.uPointer[0] = this.pointer.x; this.u.uPointer[1] = this.pointer.y;
     this.u.uPlanet.set(this.planet.cur);
+    this.u.uFaction.set(this.faction.cur);
     this.u.uRift[0] = this.rift.color[0]; this.u.uRift[1] = this.rift.color[1];
     this.u.uRift[2] = this.rift.color[2]; this.u.uRift[3] = this.rift.cur;
+    this.u.uAlert[0] = this.alert.color[0]; this.u.uAlert[1] = this.alert.color[1];
+    this.u.uAlert[2] = this.alert.color[2]; this.u.uAlert[3] = this.alert.cur;
     this.u.uFlash = this.flash;
-    this.u.uDetail = this.quality >= 2 ? 0 : 1;
+    this.u.uDetail = this.quality >= 2 || this.dimmed ? 0 : 1;
 
-    this.adaptQuality(dtMs);
+    if (!this.dimmed) this.adaptQuality(dtMs);
   }
 
   /** Step resolution down if the device cannot hold the frame budget. */

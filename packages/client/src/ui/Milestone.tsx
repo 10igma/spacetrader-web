@@ -1,12 +1,14 @@
 import { featuresAt, SHIP_BY_ID, SHIPS, type ShipId } from '@nova/core';
 import { useEffect, useState } from 'react';
 import { audio } from '../audio/engine.ts';
+import { stage } from '../stage/index.ts';
 import { useApp, type MilestoneMoment } from '../store.ts';
 import { art } from './art.ts';
 import { leagueBadge } from './Emblem.tsx';
 import { rewardText } from './format.ts';
 import { ShipArt } from './Shipyard.tsx';
 import { FEATURE_TEXT } from './unlocks.ts';
+import { vfx } from './VfxCanvas.tsx';
 
 /** What the big moments say. Everything here is a fact about the game as it stands. */
 function content(m: MilestoneMoment, level: number): { eyebrow: string; title: string; hero: React.ReactNode; lines: string[]; rank: 3 | 4 } {
@@ -65,16 +67,26 @@ function ConvoyMoment({ moment }: { moment: Extract<MilestoneMoment, { kind: 'co
   }, [moment.id]);
   useEffect(() => {
     if (!settled) return;
-    if (moment.success) { audio.reveal(2); audio.coins(moment.reward.credits ?? 500); } else audio.deny();
+    stage.pulse(moment.success ? 0.35 : 0.25);
+    vfx.burst(window.innerWidth / 2, window.innerHeight * 0.38, moment.success ? '#ffc24a' : '#ff4d6d', moment.success ? 34 : 20, { speed: 250 });
+    if (moment.success) {
+      vfx.ring(window.innerWidth / 2, window.innerHeight * 0.38, '#ffc24a', 190);
+      audio.reveal(2);
+      audio.coins(moment.reward.credits ?? 500);
+    } else audio.deny();
   }, [settled]); // eslint-disable-line react-hooks/exhaustive-deps
   const pct = Math.round(moment.chance * 100);
+  // Purely cosmetic needle landing well inside the decided sector (no near-miss manipulation).
+  const winArc = moment.chance * 360;
+  const targetDeg = moment.success ? 720 + winArc * 0.5 : 720 + winArc + (360 - winArc) * 0.5;
 
   return (
     <div className={`overlay overlay--dim moment moment--convoy${settled ? (moment.success ? ' is-won' : ' is-lost') : ' is-pending'}`} onClick={() => { audio.tap(); if (settled) next(); else setSettled(true); }}>
       {settled && moment.success && <div className="reveal__rays" />}
       <span className="eyebrow moment__eyebrow">Konvoi kehrt zurück</span>
       <div className="moment__hero">
-        <div className="dial" style={{ ['--p' as string]: moment.chance }}>
+        <div className="dial" style={{ ['--p' as string]: moment.chance, ['--needle' as string]: `${targetDeg}deg` }}>
+          <span className="dial__needle" aria-hidden="true" />
           <b>{pct} %</b>
           <small>Chance</small>
         </div>
@@ -101,7 +113,12 @@ function BigMoment({ moment }: { moment: MilestoneMoment }) {
   const next = useApp((s) => s.nextMilestone);
   const level = useApp((s) => s.view!.profile.level);
   const c = content(moment, level);
-  useEffect(() => { audio.reveal(c.rank); }, [moment.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    audio.reveal(c.rank);
+    stage.pulse(0.45);
+    vfx.burst(window.innerWidth / 2, window.innerHeight * 0.4, '#ffc24a', 38, { speed: 290 });
+    vfx.embers('#ffc24a', 26);
+  }, [moment.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={`overlay overlay--dim moment moment--${moment.kind}`} onClick={() => { audio.tap(); next(); }}>

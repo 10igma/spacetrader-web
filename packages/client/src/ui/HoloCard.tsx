@@ -15,10 +15,12 @@ interface Props {
   count?: number;
   /** Upgrade level, shown as pips from level 2. */
   level?: number;
+  /** Where this card is currently deployed (collection indicator). */
+  status?: 'bridge' | 'convoy' | null;
   onClick?: () => void;
 }
 
-export function HoloCard({ card, size = 'lg', interactive = false, locked = false, count, level = 1, onClick }: Props) {
+export function HoloCard({ card, size = 'lg', interactive = false, locked = false, count, level = 1, status = null, onClick }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const painted = cardArt(card);
   // Five cards share one archetype picture. Each shows it a little differently, always the same way
@@ -85,6 +87,7 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
       <div className="holo__body">
         <div className={`holo__art${painted ? ' holo__art--painted' : ''}`}>
           {painted ? <img className={`holo__img${painted.shared ? ' holo__img--shared' : ''}`} style={variation} src={painted.src} alt="" draggable={false} /> : <Avatar card={card} />}
+          {painted?.shared && <span className="holo__wm" aria-hidden="true"><Emblem faction={card.faction} /></span>}
         </div>
         <div className="holo__head">
           <span className="holo__rating">{locked ? '??' : card.rating}</span>
@@ -103,9 +106,11 @@ export function HoloCard({ card, size = 'lg', interactive = false, locked = fals
           )}
           <div className="holo__rarity">{RARITY_LABEL[card.rarity]}</div>
         </div>
-        <div className="holo__foil" />
+        <div className="holo__foil"><i className="holo__foil-inner" /></div>
+        {(card.rarity === 'elite' || card.rarity === 'legend' || card.rarity === 'singularity') && <div className="holo__sparkle" />}
         <div className="holo__glare" />
       </div>
+      {status && !locked && <span className={`holo__status holo__status--${status}`}>{status === 'bridge' ? 'Brücke' : 'Konvoi'}</span>}
       {card.season !== undefined && <span className="holo__edition" title="Saison-Edition">S</span>}
       {count !== undefined && count > 1 && <span className="holo__count">×{count}</span>}
       {level > 1 && !locked && <span className="holo__level">{Array.from({ length: level - 1 }, (_, i) => <i key={i} />)}</span>}

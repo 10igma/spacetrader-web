@@ -1,8 +1,10 @@
-import { CARD_BY_ID, CARDS, FACTIONS, rarityRank, ROLES, seasonCards, seatStat, SEATS, type BonusKey, type FactionId, type RoleId } from '@nova/core';
+import { CARD_BY_ID, CARDS, CONFIG, FACTIONS, rarityRank, ROLES, seasonCards, seatStat, SEATS, upgradeCost, type BonusKey, type FactionId, type RoleId } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useFresh, useSeenNow, useUnlocks } from './unlocks.ts';
 import { useApp } from '../store.ts';
+import { cardArt } from './art.ts';
+import { Avatar } from './Avatar.tsx';
 import { Convoys } from './Convoys.tsx';
 import { seatUpgrades } from './crew.ts';
 import { Emblem } from './Emblem.tsx';
@@ -25,7 +27,11 @@ const BONUS_USE: Record<BonusKey, string> = {
 function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
+  const setInspect = useApp((s) => s.setInspect);
   const current = view.deck.seats[seat]?.cardId ?? null;
+  const currentCard = current ? CARD_BY_ID.get(current) : undefined;
+  const currentLevel = current ? (view.cardLevels[current] ?? 1) : 1;
+  const upCost = currentCard ? upgradeCost(currentCard, currentLevel) : null;
   const seatOf = (id: string): RoleId | undefined => SEATS.find((s) => view.deck.seats[s]?.cardId === id);
   const owned = ownedCards(view)
     .map((c) => ({ card: c, value: Math.round(seatStat(c, seat, view.cardLevels[c.id] ?? 1) * (c.role === seat ? 1 : 0.75)) }))
@@ -35,10 +41,22 @@ function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
       <div className="sheet sheet--trade picker" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet__handle" aria-hidden="true" />
         <CloseX onClick={onClose} />
         <span className="eyebrow">Platz besetzen</span>
         <h3>{ROLES[seat].name}</h3>
         <p className="trade__note">Zählt für {BONUS_LABEL[SEAT_BONUS[seat]]}: {BONUS_USE[SEAT_BONUS[seat]]}. Fremde Rollen bringen 75 % ihres Werts.</p>
+        {currentCard && (
+          <div className="picker__current">
+            <span>
+              <b>{currentCard.name}</b>
+              <small>Stufe {currentLevel}/{CONFIG.cards.maxLevel} · {RARITY_LABEL[currentCard.rarity]}</small>
+            </span>
+            <button className="mission__btn mission__btn--plain" onClick={() => { audio.tap(); onClose(); setInspect(currentCard.id); }}>
+              {upCost !== null && view.wallet.shards >= upCost ? `Aufwerten (${num(upCost)})` : 'Details'}
+            </button>
+          </div>
+        )}
         <div className="picker__list">
           {owned.length === 0 && <p className="trade__note">Noch keine Crew. Öffne einen Container im Hangar.</p>}
           {owned.map(({ card, value }) => {
@@ -64,11 +82,13 @@ function SeatPicker({ seat, onClose }: { seat: RoleId; onClose: () => void }) {
 
 const FACTION_ORDER: FactionId[] = ['tessera', 'asche', 'helix', 'zenit'];
 
-/** Hand in spare copies for a reward. Two a day. They live with the collection, where the copies are. */
+/** Hand in spare copies for a reward. Compact when already completed. */
 function Manifests() {
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
   const busy = useApp((s) => s.busy);
+  const open = view.daily.manifests.some((m) => !m.done);
+  if (!open) return null;
   return (
     <div className="manifests">
       {view.daily.manifests.map((m, i) => {
@@ -76,7 +96,7 @@ function Manifests() {
         const what = `${m.need} ${m.need === 1 ? 'Duplikat' : 'Duplikate'}${m.faction ? ` · ${FACTIONS[m.faction].short}` : ''}${m.minRarity ? ` · ab ${RARITY_LABEL[m.minRarity]}` : ''}`;
         return (
           <button key={i} className={`manifest${ready ? ' is-ready' : ''}${m.done ? ' is-done' : ''}`} disabled={busy || !ready} onClick={() => { audio.tap(); void send({ type: 'SubmitManifest', index: i }); }}>
-            <small>Manifest · {m.done ? 'erfüllt' : `${Math.min(m.have, m.need)} von ${m.need}`}</small>
+            <small>Manifest · {m.done ? 'erfüllt' : `${Math.min(m.have, m.need)}/${m.need}`}</small>
             <b>{what}</b>
             <span>{m.done ? 'Erhalten' : ready ? `Abgeben · ${rewardText(m.reward)}` : rewardText(m.reward)}</span>
           </button>
@@ -86,22 +106,29 @@ function Manifests() {
   );
 }
 
+type ColFilter = 'all' | 'owned' | 'upgrade';
+
 export function Deck() {
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
   const busy = useApp((s) => s.busy);
   const setInspect = useApp((s) => s.setInspect);
   const [picking, setPicking] = useState<RoleId | null>(null);
+  const [activeBonus, setActiveBonus] = useState<BonusKey | null>(null);
+  const [filter, setFilter] = useState<ColFilter>('all');
   const now = useServerNow(60_000);
   const [page, setPage] = useState<FactionId | 'season'>(() => (view.seasonAlbum.claimable ? 'season' : FACTION_ORDER.find((f) => view.albums[f].claimable) ?? 'tessera'));
   const onSeason = page === 'season';
   const edition = view.seasonAlbum;
   const album = view.albums[onSeason ? 'tessera' : page];
-  // The season page shows the running edition, then whatever you kept from earlier seasons.
   const archive = ownedCards(view).filter((c) => c.season !== undefined && c.season !== view.season.index);
   const cards = onSeason ? [...seasonCards(view.season.index)].sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) || b.rating - a.rating).concat(archive) : SORTED.filter((c) => c.faction === page);
   const owned = cards.filter((c) => view.collection[c.id]);
   const missing = cards.filter((c) => !view.collection[c.id]);
+  const upgradeable = owned.filter((c) => {
+    const cost = upgradeCost(c, view.cardLevels[c.id] ?? 1);
+    return cost !== null && view.wallet.shards >= cost;
+  });
   const need = album.next ? Math.ceil(album.total * album.next.pct) : album.total;
   const unlocks = useUnlocks();
   const fresh = useFresh();
@@ -114,11 +141,20 @@ export function Deck() {
   const back = view.convoys.running.filter((c) => c.done).length;
   const collectable = view.seasonAlbum.claimable || FACTION_ORDER.some((f) => view.albums[f].claimable) || view.daily.manifests.some((m) => !m.done && m.have >= m.need);
   const upgrades = seatUpgrades(view);
+  const hasUpgrades = Object.keys(upgrades).length > 0;
+
+  const onBridgeIds = new Set(SEATS.map((s) => view.deck.seats[s]?.cardId).filter((x): x is string => !!x));
+  const inConvoyIds = new Set(view.convoys.busy);
+  const cardStatus = (id: string): 'bridge' | 'convoy' | null => (onBridgeIds.has(id) ? 'bridge' : inConvoyIds.has(id) ? 'convoy' : null);
+
   const segment = (
     <div className={`segment segment--${parts.length}`} role="tablist">
       {parts.map(([id, label]) => (
         <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? 'is-active' : ''} onClick={() => { audio.tap(); setMode(id); }}>
-          {label}{(id === 'convoys' && back > 0) || (id === 'collection' && collectable) ? <i className="dot" /> : id === 'convoys' && fresh('convoys') ? <i className="dot dot--new" /> : null}
+          {label}
+          {id !== mode && ((id === 'convoys' && back > 0) || (id === 'collection' && collectable))
+            ? <i className="dot" />
+            : id === 'convoys' && fresh('convoys') ? <i className="dot dot--new" /> : null}
         </button>
       ))}
     </div>
@@ -142,109 +178,136 @@ export function Deck() {
       <header className="screenhead">
         <span className="eyebrow">{mode === 'bridge' ? 'Brücke' : 'Sammlung'}</span>
         <h2>{mode === 'bridge' ? 'Crew' : 'Alben'}</h2>
-        {mode === 'bridge'
-          ? <span className="pill pill--chem">Chemie <b>{view.deck.chem}</b></span>
-          : <span className="pill pill--shards"><Shard />{num(view.wallet.shards)}</span>}
+        {mode === 'bridge' ? (
+          <div className="screenhead__pills">
+            <button
+              className={`pill pill--btn pill--auto${hasUpgrades ? ' is-hint' : ''}`}
+              disabled={busy || Object.keys(view.collection).length === 0}
+              onClick={() => { audio.tap(); void send({ type: 'AutoDeck' }); }}
+            >
+              Auto{hasUpgrades ? ' ▲' : ''}
+            </button>
+            <span className="pill pill--chem">Chemie <b>{view.deck.chem}</b></span>
+          </div>
+        ) : (
+          <span className="pill pill--shards"><Shard />{num(view.wallet.shards)}</span>
+        )}
       </header>
       {segment}
 
       {mode === 'bridge' && (
         <>
-      <div className="bridge">
-        {SEATS.map((seat) => {
-          const s = view.deck.seats[seat];
-          const card = s ? CARD_BY_ID.get(s.cardId) : undefined;
-          return (
-            <button key={seat} className={`seat${card ? ` seat--${card.rarity}` : ' seat--empty'}`} style={card ? { ['--faction' as string]: FACTION_COLOR[card.faction] } : undefined} onClick={() => { audio.tap(); setPicking(seat); }}>
-              <span className="seat__role">{ROLES[seat].short}</span>
-              {card && s ? (
-                <>
-                  <span className="seat__value">{s.value}</span>
-                  <span className="seat__name">{card.name.split(' ').slice(-1)[0]}</span>
-                  <span className="seat__links">{[0, 1, 2, 3].map((i) => <i key={i} className={i < s.links ? 'on' : ''} />)}</span>
-                  {!s.onRole && <span className="seat__off">fremd</span>}
-                  {upgrades[seat] !== undefined && <span className="seat__up">▲ +{upgrades[seat]}</span>}
-                </>
-              ) : <span className="seat__plus">+</span>}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="bonuses">
-        {(Object.keys(BONUS_LABEL) as BonusKey[]).map((k) => (
-          <div key={k} className="bonus" title={BONUS_USE[k]}>
-            <span>{BONUS_LABEL[k]}</span>
-            <div className="bonus__bar"><i style={{ width: `${view.crew[k] * 100}%` }} /></div>
-            <b>{Math.round(view.crew[k] * 100)}</b>
-          </div>
-        ))}
-      </div>
-      <div className="deck__actions">
-        <button className={`link deck__auto${Object.keys(upgrades).length > 0 ? ' is-hint' : ''}`} disabled={busy || Object.keys(view.collection).length === 0} onClick={() => { audio.tap(); void send({ type: 'AutoDeck' }); }}>Automatisch aufstellen</button>
-      </div>
-
-        </>
-      )}
-      {mode === 'bridge' && (
-        <>
-          <div className="crewrow">
-            {SEATS.map((seat) => view.deck.seats[seat]).filter((s): s is NonNullable<typeof s> => !!s).map((s) => {
-              const c = CARD_BY_ID.get(s.cardId)!;
-              return <HoloCard key={c.id} card={c} size="sm" level={view.cardLevels[c.id] ?? 1} onClick={() => { audio.tap(); setInspect(c.id); }} />;
+          <div className="bridge bridge--portraits">
+            {SEATS.map((seat) => {
+              const s = view.deck.seats[seat];
+              const card = s ? CARD_BY_ID.get(s.cardId) : undefined;
+              const painted = card ? cardArt(card) : null;
+              return (
+                <button
+                  key={seat}
+                  className={`seat seat--portrait${card ? ` seat--${card.rarity}` : ' seat--empty'}`}
+                  style={card ? { ['--faction' as string]: FACTION_COLOR[card.faction] } : undefined}
+                  onClick={() => { audio.tap(); setPicking(seat); }}
+                >
+                  {card && (
+                    <div className="seat__bg" aria-hidden="true">
+                      {painted ? <img src={painted.src} alt="" draggable={false} /> : <Avatar card={card} />}
+                    </div>
+                  )}
+                  <span className="seat__top">
+                    <span className="seat__role">{ROLES[seat].short}</span>
+                    {upgrades[seat] !== undefined && <span className="seat__up">▲+{upgrades[seat]}</span>}
+                  </span>
+                  {card && s ? (
+                    <span className="seat__foot">
+                      <span className="seat__value">{s.value}</span>
+                      <span className="seat__name">{card.name.split(' ').slice(-1)[0]}</span>
+                      <span className="seat__links">{[0, 1, 2, 3].map((i) => <i key={i} className={i < s.links ? 'on' : ''} />)}</span>
+                      {!s.onRole && <span className="seat__off">fremd</span>}
+                    </span>
+                  ) : <span className="seat__plus">+</span>}
+                </button>
+              );
             })}
           </div>
+
+          <div className="bonuses">
+            {(Object.keys(BONUS_LABEL) as BonusKey[]).map((k) => (
+              <button
+                key={k}
+                type="button"
+                className={`bonus${activeBonus === k ? ' is-open' : ''}`}
+                onClick={() => { audio.tap(); setActiveBonus(activeBonus === k ? null : k); }}
+              >
+                <span>{BONUS_LABEL[k]}</span>
+                <div className="bonus__bar"><i style={{ width: `${view.crew[k] * 100}%` }} /></div>
+                <b>{Math.round(view.crew[k] * 100)}</b>
+              </button>
+            ))}
+          </div>
+          {activeBonus && (
+            <p className="bonus__tip">
+              <b>{BONUS_LABEL[activeBonus]}:</b> {BONUS_USE[activeBonus]}
+            </p>
+          )}
+          <p className="bridge__hint">Tippe einen Platz an, um Crew zu wechseln oder aufzuwerten.</p>
         </>
       )}
+
       {mode === 'collection' && (
         <>
           <Manifests />
-      <div className="albums" role="tablist">
-        {FACTION_ORDER.map((f) => {
-          const a = view.albums[f];
-          return (
-            <button key={f} role="tab" aria-selected={f === page} className={`album${f === page ? ' is-active' : ''}${a.complete ? ' is-complete' : ''}`} style={{ ['--faction' as string]: FACTION_COLOR[f] }} onClick={() => { audio.tap(); setPage(f); }}>
-              <b><Emblem faction={f} />{FACTIONS[f].short}</b>
-              <span>{a.owned}/{a.total}</span>
-              <i style={{ width: `${(a.owned / a.total) * 100}%` }} />
-              {a.claimable && <em className="dot" />}
+          <div className="albums" role="tablist">
+            {FACTION_ORDER.map((f) => {
+              const a = view.albums[f];
+              return (
+                <button key={f} role="tab" aria-selected={f === page} className={`album${f === page ? ' is-active' : ''}${a.complete ? ' is-complete' : ''}`} style={{ ['--faction' as string]: FACTION_COLOR[f] }} onClick={() => { audio.tap(); setPage(f); }}>
+                  <b><Emblem faction={f} />{FACTIONS[f].short}</b>
+                  <span>{a.owned}/{a.total}</span>
+                  <i style={{ width: `${(a.owned / a.total) * 100}%` }} />
+                  {a.claimable && <em className="dot" />}
+                </button>
+              );
+            })}
+            <button role="tab" aria-selected={onSeason} className={`album album--season${onSeason ? ' is-active' : ''}${edition.complete ? ' is-complete' : ''}`} onClick={() => { audio.tap(); setPage('season'); }}>
+              <b>SAISON</b>
+              <span>{edition.owned}/{edition.total}</span>
+              <i style={{ width: `${(edition.owned / edition.total) * 100}%` }} />
+              {edition.claimable && <em className="dot" />}
             </button>
-          );
-        })}
-        <button role="tab" aria-selected={onSeason} className={`album album--season${onSeason ? ' is-active' : ''}${edition.complete ? ' is-complete' : ''}`} onClick={() => { audio.tap(); setPage('season'); }}>
-          <b>SAISON</b>
-          <span>{edition.owned}/{edition.total}</span>
-          <i style={{ width: `${(edition.owned / edition.total) * 100}%` }} />
-          {edition.claimable && <em className="dot" />}
-        </button>
-      </div>
-      {onSeason ? (
-        <div className="album__goal album__goal--season">
-          <span>
-            <b>{view.season.name} · Edition</b>
-            {edition.next
-              ? `${edition.claimable ? 'Meilenstein erreicht' : `Noch ${edition.next.need - edition.owned} bis ${edition.next.need} Karten`} · ${rewardText(edition.next.reward)}${edition.next.need === edition.total ? ' + Titel + Lack Prisma' : ''}`
-              : 'Edition komplett · Titel und Lack Prisma gehören dir'}
-            {` · nur noch ${longCountdown(view.season.endsAt - now)}`}
-          </span>
-          {edition.next && <button className="mission__btn" disabled={busy || !edition.claimable} onClick={() => { audio.tap(); void send({ type: 'ClaimSeasonAlbum' }); }}>{edition.claimable ? 'Abholen' : `${edition.owned}/${edition.next.need}`}</button>}
-        </div>
-      ) : (
-      <div className="album__goal" style={{ ['--faction' as string]: FACTION_COLOR[page] }}>
-        {album.next ? (
-          <>
-            <span><b>{FACTIONS[page].name}</b>{album.claimable ? 'Meilenstein erreicht' : `Noch ${need - album.owned} bis ${Math.round(album.next.pct * 100)} %`} · {rewardText(album.next.reward)}{album.next.pct === 1 ? ' + 2 % Verkaufspreis auf Dauer' : ''}</span>
-            <button className="mission__btn" disabled={busy || !album.claimable} onClick={() => { audio.tap(); void send({ type: 'ClaimAlbum', faction: page }); }}>{album.claimable ? 'Abholen' : `${album.owned}/${need}`}</button>
-          </>
-        ) : <span><b>{FACTIONS[page].name}</b>Album komplett · +2 % Verkaufspreis auf Dauer</span>}
-      </div>
-      )}
-      <div className="deck__grid">
-        {owned.map((c) => (
-          <HoloCard key={c.id} card={c} size="sm" count={view.collection[c.id]} level={view.cardLevels[c.id] ?? 1} onClick={() => { audio.tap(); setInspect(c.id); }} />
-        ))}
-        {missing.map((c) => <HoloCard key={c.id} card={c} size="sm" locked onClick={() => { audio.tap(); setInspect(c.id); }} />)}
-      </div>
+          </div>
+          {onSeason ? (
+            <div className="album__goal album__goal--season">
+              <span>
+                <b>{view.season.name} · Edition</b>
+                {edition.next
+                  ? `${edition.claimable ? 'Meilenstein erreicht' : `Noch ${edition.next.need - edition.owned} bis ${edition.next.need} Karten`} · ${rewardText(edition.next.reward)}${edition.next.need === edition.total ? ' + Titel + Lack Prisma' : ''}`
+                  : 'Edition komplett · Titel und Lack Prisma gehören dir'}
+                {` · nur noch ${longCountdown(view.season.endsAt - now)}`}
+              </span>
+              {edition.next && <button className="mission__btn" disabled={busy || !edition.claimable} onClick={() => { audio.tap(); void send({ type: 'ClaimSeasonAlbum' }); }}>{edition.claimable ? 'Abholen' : `${edition.owned}/${edition.next.need}`}</button>}
+            </div>
+          ) : (
+            <div className="album__goal" style={{ ['--faction' as string]: FACTION_COLOR[page] }}>
+              {album.next ? (
+                <>
+                  <span><b>{FACTIONS[page].name}</b>{album.claimable ? 'Meilenstein erreicht' : `Noch ${need - album.owned} bis ${Math.round(album.next.pct * 100)} %`} · {rewardText(album.next.reward)}{album.next.pct === 1 ? ' + 2 % Verkaufspreis auf Dauer' : ''}</span>
+                  <button className="mission__btn" disabled={busy || !album.claimable} onClick={() => { audio.tap(); void send({ type: 'ClaimAlbum', faction: page }); }}>{album.claimable ? 'Abholen' : `${album.owned}/${need}`}</button>
+                </>
+              ) : <span><b>{FACTIONS[page].name}</b>Album komplett · +2 % Verkaufspreis auf Dauer</span>}
+            </div>
+          )}
+          <div className="colfilter">
+            <button className={`qpill${filter === 'all' ? ' is-on' : ''}`} onClick={() => { audio.tap(); setFilter('all'); }}>Alle ({cards.length})</button>
+            <button className={`qpill${filter === 'owned' ? ' is-on' : ''}`} onClick={() => { audio.tap(); setFilter('owned'); }}>Besitz ({owned.length})</button>
+            <button className={`qpill${filter === 'upgrade' ? ' is-on' : ''}`} onClick={() => { audio.tap(); setFilter('upgrade'); }}>Aufwertbar ({upgradeable.length})</button>
+          </div>
+          <div className="deck__grid">
+            {(filter === 'upgrade' ? upgradeable : owned).map((c) => (
+              <HoloCard key={c.id} card={c} size="sm" count={view.collection[c.id]} level={view.cardLevels[c.id] ?? 1} status={cardStatus(c.id)} onClick={() => { audio.tap(); setInspect(c.id); }} />
+            ))}
+            {filter === 'all' && missing.map((c) => <HoloCard key={c.id} card={c} size="sm" locked onClick={() => { audio.tap(); setInspect(c.id); }} />)}
+          </div>
         </>
       )}
       {picking && <SeatPicker seat={picking} onClose={() => setPicking(null)} />}

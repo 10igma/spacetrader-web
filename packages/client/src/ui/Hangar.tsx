@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useFresh, useSeenNow, useUnlocks } from './unlocks.ts';
 import { useApp } from '../store.ts';
-import { art } from './art.ts';
+import { art, cardArt } from './art.ts';
+import { Avatar } from './Avatar.tsx';
+import { HoloCard } from './HoloCard.tsx';
 import { Shipyard } from './Shipyard.tsx';
 import { countdown, duration, num, RARITY_LABEL } from './format.ts';
 import { useServerNow } from './hooks.ts';
@@ -79,6 +81,7 @@ export function Hangar() {
   const busy = useApp((s) => s.busy);
   const now = useServerNow();
   const [odds, setOdds] = useState(false);
+  const [offerIdx, setOfferIdx] = useState<number | null>(null);
   const { free, tiers, pityElite, pityLegend } = view.crates;
   const anyUnlocking = view.slots.some((s) => s.state === 'unlocking' && (s.readyAt ?? 0) > now);
   const full = view.slots.length >= view.slotCap;
@@ -186,22 +189,78 @@ export function Hangar() {
         {view.daily.offers.map((o, i) => {
           const card = o.cardId ? CARD_BY_ID.get(o.cardId) : undefined;
           const owned = card ? !!view.collection[card.id] : false;
+          const painted = card ? cardArt(card) : null;
+          const curArt = !card ? art('currency', o.kind === 'shards' ? 'shards' : 'quanta') : undefined;
+          const discount = o.listPrice ? Math.round((1 - o.price / o.listPrice) * 100) : 0;
+          if (card) {
+            return (
+              <button
+                key={i}
+                className={`shop__item offer${o.listPrice ? ' offer--deal' : ''} offer--${card.rarity}${o.bought ? ' is-bought' : ''}`}
+                disabled={busy || o.bought}
+                onClick={() => { audio.tap(); setOfferIdx(i); }}
+              >
+                <span className={`offer__thumb offer__thumb--${card.rarity}`}>
+                  {painted ? <img src={painted.src} alt="" draggable={false} /> : <Avatar card={card} />}
+                </span>
+                <span className="shop__main">
+                  <b>{card.name}{discount > 0 && <em className="offer__badge">−{discount} %</em>}</b>
+                  <small>{RARITY_LABEL[card.rarity]} · {ROLES[card.role].name} · {FACTIONS[card.faction].short} · {owned ? 'hast du schon' : 'fehlt dir'}</small>
+                </span>
+                <span className="offer__price">
+                  {o.listPrice && <s>{num(o.listPrice)}</s>}
+                  <span className="price"><Credits />{o.bought ? 'Gekauft' : num(o.price)}</span>
+                </span>
+              </button>
+            );
+          }
           return (
-            <button key={i} className={`shop__item offer${o.listPrice ? ' offer--deal' : ''}${card ? ` offer--${card.rarity}` : ''}${o.bought ? ' is-bought' : ''}`} disabled={busy || o.bought || view.wallet.credits < o.price} onClick={() => { audio.tap(); void send({ type: 'BuyOffer', index: i }); }}>
+            <SpendButton
+              key={i}
+              className={`shop__item offer${o.listPrice ? ' offer--deal' : ''}${o.bought ? ' is-bought' : ''}`}
+              disabled={busy || o.bought || view.wallet.credits < o.price}
+              onSpend={() => void send({ type: 'BuyOffer', index: i })}
+              confirm={<span className="shop__confirm">{o.kind === 'shards' ? `${num(o.amount ?? 0)} Splitter` : `${num(o.amount ?? 0)} Quanten`} für {num(o.price)} Credits kaufen? Tippe noch einmal</span>}
+            >
+              {curArt && <img className="offer__cur" src={curArt} alt="" draggable={false} />}
               <span className="shop__main">
-                <b>{card ? card.name : o.kind === 'shards' ? `${num(o.amount ?? 0)} Splitter` : `${num(o.amount ?? 0)} Quanten`}</b>
-                <small>
-                  {card ? `${RARITY_LABEL[card.rarity]} · ${ROLES[card.role].name} · ${FACTIONS[card.faction].short} · ${owned ? 'hast du schon' : 'fehlt dir'}` : o.kind === 'shards' ? 'Zum Aufwerten und Schmieden' : 'Für Premium-Container und Beschleunigen'}
-                </small>
+                <b>{o.kind === 'shards' ? `${num(o.amount ?? 0)} Splitter` : `${num(o.amount ?? 0)} Quanten`}{discount > 0 && <em className="offer__badge">−{discount} %</em>}</b>
+                <small>{o.kind === 'shards' ? 'Zum Aufwerten und Schmieden' : 'Für Premium-Container und Beschleunigen'}</small>
               </span>
               <span className="offer__price">
                 {o.listPrice && <s>{num(o.listPrice)}</s>}
                 <span className="price"><Credits />{o.bought ? 'Gekauft' : num(o.price)}</span>
               </span>
-            </button>
+            </SpendButton>
           );
         })}
       </div>
+
+      {offerIdx !== null && (() => {
+        const o = view.daily.offers[offerIdx];
+        const card = o?.cardId ? CARD_BY_ID.get(o.cardId) : undefined;
+        if (!o || !card) return null;
+        const canAfford = view.wallet.credits >= o.price;
+        return (
+          <div className="overlay overlay--dim" onClick={() => setOfferIdx(null)}>
+            <CloseX onClick={() => setOfferIdx(null)} />
+            <div onClick={(e) => e.stopPropagation()}>
+              <HoloCard card={card} interactive />
+            </div>
+            <div className="upcard" onClick={(e) => e.stopPropagation()}>
+              <span>{view.collection[card.id] ? 'Du besitzt diese Karte bereits (wird zu Splittern / Kopie).' : 'Neu für deine Sammlung.'}</span>
+              <button
+                className="cta cta--gold"
+                disabled={busy || o.bought || !canAfford}
+                onClick={() => { audio.tap(); void send({ type: 'BuyOffer', index: offerIdx }).then(() => setOfferIdx(null)); }}
+              >
+                <span>Kaufen · {num(o.price)} Credits</span>
+                <small>{canAfford ? (o.listPrice ? `Statt ${num(o.listPrice)} Credits` : 'Tagesangebot') : `Es fehlen ${num(o.price - view.wallet.credits)} Credits`}</small>
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
 
         </>

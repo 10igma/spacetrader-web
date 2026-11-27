@@ -3,7 +3,7 @@ import { setHaptics } from './native/haptics.ts';
 import { askForReminders, syncReminders } from './native/reminders.ts';
 import { loadSettings, saveSettings, type DeviceSettings } from './native/settings.ts';
 import { askForMotion } from './native/shell.ts';
-import type { ClientView, Command, GameEvent, GameService, Pull, RejectReason, Reward, SalvageKind, StationId } from '@nova/core';
+import type { ClientView, Command, GameEvent, GameService, GoodId, Pull, RejectReason, Reward, SalvageKind, StationId } from '@nova/core';
 import { create } from 'zustand';
 import { audio } from './audio/engine.ts';
 import { num, rewardText } from './ui/format.ts';
@@ -112,6 +112,9 @@ interface AppState {
   wheel: { index: number; reward: Reward } | null;
   salvageResult: { kind: SalvageKind; credits: number; shards: number } | null;
   inspect: string | null;
+  marketTrade: { goodId: GoodId; qty?: number } | null;
+  openMarketTrade(goodId: GoodId, qty?: number): void;
+  clearMarketTrade(): void;
   toast: { text: string; tone: 'bad' | 'good' } | null;
   connect(): Promise<void>;
   send(cmd: Command): Promise<GameEvent[]>;
@@ -180,6 +183,9 @@ export const useApp = create<AppState>((set, get) => ({
   wheel: null,
   salvageResult: null,
   inspect: null,
+  marketTrade: null,
+  openMarketTrade(goodId, qty) { set({ tab: 'market', sheet: null, marketTrade: { goodId, qty } }); },
+  clearMarketTrade() { set({ marketTrade: null }); },
   toast: null,
 
   async connect() {

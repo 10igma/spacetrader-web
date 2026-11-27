@@ -1,5 +1,5 @@
 import { CATEGORY_NAME, CONFIG, GOOD_BY_ID, GOODS, quote, STATION_BY_ID, type GoodDef, type GoodId, type MarketRow } from '@nova/core';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { Auction } from './Auction.tsx';
 import { useFresh, useSeenNow, useUnlocks } from './unlocks.ts';
@@ -19,7 +19,7 @@ function legalNote(good: GoodDef, row: MarketRow): string {
   return '';
 }
 
-function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }) {
+function TradeSheet({ goodId, initialQty, onClose }: { goodId: GoodId; initialQty?: number; onClose: () => void }) {
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
   const busy = useApp((s) => s.busy);
@@ -30,21 +30,28 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
   const fence = row.channel === 'fence';
   const fenceLeft = fence ? (view.fence.closed ? 0 : view.fence.left) : Infinity;
   const free = view.cargo.cap - view.cargo.used;
-  // The station that ordered this good has none to sell.
   const soldOut = view.orders.active.some((o) => o.here && o.goodId === goodId);
   const wantedFor = view.orders.active.find((o) => !o.here && o.goodId === goodId && o.have < o.qty);
+
+  // Best reachable station to sell this good, from route hints.
+  const bestSell = view.routes
+    .flatMap((r) => r.hints.filter((h) => h.goodId === goodId).map((h) => ({ stationId: r.stationId, pct: Math.round(h.pct * 100) })))
+    .sort((a, b) => b.pct - a.pct)[0];
 
   let maxBuy = soldOut ? 0 : Math.min(free, fenceLeft, 99);
   while (maxBuy > 0 && quote(row, 'buy', maxBuy) > view.wallet.credits) maxBuy--;
   const maxSell = Math.min(owned, fenceLeft);
 
-  // A first-time buyer gets a full hold suggested: five units out of twenty make a first sale feel like nothing.
-  const [qty, setQty] = useState(() => Math.max(1, wantedFor ? Math.min(wantedFor.qty - wantedFor.have, maxBuy) : owned > 0 ? maxSell : view.stats.jumps === 0 ? maxBuy : Math.min(5, maxBuy)));
+  const [qty, setQty] = useState(() => {
+    if (initialQty && initialQty > 0) return Math.max(1, Math.min(initialQty, Math.max(1, maxBuy)));
+    return Math.max(1, wantedFor ? Math.min(wantedFor.qty - wantedFor.have, maxBuy) : owned > 0 ? maxSell : view.stats.jumps === 0 ? maxBuy : Math.min(5, maxBuy));
+  });
   const step = (d: number) => (): void => { audio.tap(); setQty((q) => Math.max(1, Math.min(99, q + d))); };
   const cost = quote(row, 'buy', qty);
   const revenue = quote(row, 'sell', Math.min(qty, owned));
   const gain = lot ? Math.round(revenue - lot.avgCost * Math.min(qty, owned)) : 0;
   const note = legalNote(good, row);
+  const capRef = owned > 0 ? maxSell : maxBuy;
 
   const trade = (type: 'Buy' | 'Sell') => async (): Promise<void> => {
     audio.tap();
@@ -52,16 +59,45 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
     if (events.some((e) => e.type === 'Sold' || e.type === 'Bought')) onClose();
   };
 
+  // Swipe-down to close on touch devices.
+  const [dragY, setDragY] = useState(0);
+  const [startY, setStartY] = useState<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent): void => { setStartY(e.touches[0]?.clientY ?? null); };
+  const onTouchMove = (e: React.TouchEvent): void => {
+    if (startY === null) return;
+    const dy = (e.touches[0]?.clientY ?? startY) - startY;
+    if (dy > 0) setDragY(dy);
+  };
+  const onTouchEnd = (): void => {
+    if (dragY > 80) onClose();
+    setDragY(0);
+    setStartY(null);
+  };
+
+  const showBuy = !soldOut && (maxBuy > 0 || owned === 0);
+  const showSell = owned > 0;
+
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
-      <div className={`sheet sheet--trade${fence ? ' sheet--fence' : ''}`} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`sheet sheet--trade${fence ? ' sheet--fence' : ''}`}
+        style={dragY > 0 ? { transform: `translateY(${dragY}px)` } : undefined}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="sheet__handle" aria-hidden="true" />
         <CloseX onClick={onClose} />
         <div className="trade__head">
           {art('goods', good.id) && <img className="trade__icon" src={art('goods', good.id)} alt="" draggable={false} />}
           <div className="trade__title">
             <span className="eyebrow">{CATEGORY_NAME[good.category]}{note ? ` · ${note}` : ''}</span>
             <h3>{good.name}</h3>
-            <small className={`trade__lvl ${row.level < 1 ? 'is-cheap' : 'is-dear'}`}>{pct(row.level - 1)} zum Mittel</small>
+            <small className={`trade__lvl ${row.level < 1 ? 'is-cheap' : 'is-dear'}`}>
+              {pct(row.level - 1)} zum Mittel
+              {bestSell && bestSell.pct > 5 && <> · <b>+{bestSell.pct} % auf {STATION_BY_ID.get(bestSell.stationId)!.name}</b></>}
+            </small>
           </div>
         </div>
         {fence && (
@@ -91,19 +127,31 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
           <button onClick={step(1)} aria-label="1 mehr">+</button>
           <button onClick={step(5)} aria-label="5 mehr">+5</button>
         </div>
-        <div className="stepper__quick">
-          <button className="link" disabled={maxBuy < 1} onClick={() => { audio.tap(); setQty(Math.max(1, maxBuy)); }}>Maximum kaufbar: {maxBuy}</button>
-          <button className="link" disabled={maxSell < 1} onClick={() => { audio.tap(); setQty(Math.max(1, maxSell)); }}>Verkaufbar: {maxSell}</button>
+        <div className="stepper__pills">
+          {[
+            { label: '1', v: 1 },
+            { label: '5', v: 5 },
+            { label: '50 %', v: Math.max(1, Math.floor(capRef / 2)) },
+            { label: `MAX (${capRef})`, v: Math.max(1, capRef) },
+          ].map((p) => (
+            <button key={p.label} className={`qpill${qty === p.v ? ' is-on' : ''}`} disabled={capRef < 1} onClick={() => { audio.tap(); setQty(p.v); }}>
+              {p.label}
+            </button>
+          ))}
         </div>
-        <div className="trade__actions">
-          <button className="cta" disabled={busy || qty > maxBuy} onClick={trade('Buy')}>
-            <span>Kaufen</span>
-            <small>{soldOut ? 'Ausverkauft' : qty > maxBuy ? 'Nicht möglich' : `${num(cost)} · je ${num(Math.round(cost / qty))}`}</small>
-          </button>
-          <button className="cta cta--gold" disabled={busy || qty > maxSell} onClick={trade('Sell')}>
-            <span>Verkaufen</span>
-            <small>{qty > owned ? 'Nicht an Bord' : qty > maxSell ? 'Hehler-Limit' : `${num(revenue)} · ${gain >= 0 ? 'Gewinn' : 'Verlust'} ${num(Math.abs(gain))}`}</small>
-          </button>
+        <div className={`trade__actions${showBuy && showSell ? '' : ' trade__actions--single'}`}>
+          {showBuy && (
+            <button className="cta" disabled={busy || qty > maxBuy} onClick={trade('Buy')}>
+              <span>Kaufen</span>
+              <small>{soldOut ? 'Ausverkauft' : qty > maxBuy ? 'Nicht möglich' : `${num(cost)} · je ${num(Math.round(cost / qty))}`}</small>
+            </button>
+          )}
+          {showSell && (
+            <button className="cta cta--gold" disabled={busy || qty > maxSell} onClick={trade('Sell')}>
+              <span>Verkaufen</span>
+              <small>{qty > owned ? 'Nicht an Bord' : qty > maxSell ? 'Hehler-Limit' : `${num(revenue)} · ${gain >= 0 ? 'Gewinn' : 'Verlust'} ${num(Math.abs(gain))}`}</small>
+            </button>
+          )}
         </div>
         <p className="trade__note">Grosse Mengen bewegen den Preis. Der Betrag oben gilt für die gewählte Menge.</p>
       </div>
@@ -119,6 +167,7 @@ function HoldSheet({ onClose }: { onClose: () => void }) {
   return (
     <div className="overlay overlay--dim overlay--bottom" onClick={onClose}>
       <div className="sheet sheet--trade" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet__handle" aria-hidden="true" />
         <CloseX onClick={onClose} />
         <span className="eyebrow">Werft</span>
         <h3>Laderaum</h3>
@@ -138,7 +187,7 @@ function HoldSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-function GoodRow({ good, row, onOpen, soldOut = false }: { good: GoodDef; row: MarketRow; onOpen: () => void; soldOut?: boolean }) {
+function GoodRow({ good, row, bestHint, onOpen, soldOut = false }: { good: GoodDef; row: MarketRow; bestHint?: { station: string; pct: number }; onOpen: () => void; soldOut?: boolean }) {
   const lot = useApp((s) => s.view!.cargo.items[good.id]);
   const gain = lot ? row.sell - lot.avgCost : 0;
   const note = legalNote(good, row);
@@ -148,9 +197,13 @@ function GoodRow({ good, row, onOpen, soldOut = false }: { good: GoodDef; row: M
       {picture && <img className="good__icon" src={picture} alt="" draggable={false} loading="lazy" />}
       <span className="good__name">
         <b>{good.name}</b>
-        {lot
-          ? <small className={`good__aboard ${gain >= 0 ? 'is-up' : 'is-down'}`}><Heat heat={lot.heat} /> {lot.qty} an Bord · {gain >= 0 ? '+' : '−'}{num(Math.abs(Math.round(gain)))}</small>
-          : note ? <small>{note}</small> : null}
+        {lot ? (
+          <small className={`good__aboard ${gain >= 0 ? 'is-up' : 'is-down'}`}>
+            <Heat heat={lot.heat} /> {lot.qty} an Bord · {gain >= 0 ? '+' : '−'}{num(Math.abs(Math.round(gain)))}
+          </small>
+        ) : bestHint && bestHint.pct >= 10 ? (
+          <small className="good__hint">→ {bestHint.station} +{bestHint.pct} %</small>
+        ) : note ? <small>{note}</small> : null}
       </span>
       <span className={`good__level ${row.level < 0.95 ? 'is-cheap' : row.level > 1.05 ? 'is-dear' : ''}`}>{pct(row.level - 1)}</span>
       <span className="good__price">
@@ -164,20 +217,77 @@ export function Market() {
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
   const busy = useApp((s) => s.busy);
-  const [open, setOpen] = useState<GoodId | null>(null);
+  const openRoutes = useApp((s) => s.setRoutesOpen);
+  const marketTrade = useApp((s) => s.marketTrade);
+  const clearMarketTrade = useApp((s) => s.clearMarketTrade);
+  const [open, setOpen] = useState<{ goodId: GoodId; qty?: number } | null>(null);
   const [hold, setHold] = useState(false);
   const unlocks = useUnlocks();
   const fresh = useFresh();
   const [wanted, setMode] = useState<'goods' | 'auction'>('goods');
   const mode = wanted === 'auction' && !unlocks.auction ? 'goods' : wanted;
   useSeenNow(mode === 'auction' ? 'auction' : null);
+
+  useEffect(() => {
+    if (marketTrade) {
+      setMode('goods');
+      setOpen(marketTrade);
+      clearMarketTrade();
+    }
+  }, [marketTrade, clearMarketTrade]);
+
   const station = STATION_BY_ID.get(view.location)!;
   const byId = new Map(view.market.map((m) => [m.goodId, m]));
+
+  // Best reachable selling hint per good.
+  const bestHintByGood = new Map<GoodId, { station: string; pct: number }>();
+  for (const r of view.routes) {
+    const stName = STATION_BY_ID.get(r.stationId)!.name;
+    for (const h of r.hints) {
+      const p = Math.round(h.pct * 100);
+      const prev = bestHintByGood.get(h.goodId);
+      if (!prev || p > prev.pct) bestHintByGood.set(h.goodId, { station: stName, pct: p });
+    }
+  }
+
+  // Best destination for currently loaded cargo (for the sticky jump bar).
+  const bestCargoRoute = view.routes
+    .flatMap((r) => r.hints.filter((h) => view.cargo.items[h.goodId]).map((h) => ({ stationId: r.stationId, name: STATION_BY_ID.get(r.stationId)!.name, pct: Math.round(h.pct * 100) })))
+    .sort((a, b) => b.pct - a.pct)[0];
+
   const aboard = GOODS.filter((g) => view.cargo.items[g.id]);
   const open_ = GOODS.filter((g) => !view.cargo.items[g.id] && byId.get(g.id)!.channel === 'open');
   const fence = GOODS.filter((g) => !view.cargo.items[g.id] && byId.get(g.id)!.channel === 'fence');
+
+  // 1-tap "Sell all" total profit preview for open-channel aboard goods (never touches active delivery cargo).
+  const sellableAboard = aboard.filter((g) => {
+    const row = byId.get(g.id)!;
+    const neededByOrder = view.orders.active.some((o) => o.goodId === g.id);
+    return row.channel === 'open' && !neededByOrder;
+  });
+  const sellAllProfit = sellableAboard.reduce((sum, g) => {
+    const lot = view.cargo.items[g.id]!;
+    const row = byId.get(g.id)!;
+    return sum + Math.round(quote(row, 'sell', lot.qty) - lot.avgCost * lot.qty);
+  }, 0);
+
+  const sellAll = async (): Promise<void> => {
+    audio.tap();
+    for (const g of sellableAboard) {
+      const qty = useApp.getState().view?.cargo.items[g.id]?.qty ?? 0;
+      if (qty > 0) await send({ type: 'Sell', goodId: g.id, qty });
+    }
+  };
+
   const list = (goods: GoodDef[]) => goods.map((g) => (
-    <GoodRow key={g.id} good={g} row={byId.get(g.id)!} soldOut={view.orders.active.some((o) => o.here && o.goodId === g.id)} onOpen={() => { audio.tap(); setOpen(g.id); }} />
+    <GoodRow
+      key={g.id}
+      good={g}
+      row={byId.get(g.id)!}
+      bestHint={bestHintByGood.get(g.id)}
+      soldOut={view.orders.active.some((o) => o.here && o.goodId === g.id)}
+      onOpen={() => { audio.tap(); setOpen({ goodId: g.id }); }}
+    />
   ));
 
   return (
@@ -192,15 +302,15 @@ export function Market() {
         )}
       </header>
       {unlocks.auction && (
-      <div className="segment" role="tablist">
-        <button role="tab" aria-selected={mode === 'goods'} className={mode === 'goods' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('goods'); }}>Waren</button>
-        <button role="tab" aria-selected={mode === 'auction'} className={mode === 'auction' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('auction'); }}>
-          Auktionen{view.badges.market > 0 ? <i className="dot" /> : fresh('auction') ? <i className="dot dot--new" /> : null}
-        </button>
-      </div>
+        <div className="segment" role="tablist">
+          <button role="tab" aria-selected={mode === 'goods'} className={mode === 'goods' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('goods'); }}>Waren</button>
+          <button role="tab" aria-selected={mode === 'auction'} className={mode === 'auction' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('auction'); }}>
+            Auktionen{mode !== 'auction' && view.badges.market > 0 ? <i className="dot" /> : fresh('auction') ? <i className="dot dot--new" /> : null}
+          </button>
+        </div>
       )}
       {mode === 'auction' ? <Auction /> : (
-        <div className="market__list">
+        <div className={`market__list${view.cargo.used > 0 ? ' has-jumpbar' : ''}`}>
           {view.events.filter((e) => e.stationId === view.location).map((e) => (
             <p key={e.category} className="market__event market__event--crisis"><b>{e.name}:</b> {CATEGORY_NAME[e.category]} +{Math.round((e.mult - 1) * 100)} % · Bedarf {e.demand}</p>
           ))}
@@ -220,7 +330,7 @@ export function Market() {
             }
             if (missing === 0 || o.buyHere === null) return null;
             return (
-              <button key={o.id} className="market__order market__order--load" onClick={() => { audio.tap(); setOpen(o.goodId); }}>
+              <button key={o.id} className="market__order market__order--load" onClick={() => { audio.tap(); setOpen({ goodId: o.goodId, qty: missing }); }}>
                 <span>
                   <b>Auftrag {STATION_BY_ID.get(o.to)!.name}: {missing} × {good.name} fehlen</b>
                   <small>Hier laden für {num(o.buyHere)} · noch {jumps(o.left)}</small>
@@ -229,7 +339,16 @@ export function Market() {
             );
           })}
           {view.weekend.active && <p className="market__event">Blockade-Lauf: Hehler +{Math.round(CONFIG.weekend.fenceBonus * 100)} %, mehr Zoll</p>}
-          {aboard.length > 0 && <h4 className="market__section">An Bord</h4>}
+          {aboard.length > 0 && (
+            <h4 className="market__section">
+              An Bord
+              {sellableAboard.length >= 2 && (
+                <button className="link link--gold" disabled={busy} onClick={() => void sellAll()}>
+                  Alles verkaufen ({sellAllProfit >= 0 ? '+' : '−'}{num(Math.abs(sellAllProfit))})
+                </button>
+              )}
+            </h4>
+          )}
           {list(aboard)}
           <h4 className="market__section">Offener Markt</h4>
           {list(open_)}
@@ -242,7 +361,16 @@ export function Market() {
           {list(fence)}
         </div>
       )}
-      {open && <TradeSheet goodId={open} onClose={() => setOpen(null)} />}
+      {mode === 'goods' && view.cargo.used > 0 && (
+        <button className="market__jumpbar" onClick={() => { audio.tap(); openRoutes(true); }}>
+          <span>
+            <small>Fracht bereit · {view.cargo.used}/{view.cargo.cap}</small>
+            <b>{bestCargoRoute ? `Abflug · ${bestCargoRoute.name} (+${bestCargoRoute.pct} %)` : 'Abflug · Sternkarte öffnen'}</b>
+          </span>
+          <i>→</i>
+        </button>
+      )}
+      {open && <TradeSheet goodId={open.goodId} initialQty={open.qty} onClose={() => setOpen(null)} />}
       {hold && <HoldSheet onClose={() => setHold(false)} />}
     </section>
   );

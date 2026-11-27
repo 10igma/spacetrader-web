@@ -25,6 +25,8 @@ function Today() {
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
   const setSheet = useApp((s) => s.setSheet);
+  const setTab = useApp((s) => s.setTab);
+  const openRoutes = useApp((s) => s.setRoutesOpen);
   const busy = useApp((s) => s.busy);
   const now = useServerNow();
   const { streak, calendar, daily } = view;
@@ -122,6 +124,14 @@ function Today() {
       <div className="missions">
         {daily.missions.map((m, i) => {
           const done = m.progress >= m.target;
+          const goMission = (): void => {
+            audio.tap();
+            const text = missionText(m).toLowerCase();
+            if (text.includes('sprung') || text.includes('sprüng')) openRoutes(true);
+            else if (text.includes('container')) setTab('hangar');
+            else if (text.includes('konvoi')) { useApp.getState().setDeckMode('convoys'); setTab('deck'); }
+            else setTab('market');
+          };
           return (
             <div key={i} className={`mission${done ? ' is-done' : ''}${m.claimed ? ' is-claimed' : ''}`}>
               <div className="mission__main">
@@ -129,9 +139,13 @@ function Today() {
                 <div className="mission__bar"><i style={{ width: `${(m.progress / m.target) * 100}%` }} /></div>
                 <small>{num(m.progress)} / {num(m.target)} · {rewardText(m.reward)}</small>
               </div>
-              <button className="mission__btn" disabled={busy || !done || m.claimed} onClick={tap(() => void send({ type: 'ClaimMission', index: i }))}>
-                {m.claimed ? 'Erhalten' : done ? 'Abholen' : 'Offen'}
-              </button>
+              {m.claimed ? (
+                <button className="mission__btn" disabled>Erhalten</button>
+              ) : done ? (
+                <button className="mission__btn" disabled={busy} onClick={tap(() => void send({ type: 'ClaimMission', index: i }))}>Abholen</button>
+              ) : (
+                <button className="mission__btn mission__btn--go" onClick={goMission}>Los →</button>
+              )}
             </div>
           );
         })}

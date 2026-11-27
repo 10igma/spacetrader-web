@@ -9,6 +9,10 @@ import { seatUpgrades } from './crew.ts';
 import { HoloCard } from './HoloCard.tsx';
 import { num, RARITY_LABEL, RARITY_RGB } from './format.ts';
 import { Shard } from './icons.tsx';
+import { vfx } from './VfxCanvas.tsx';
+
+const rgbHex = (rgb: readonly [number, number, number]): string =>
+  `rgb(${rgb.map((c) => Math.round(c * 255)).join(', ')})`;
 
 type Phase = 'crate' | 'crack' | 'charge' | 'tell' | 'bump' | 'flip' | 'show' | 'leave' | 'summary';
 
@@ -68,6 +72,7 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
     audio.tell(knocks as Rank);
     haptic(knocks === 0 ? 'reveal0' : 'reveal1');
     stage.pulse(0.12 + knocks * 0.08);
+    vfx.burst(window.innerWidth / 2, window.innerHeight * 0.52, '#7ce8ff', 14 + knocks * 10, { speed: 180 + knocks * 70, size: 2.6 });
     setKnocks(knocks + 1);
   };
 
@@ -79,8 +84,10 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
       if (knocks === 0) { audio.riser(0.35); window.setTimeout(() => { stage.pulse(0.22); haptic('coins'); }, 330); }
       timer = window.setTimeout(knock, knocks === 0 ? KNOCK_MS + 350 : KNOCK_MS);
     } else if (phase === 'crack') {
-      stage.pulse(0.7);
+      stage.pulse(0.75);
       stage.setRift([0.75, 0.85, 1], 0.5);
+      vfx.ring(window.innerWidth / 2, window.innerHeight * 0.52, '#a8e8ff', 260);
+      vfx.burst(window.innerWidth / 2, window.innerHeight * 0.52, '#ffd27a', 46, { speed: 340, size: 3.6 });
       audio.warp(0.55);
       audio.reveal(1);
       after(BURST_MS, 'charge');
@@ -95,16 +102,25 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
       if (epic && !pull.upgradedFrom) haptic('warn');
       after(pull.upgradedFrom ? 750 : TELL_MS[rank]!, pull.upgradedFrom ? 'bump' : 'flip');
     } else if (phase === 'bump') {
+      const color = rgbHex(RARITY_RGB[pull.rarity]);
       stage.setRift(RARITY_RGB[pull.rarity], 1);
-      stage.pulse(0.3);
+      stage.pulse(0.35);
+      vfx.implode(window.innerWidth / 2, window.innerHeight * 0.46, color, 32);
+      window.setTimeout(() => {
+        vfx.ring(window.innerWidth / 2, window.innerHeight * 0.46, color, 240);
+        vfx.burst(window.innerWidth / 2, window.innerHeight * 0.46, color, 42, { speed: 310, size: 3.5 });
+      }, 240);
       audio.tell(rank);
       haptic('reveal1');
       after(TELL_MS[rank]!, 'flip');
     } else if (phase === 'flip') {
       after(FLIP_MS, 'show');
     } else if (phase === 'show') {
+      const color = rgbHex(RARITY_RGB[pull.rarity]);
       stage.setRift(RARITY_RGB[pull.rarity], 0.62);
       stage.pulse(0.35 + rank * 0.16);
+      vfx.burst(window.innerWidth / 2, window.innerHeight * 0.46, color, 18 + rank * 12, { speed: 240 + rank * 40, size: 3.0 + rank * 0.4 });
+      if (epic) vfx.embers(color, 36);
       audio.reveal(rank);
     } else if (phase === 'leave') {
       timer = window.setTimeout(() => {
