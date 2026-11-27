@@ -2352,3 +2352,79 @@ i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(-
 /* On a short screen the chart gives way first, and the jump never leaves the screen. */
 .routes .dest { position: sticky; bottom: 0; z-index: 3; background: #0a1120; }
 .routes__head { align-items: center; }
+
+/* ---------------------------------------------------------------------------
+   The star chart in two views. Sector: the real places without borders, a soft glow per
+   faction, solid lanes, names on plates, what is reachable bright and the rest stepped back.
+   Close range: only the next jump, large.
+   --------------------------------------------------------------------------- */
+.routes .segment { margin: 0; }
+.sector__glow { opacity: 0.2; pointer-events: none; }
+.sector__lane { stroke: rgba(143, 166, 200, 0.42); stroke-width: 0.7; stroke-dasharray: none; stroke-linecap: round; }
+.sector__express { stroke: rgba(143, 166, 200, 0.42); stroke-width: 2; }
+.sector__lane.is-express { stroke: #070c18; stroke-width: 0.7; }
+.sector__lane.is-open { stroke: var(--cyan); stroke-width: 0.9; }
+.sector__express.is-open { stroke: var(--cyan); }
+.sector__lane.is-express.is-open { stroke: #070c18; stroke-width: 0.7; }
+.sector__lane.is-course { stroke: var(--r-legend); stroke-width: 1.1; stroke-dasharray: 2.4 1.6; }
+.sector__express.is-course { stroke: color-mix(in srgb, var(--r-legend) 55%, transparent); }
+.sector__lane.is-express.is-course { stroke: #070c18; stroke-dasharray: none; animation: none; }
+.sector__fuel circle { fill: #070c18; stroke: var(--cyan); stroke-width: 0.4; }
+.sector__fuel text { font-family: var(--font-display); font-size: 3.6px; font-weight: 700; fill: var(--cyan); }
+.sector__fuel.is-short circle { stroke: var(--amber); }
+.sector__fuel.is-short text { fill: var(--amber); }
+.sector__plate { fill: rgba(7, 12, 24, 0.86); stroke: none; }
+.sector__node.is-near .sector__plate, .sector__node.is-here .sector__plate { stroke: color-mix(in srgb, var(--cyan) 60%, transparent); stroke-width: 0.3; }
+.sector__node.is-target .sector__plate { stroke: var(--r-legend); stroke-width: 0.4; }
+.sector__name { font-size: 3.1px; stroke: none; fill: var(--ink-dim); }
+.sector__node.is-near .sector__name, .sector__node.is-here .sector__name, .sector__node.is-target .sector__name { font-size: 3.4px; font-weight: 700; }
+.sector__node.is-far { opacity: 0.6; }
+.sector__node.is-near .sector__dot { stroke: #fff; stroke-width: 0.7; }
+
+.near { position: relative; width: min(100%, calc(min(52dvh, 100dvh - 430px) * 0.95)); aspect-ratio: 1 / 1.05; margin-inline: auto; border-radius: var(--radius-m); background: #070c18; border: 1px solid var(--stroke-strong); overflow: hidden; }
+.near__lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+.near__lane { stroke: var(--cyan); stroke-width: 0.9; vector-effect: non-scaling-stroke; stroke-width: 2.5px; stroke-linecap: round; }
+.near__track { stroke: var(--cyan); vector-effect: non-scaling-stroke; stroke-width: 7px; stroke-linecap: round; }
+.near__lane.is-express { stroke: #070c18; stroke-width: 2.5px; }
+.near__lane.is-target, .near__track.is-target { stroke: var(--r-legend); }
+.near__lane.is-express.is-target { stroke: #070c18; }
+.near__here { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
+.near__here i { width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 6px solid var(--faction); box-shadow: 0 0 0 4px #070c18; }
+.near__here b { padding: 2px 8px; border-radius: 999px; background: rgba(7, 12, 24, 0.9); font-family: var(--font-display); font-size: var(--fs-small); white-space: nowrap; }
+.near__card { position: absolute; translate: -50% -50%; width: 43%; display: flex; flex-direction: column; gap: 4px; padding: 9px 9px 8px; border-radius: var(--radius-m); text-align: left; background: #0b1324; border: 1.5px solid color-mix(in srgb, var(--faction) 70%, transparent); transition: transform 0.14s var(--out), border-color 0.2s; }
+.near__card:active { transform: scale(0.96); }
+.near__card.is-proposed { border-style: dashed; border-color: var(--cyan); }
+.near__card.is-target { border-color: var(--r-legend); background: #14171f; }
+.near__card.is-short { opacity: 0.6; }
+.near__top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.near__top b { flex: 1; min-width: 0; font-family: var(--font-display); font-size: var(--fs-body); font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; }
+.emblem--near { width: 20px; height: 20px; flex: none; }
+.near__fuel { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-style: normal; font-family: var(--font-display); font-size: var(--fs-small); font-weight: 700; color: var(--cyan); background: #070c18; border: 1px solid var(--cyan); }
+.near__card.is-short .near__fuel { color: var(--amber); border-color: var(--amber); }
+.near__card small { font-size: var(--fs-small); line-height: 1.25; color: var(--ink-dim); }
+.near__card .near__hint { color: var(--ok); font-weight: 600; }
+.near__card .near__hint.is-hot { color: #ff8cc4; }
+.near__card .near__event { color: var(--amber); font-weight: 600; }
+.near__card .near__order { color: var(--ok); font-weight: 600; }
+.near__card .near__none { color: var(--ink-faint); }
+.near__inset { position: absolute; width: 21%; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px; border-radius: var(--radius-s); background: rgba(11, 19, 36, 0.9); border: 1px solid var(--stroke); }
+.near__inset--tl { left: 6px; top: 6px; }
+.near__inset--tr { right: 6px; top: 6px; }
+.near__inset--br { right: 6px; bottom: 6px; }
+.near__inset--bl { left: 6px; bottom: 6px; }
+.near__inset svg { width: 100%; height: auto; }
+.near__inset line { stroke: rgba(143, 166, 200, 0.45); stroke-width: 1.4; }
+.near__inset circle.is-marked { stroke: var(--amber); stroke-width: 2.4; }
+.near__inset small { font-family: var(--font-display); font-size: var(--fs-micro); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
+
+/* The chart takes whatever height is left between the heading and the destination, in both views. */
+.routes { height: min(calc(100dvh - var(--safe-t) - 28px), 880px); max-height: none; }
+.chart { position: relative; flex: 1 1 auto !important; min-height: 190px; border-radius: var(--radius-m); background: #070c18; border: 1px solid var(--stroke-strong); overflow: hidden; }
+.chart .sector { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0; background: none; }
+.chart .near { position: absolute; inset: 0; width: auto; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0; background: none; }
+.routes .dest { position: static; }
+.legend--over { position: absolute; left: 8px; bottom: 6px; right: 8px; justify-content: flex-start; pointer-events: none; }
+.near__card { width: 45%; }
+.near__top b { overflow-wrap: normal; word-break: normal; hyphens: manual; }
+.near__here { top: 50%; }
+.routes .dest { position: relative; }

@@ -54,6 +54,7 @@ await page.evaluate(() => {
     ],
   };
   localStorage.setItem('nova.save', JSON.stringify(s));
+  localStorage.setItem('nova.chart', 'sector');
 });
 await start('');
 await shot('220-hub-board');

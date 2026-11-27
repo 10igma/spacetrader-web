@@ -97,6 +97,9 @@ interface AppState {
   revealCrate: 'standard' | 'premium' | null;
   travel: Travel | null;
   routesOpen: boolean;
+  /** Which view of the star chart is shown: close range for the next jump, or the whole sector. Kept on the device. */
+  chartMode: 'near' | 'sector';
+  setChartMode(mode: 'near' | 'sector'): void;
   /** Where the captain is headed, possibly several jumps away. A plan on this device, not a rule. */
   course: StationId | null;
   setCourse(target: StationId | null): void;
@@ -160,6 +163,8 @@ export const useApp = create<AppState>((set, get) => ({
   revealCrate: null,
   travel: null,
   routesOpen: false,
+  chartMode: (() => { try { return localStorage.getItem('nova.chart') === 'sector' ? 'sector' as const : 'near' as const; } catch { return 'near' as const; } })(),
+  setChartMode(chartMode) { try { localStorage.setItem('nova.chart', chartMode); } catch { /* private mode: lasts for the session */ } set({ chartMode }); },
   course: null,
   setCourse(course) { set({ course }); },
   sale: null,

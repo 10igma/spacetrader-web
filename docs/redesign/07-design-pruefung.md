@@ -146,6 +146,19 @@ Anlass: Die Sternkarte wirkte falsch zusammengesetzt. Titel, Karte und Zielkarte
 
 Geprüft bei 390 mal 844, 360 mal 640 und 731 mal 993 Pixeln.
 
+### Sternkarte in zwei Ansichten (27.11.2026)
+
+Anlass: Die Karte war schwer zu lesen. Die hellen Gebietsgrenzen sahen aus wie Wege, alles war gleich wichtig, die Schrift klein, und was man zum Entscheiden braucht, stand nicht auf der Karte.
+
+| Ansicht | Wofür | Was sie zeigt |
+|---|---|---|
+| Nahbereich (Standard) | Wohin springe ich jetzt? | Nur die Stationen, die einen Sprung entfernt sind, als grosse Karten an ihrer Himmelsrichtung. Jede nennt Treibstoff und die Ware, die sich dort am besten verkauft, zuerst die geladene. Krisen und Aufträge am Ziel stehen an ihrer Stelle |
+| Sektor | Wohin will ich über mehrere Sprünge? | Die echten Orte ohne Grenzlinien: ein weicher Farbschein pro Fraktion, kräftige Bahnen, Express als Doppelspur, Namen auf Schildern, die einander ausweichen. Erreichbares ist hell und trägt die Treibstoffzahl auf der Bahn, der Rest tritt zurück |
+
+Ein Umschalter wechselt zwischen beiden, das Gerät merkt sich die Wahl. Ziele, Kurs, Rivalen, Aufträge und der Sprung-Knopf sind in beiden gleich. Die Karte füllt den Platz zwischen Titel und Zielkarte, das Fenster passt damit auf jede Höhe.
+
+Verworfen: ein Linienplan wie bei einer U-Bahn (klarste Struktur, aber kein Raumgefühl) als dritte Ansicht.
+
 ## Bewusst nicht umgesetzt
 
 - **Prestige mit gedrückt halten:** Die Bestätigung in zwei Schritten mit Verlustliste reicht fürs Erste.

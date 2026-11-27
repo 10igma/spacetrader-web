@@ -41,6 +41,8 @@ await page.evaluate(() => {
     { stationId: 'zenit', category: 'medizin', mult: 1.6, demand: 21, drain: 6 },
   ];
   localStorage.setItem('nova.save', JSON.stringify(s));
+  // This run is about the whole sector: start in that view of the chart.
+  localStorage.setItem('nova.chart', 'sector');
 });
 await start('');
 await shot('210-hub-crises');
@@ -49,6 +51,15 @@ await page.locator('.hub > .cta').tap(); await settle(900);
 await shot('211-sector-chart');
 check('the chart shows all twelve stations', await page.locator('.sector__node').count() === 12);
 check('four lanes lead away from the hub station', await page.locator('.sector__lane.is-open').count() === 4);
+check('each of them says what it costs', await page.locator('.sector__fuel').count() === 4);
+// The other view: only the next jump, large.
+await page.locator('.routes .segment button', { hasText: 'Nahbereich' }).tap(); await settle(600);
+await shot('211b-close-range');
+check('close range shows one card per lane, without overlap', await page.locator('.near__card').count() === 4 && await page.evaluate(() => { const r = [...document.querySelectorAll('.near__card')].map((el) => el.getBoundingClientRect()); return r.every((a, i) => r.every((b, j) => i === j || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)); }));
+await page.locator('.near__card', { hasText: 'Kessin' }).tap(); await settle(500);
+check('tapping a card picks that jump', await page.locator('.dest__title b').innerText().then((t) => t.toUpperCase().includes('KESSIN')));
+await page.locator('.dest .link').tap(); await settle(300);
+await page.locator('.routes .segment button', { hasText: 'Sektor' }).tap(); await settle(600);
 
 // Set a course for the war, two jumps away.
 await page.locator('.target--crisis', { hasText: 'Eisenfurt' }).tap(); await settle(900);

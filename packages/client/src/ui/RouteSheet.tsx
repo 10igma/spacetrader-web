@@ -7,6 +7,7 @@ import { IconFuel } from './icons.tsx';
 import { CloseX } from './Spend.tsx';
 import { Emblem } from './Emblem.tsx';
 import { jumps, orderState, orderStatus } from './Orders.tsx';
+import { NearMap } from './NearMap.tsx';
 import { SectorMap } from './SectorMap.tsx';
 
 /** One line that says everything a captain needs to decide whether a crisis is worth the trip. */
@@ -27,6 +28,8 @@ export function RouteSheet() {
   const now = useServerNow();
   const course = useApp((s) => s.course);
   const setCourse = useApp((s) => s.setCourse);
+  const mode = useApp((s) => s.chartMode);
+  const setMode = useApp((s) => s.setChartMode);
 
   // Without a course the chart proposes the jump that sells best: what is aboard first, then anything.
   const proposal = [...view.routes].sort((a, b) => {
@@ -56,11 +59,23 @@ export function RouteSheet() {
           </div>
           <span className="pill"><IconFuel />{view.fuel.amount} / {view.fuel.max}</span>
         </header>
-        <SectorMap view={view} course={chosen} proposed={chosen ? null : targetId} onPick={pick} />
-        <div className="legend" aria-hidden="true">
-          <span><i className="legend__lane" />1 Treibstoff</span>
-          <span><i className="legend__lane legend__lane--express" />Express: 2 Treibstoff</span>
-          <span>Station antippen: Ziel wählen</span>
+        <div className="segment" role="tablist">
+          <button role="tab" aria-selected={mode === 'near'} className={mode === 'near' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('near'); }}>Nahbereich</button>
+          <button role="tab" aria-selected={mode === 'sector'} className={mode === 'sector' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('sector'); }}>Sektor</button>
+        </div>
+        <div className="chart">
+          {mode === 'near' ? (
+            <NearMap view={view} target={chosen ? path[0] ?? null : null} proposed={chosen ? null : targetId} onPick={pick} />
+          ) : (
+            <>
+              <SectorMap view={view} course={chosen} proposed={chosen ? null : targetId} onPick={pick} />
+              <div className="legend legend--over" aria-hidden="true">
+                <span><i className="legend__lane" />Bahn</span>
+                <span><i className="legend__lane legend__lane--express" />Express</span>
+                <span>Zahl: Treibstoff</span>
+              </div>
+            </>
+          )}
         </div>
         {/* Far places worth a trip, as chips: tap one to set a course. */}
         {(view.events.some((e) => e.stationId !== view.location) || view.orders.active.some((o) => !o.here)) && (
