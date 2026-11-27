@@ -32,4 +32,30 @@ if (typeof window !== 'undefined') {
     gyro.y = Math.max(-1, Math.min(1, (e.beta - 45) / 25));
     if (!calm && !document.hidden && raf === 0) raf = requestAnimationFrame(frame);
   });
+
+  // With a mouse there is nothing to tilt, so the card under the pointer leans towards it:
+  // foil and glare follow, and the light on the card becomes visible. One listener for all cards.
+  let hovered: HTMLElement | null = null;
+  const release = (): void => {
+    if (!hovered) return;
+    for (const v of ['--mx', '--my', '--rx', '--ry']) hovered.style.removeProperty(v);
+    hovered = null;
+  };
+  document.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const el = (e.target as Element | null)?.closest?.('.holo') as HTMLElement | null;
+    if (el !== hovered) release();
+    // A card that is held up large follows the pointer by itself. A locked one has no light to show.
+    if (!el || el.dataset.live !== undefined || el.classList.contains('is-locked')) return;
+    hovered = el;
+    const r = el.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    const y = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+    el.style.setProperty('--mx', x.toFixed(3));
+    el.style.setProperty('--my', y.toFixed(3));
+    el.style.setProperty('--rx', `${((0.5 - y) * 22).toFixed(1)}deg`);
+    el.style.setProperty('--ry', `${((x - 0.5) * 26).toFixed(1)}deg`);
+  }, { passive: true });
+  document.addEventListener('pointerout', (e) => { if (e.pointerType === 'mouse' && !e.relatedTarget) release(); });
+  window.addEventListener('blur', release);
 }

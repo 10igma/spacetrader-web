@@ -21,7 +21,7 @@ await page.locator('.splash').tap(); await settle(800);
 await tab('Hangar');
 await page.locator('.cta').tap();
 await page.waitForSelector('.reveal');
-for (let i = 0; i < 12 && !(await page.locator('.reveal--summary').count()); i++) { await page.locator('.reveal').tap(); await settle(450); }
+for (let i = 0; i < 30 && !(await page.locator('.reveal--summary').count()); i++) { await page.locator('.reveal').tap(); await settle(450); }
 await page.locator('.reveal .cta', { hasText: 'Weiter' }).tap(); await settle(400);
 await page.evaluate(() => {
   const s = JSON.parse(localStorage.getItem('nova.save'));

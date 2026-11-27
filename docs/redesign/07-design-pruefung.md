@@ -110,6 +110,22 @@ Nichts davon nimmt eine Mechanik weg. Es ändert nur, wann und wie viel man davo
 
 **Wichtig zur Freischaltung:** Sie ändert keine Regel. Jedes System läuft von der ersten Minute an, und was es einbringt, wartet. Gesperrt ist nur der Weg dorthin in der Oberfläche. Der Server prüft die Stufen nicht, mit Ausnahme der Frachtbörse, die schon vorher ab Stufe 3 galt.
 
+### Container-Öffnung, zweite Fassung (27.11.2026)
+
+Anlass: Die Öffnung wirkte zu brav. Der Container stand im Leeren, wackelte kurz und wurde gegen ein offenes Bild getauscht.
+
+| Akt | Was passiert |
+|---|---|
+| Aufprall | Der Container fällt von oben herein, federt nach und schlägt eine Druckwelle |
+| Drei Schläge | Jeder Tipp ist ein Schlag: Der Container zuckt, Licht drückt stärker aus den Fugen, Ton und Vibration steigen. Wer nicht tippt, sieht ihn nach je einer Sekunde von selbst aufbrechen |
+| Explosion | Blitz, Druckring, Trümmerfunken, der Bildschirm bebt kurz, eine Lichtsäule schiesst nach oben. Dieser Moment lässt sich nicht überspringen |
+| Karte steigt auf | Jede Karte kommt einzeln verdeckt aus dem Container. Oben zeigen Marken, wie viele noch drin sind |
+| Farbsignal | Das Licht hinter der Kartenrückseite nimmt die Farbe der Seltenheit an. Je seltener, desto länger die Spannung: Ab Elite zittert die Karte, bei Legende und Singularität wird der Bildschirm dunkel und die Karte schwillt an |
+| Umdrehen | Die Karte dreht sich mit einem Lichtblitz um. Das Wort der Seltenheit fährt hinter ihr ein, Funken und Strahlen wachsen mit der Seltenheit, bei Legenden regnet es in ihrer Farbe |
+| Abgang und Übersicht | Die Karte fliegt weg, die nächste steigt auf. Am Ende werden alle Karten ausgeteilt, die beste leuchtet auf |
+
+**Fairness, unverändert:** Die Karten stehen fest, bevor die Öffnung beginnt. Aufprall, Schläge und Explosion sind für jeden Container gleich und sagen nichts über den Inhalt. Das erste Signal ist die Farbe hinter der Karte, und sie ist immer die echte Seltenheit. Beim Aufwertungs-Moment zeigt sie zuerst die gewürfelte und dann die höhere Seltenheit, wie die Regeln es entschieden haben. Es gibt kein Beinahe-Treffer-Bild.
+
 ## Bewusst nicht umgesetzt
 
 - **Prestige mit gedrückt halten:** Die Bestätigung in zwei Schritten mit Verlustliste reicht fürs Erste.

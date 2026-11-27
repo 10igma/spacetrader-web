@@ -724,19 +724,6 @@ button.tile:active { transform: scale(0.96); }
 .reveal--crate, .reveal--crack { background: rgba(2, 4, 10, 0.55); }
 .reveal--premium { --seam: var(--r-legend); }
 .reveal--standard { --seam: var(--cyan); }
-.reveal__crate { width: min(72vw, 300px); height: auto; filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 30px color-mix(in srgb, var(--seam) 45%, transparent)); }
-.reveal--crate .reveal__crate { animation: crate-in 0.3s var(--spring) both, crate-shake 0.85s 0.3s cubic-bezier(0.5, 0, 1, 0.6) both; }
-.reveal--crack .reveal__crate { animation: crate-pop 0.5s var(--out) both; -webkit-mask-image: linear-gradient(180deg, transparent 2%, #000 24%); mask-image: linear-gradient(180deg, transparent 2%, #000 24%); }
-@keyframes crate-in { from { opacity: 0; transform: scale(0.7) translateY(30px); } }
-@keyframes crate-shake {
-  0% { transform: rotate(0); } 10% { transform: rotate(-1deg); } 20% { transform: rotate(1deg); } 32% { transform: rotate(-2deg) translateX(-2px); }
-  44% { transform: rotate(2deg) translateX(2px); } 56% { transform: rotate(-3deg) translateX(-3px); } 66% { transform: rotate(3deg) translateX(3px); }
-  75% { transform: rotate(-4deg) translateX(-4px) scale(1.02); } 83% { transform: rotate(4deg) translateX(4px) scale(1.03); } 91% { transform: rotate(-5deg) translateX(-4px) scale(1.04); } 100% { transform: rotate(4deg) translateX(3px) scale(1.06); }
-}
-@keyframes crate-pop { 0% { transform: scale(1.06); } 30% { transform: scale(1.18); } 100% { transform: scale(1.1) translateY(14px); opacity: 0.9; } }
-.reveal__flash { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(closest-side, #fff, color-mix(in srgb, var(--seam) 70%, transparent) 40%, transparent 75%); animation: crate-flash 0.5s var(--out) both; }
-@keyframes crate-flash { from { opacity: 1; transform: scale(0.4); } to { opacity: 0; transform: scale(1.6); } }
-@media (prefers-reduced-motion: reduce) { .reveal--crate .reveal__crate { animation: crate-in 0.3s both; } }
 .reveal__slot.is-best { z-index: 1; scale: 1.14; filter: drop-shadow(0 0 16px var(--rar)); }
 
 .reveal--show { background: radial-gradient(70% 50% at 50% 46%, color-mix(in srgb, var(--rar) 20%, transparent), rgba(2, 4, 10, 0.55)); }
@@ -760,11 +747,8 @@ button.tile:active { transform: scale(0.96); }
   animation: tell 0.5s var(--out) both;
 }
 @keyframes tell { from { opacity: 0; letter-spacing: 0.9em; filter: blur(8px); } }
-.reveal__card { animation: card-in 0.75s var(--spring) both; filter: drop-shadow(0 0 40px color-mix(in srgb, var(--rar) 55%, transparent)); }
-@keyframes card-in {
-  0% { opacity: 0; transform: perspective(900px) translateY(60px) scale(0.5) rotateY(110deg); }
-  60% { opacity: 1; }
-}
+.reveal__card { position: relative; z-index: 2; animation: card-in 0.5s var(--spring) both; filter: drop-shadow(0 0 40px color-mix(in srgb, var(--rar) 55%, transparent)); }
+@keyframes card-in { 0% { transform: perspective(900px) rotateY(-92deg) scale(1.08); filter: brightness(2.2); } 55% { filter: brightness(1.25); } }
 .reveal__rays {
   position: absolute;
   top: 46%; left: 50%;
@@ -2189,3 +2173,100 @@ i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(-
 .trio__icon b { font-size: var(--fs-head); text-shadow: 0 0 2px #000, 0 0 8px #000; }
 .trio__btn--streak .trio__icon svg { opacity: 0.45; }
 .trio__btn--calendar .trio__icon svg { width: 34px; height: 34px; opacity: 0.9; }
+
+/* ---------------------------------------------------------------------------
+   Opening a container, in acts: it drops in, takes three knocks, bursts, and the
+   cards rise from it face down, one at a time. Nothing before the light on a card's
+   back says anything about the contents, and that light is the real rarity.
+   --------------------------------------------------------------------------- */
+.reveal { --seam: var(--cyan); --beam: #dff3ff; overflow: hidden; }
+.reveal--premium { --seam: var(--r-legend); }
+.reveal--crate, .reveal--crack { background: radial-gradient(60% 45% at 50% 46%, color-mix(in srgb, var(--seam) calc(10% + 16% * var(--heat, 0)), transparent), rgba(2, 4, 10, 0.72)); }
+.reveal--tell, .reveal--bump, .reveal--flip, .reveal--show, .reveal--leave { --beam: var(--rar); }
+.reveal--charge, .reveal--tell, .reveal--bump, .reveal--flip { background: rgba(2, 4, 10, 0.35); transition: background 0.5s; }
+.reveal.is-epic.reveal--tell, .reveal.is-epic.reveal--bump, .reveal.is-epic.reveal--flip { background: rgba(1, 2, 6, 0.88); }
+.reveal--leave { background: radial-gradient(70% 50% at 50% 46%, color-mix(in srgb, var(--rar) 12%, transparent), rgba(2, 4, 10, 0.55)); }
+
+.reveal__box { position: absolute; left: 50%; top: 46%; width: min(72vw, 300px); translate: -50% -50%; transition: translate 0.55s var(--out), scale 0.55s var(--out), opacity 0.4s; animation: crate-drop 0.55s cubic-bezier(0.5, 0, 0.9, 0.45) both; }
+.reveal--charge .reveal__box, .reveal--tell .reveal__box, .reveal--bump .reveal__box, .reveal--flip .reveal__box, .reveal--show .reveal__box, .reveal--leave .reveal__box { translate: -50% calc(-50% + 39vh); scale: 0.36; }
+.reveal.is-epic .reveal__box { opacity: 0.55; }
+@keyframes crate-drop { 0% { transform: translateY(-110vh) rotate(-14deg); } 62% { transform: translateY(0) rotate(0); } 74% { transform: translateY(-22px) rotate(2deg); } 86% { transform: translateY(0); } 93% { transform: translateY(-6px); } 100% { transform: none; } }
+.reveal__crate { position: relative; display: block; width: 100%; height: auto; filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 calc(18px + 46px * var(--heat, 0)) color-mix(in srgb, var(--seam) 70%, transparent)) brightness(calc(1 + 0.3 * var(--heat, 0))); }
+.reveal--crate .reveal__crate { animation: crate-knock 0.42s var(--out) both, crate-rattle calc(0.5s - 0.22s * var(--heat, 0)) 0.42s ease-in-out infinite alternate; }
+.reveal--crack .reveal__crate { animation: crate-pop 0.6s var(--out) both; }
+@keyframes crate-knock { 0% { transform: scale(1.14) rotate(calc(-5deg - 4deg * var(--heat, 0))); } 40% { transform: scale(0.95) rotate(calc(4deg + 3deg * var(--heat, 0))); } 70% { transform: scale(1.03) rotate(-2deg); } 100% { transform: none; } }
+@keyframes crate-rattle { from { transform: rotate(calc(-0.6deg - 2.4deg * var(--heat, 0))) translateX(calc(-1px - 3px * var(--heat, 0))); } to { transform: rotate(calc(0.6deg + 2.4deg * var(--heat, 0))) translateX(calc(1px + 3px * var(--heat, 0))); } }
+@keyframes crate-pop { 0% { transform: scale(0.8); filter: brightness(3); } 35% { transform: scale(1.22); } 100% { transform: none; } }
+/* Light pressing out of the seams, stronger with every knock. */
+.reveal__leak { position: absolute; left: 50%; top: 50%; width: 190%; aspect-ratio: 1; translate: -50% -50%; pointer-events: none; opacity: calc(0.15 + 0.75 * var(--heat, 0)); background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--seam) 75%, transparent) 0deg 2deg, transparent 2deg 17deg); -webkit-mask-image: radial-gradient(closest-side, #000 20%, transparent 72%); mask-image: radial-gradient(closest-side, #000 20%, transparent 72%); animation: rays 14s linear infinite; transition: opacity 0.3s; }
+.reveal--charge .reveal__leak, .reveal--tell .reveal__leak, .reveal--bump .reveal__leak, .reveal--flip .reveal__leak, .reveal--show .reveal__leak, .reveal--leave .reveal__leak { opacity: 0.35; background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--beam) 75%, transparent) 0deg 2deg, transparent 2deg 17deg); }
+.reveal__impact { position: absolute; left: 50%; top: 86%; width: 30%; aspect-ratio: 3; translate: -50% -50%; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--seam) 80%, #fff); opacity: 0; animation: impact 0.5s 0.33s var(--out) both; }
+@keyframes impact { 0% { opacity: 0.9; transform: scale(0.4); } 100% { opacity: 0; transform: scale(4.2); } }
+/* The column of light the cards rise in. It takes the colour of the card that is coming. */
+.reveal__beam { position: absolute; left: 50%; bottom: 46%; width: 62%; height: 150vh; translate: -50% 0; pointer-events: none; transform-origin: 50% 100%; background: linear-gradient(0deg, color-mix(in srgb, var(--beam) 85%, #fff) 0%, color-mix(in srgb, var(--beam) 55%, transparent) 22%, transparent 78%); -webkit-mask-image: linear-gradient(90deg, transparent, #000 34%, #000 66%, transparent); mask-image: linear-gradient(90deg, transparent, #000 34%, #000 66%, transparent); mix-blend-mode: screen; opacity: 0.85; animation: beam-up 0.5s var(--out) both, beam-breathe 1.1s 0.5s ease-in-out infinite alternate; transition: background 0.4s; }
+@keyframes beam-up { from { transform: scaleY(0) scaleX(2.4); opacity: 1; } }
+@keyframes beam-breathe { from { opacity: 0.6; transform: scaleX(0.88); } to { opacity: 0.95; transform: scaleX(1.08); } }
+.reveal.is-epic .reveal__beam { width: 110%; opacity: 1; }
+.reveal__flash { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: radial-gradient(closest-side, #fff, color-mix(in srgb, var(--seam) 70%, transparent) 45%, transparent 80%); animation: crate-flash 0.7s var(--out) both; }
+@keyframes crate-flash { 0% { opacity: 1; transform: scale(0.3); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(2.2); } }
+.reveal__ring { position: absolute; left: 50%; top: 46%; width: 60vmin; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; border: 3px solid color-mix(in srgb, var(--seam) 60%, #fff); pointer-events: none; animation: ring 0.75s var(--out) both; }
+@keyframes ring { 0% { transform: scale(0.2); opacity: 1; border-width: 10px; } 100% { transform: scale(3.4); opacity: 0; border-width: 1px; } }
+.sparks--debris { top: 46%; }
+.sparks--debris i { width: 4px; height: 18px; background: color-mix(in srgb, var(--seam) 60%, #fff); }
+
+/* A card on its way: face down, lit from behind in the colour of its rarity. */
+.cardback { position: relative; z-index: 2; width: min(76vw, 310px, 48vh); aspect-ratio: 5 / 7; animation: back-rise 0.56s var(--spring) both; filter: drop-shadow(0 0 34px color-mix(in srgb, var(--beam) 70%, transparent)); transition: filter 0.4s; }
+@keyframes back-rise { 0% { opacity: 0; transform: translateY(36vh) scale(0.16) rotate(-8deg); } 30% { opacity: 1; } 100% { transform: none; } }
+.cardback__face { position: absolute; inset: 0; border-radius: 6% / 4.3%; overflow: hidden; background:
+  radial-gradient(60% 42% at 50% 50%, color-mix(in srgb, var(--beam) 30%, transparent), transparent 70%),
+  repeating-linear-gradient(60deg, rgba(150, 195, 255, 0.07) 0 2px, transparent 2px 16px),
+  repeating-linear-gradient(-60deg, rgba(150, 195, 255, 0.07) 0 2px, transparent 2px 16px),
+  linear-gradient(160deg, #101a30, #05080f 70%);
+  border: 2px solid color-mix(in srgb, var(--beam) 75%, #2a3a55); box-shadow: inset 0 0 40px -6px color-mix(in srgb, var(--beam) 60%, transparent); transition: border-color 0.4s, box-shadow 0.4s; animation: back-hover 1.4s 0.56s ease-in-out infinite alternate; }
+@keyframes back-hover { from { transform: perspective(900px) translateY(-5px) rotateY(-7deg); } to { transform: perspective(900px) translateY(5px) rotateY(7deg); } }
+.cardback__mark { position: absolute; left: 50%; top: 50%; width: 38%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--beam) 80%, #fff); box-shadow: 0 0 26px color-mix(in srgb, var(--beam) 80%, transparent), inset 0 0 22px color-mix(in srgb, var(--beam) 60%, transparent); }
+.cardback__mark::before, .cardback__mark::after { content: ''; position: absolute; inset: 22%; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--beam) 70%, transparent); }
+.cardback__mark::after { inset: 44%; background: color-mix(in srgb, var(--beam) 85%, #fff); border: 0; box-shadow: 0 0 18px var(--beam); animation: seam 0.9s ease-in-out infinite alternate; }
+/* The longer the wait, the more it trembles: elite and above earn their drum roll. */
+.reveal--elite.reveal--tell .cardback, .reveal--elite.reveal--bump .cardback { animation: back-rise 0.56s var(--spring) both, tremble 0.09s 0.56s linear infinite; }
+.reveal.is-epic .cardback { animation: back-rise 0.56s var(--spring) both, tremble 0.07s 0.3s linear infinite, swell 2.4s 0.3s ease-in both; filter: drop-shadow(0 0 70px var(--beam)); }
+@keyframes tremble { 0% { translate: -1.5px 1px; } 50% { translate: 1.5px -1px; } 100% { translate: -1px -1.5px; } }
+@keyframes swell { to { scale: 1.12; } }
+.cardback.is-turning .cardback__face { animation: back-turn 0.23s ease-in both; }
+@keyframes back-turn { to { transform: perspective(900px) rotateY(92deg) scale(1.08); filter: brightness(2.4); } }
+
+/* The rarity as a word, behind the card: it sweeps in when the card turns. */
+.reveal__banner { position: absolute; left: 0; right: 0; top: calc(var(--safe-t) + 13%); z-index: 1; text-align: center; font-family: var(--font-display); font-weight: 800; font-size: clamp(34px, 12vw, 54px); letter-spacing: 0.3em; margin-right: -0.3em; text-transform: uppercase; color: #fff; text-shadow: 0 0 18px var(--rar), 0 0 60px var(--rar); animation: banner 0.6s var(--out) both; pointer-events: none; }
+@keyframes banner { from { opacity: 0; letter-spacing: 1.1em; filter: blur(10px); } }
+.reveal--rare .reveal__banner { font-size: clamp(26px, 8vw, 36px); opacity: 0.85; }
+.reveal.is-epic .reveal__banner { animation: banner 0.6s var(--out) both, banner-pulse 1.2s 0.6s ease-in-out infinite alternate; }
+@keyframes banner-pulse { to { text-shadow: 0 0 26px var(--rar), 0 0 90px var(--rar), 0 0 140px var(--rar); } }
+.reveal__card.is-leaving { animation: card-out 0.24s ease-in both; }
+@keyframes card-out { to { opacity: 0; transform: translate(-34vw, 38vh) scale(0.14) rotate(-24deg); } }
+.reveal--leave .reveal__rays, .reveal--leave .reveal__tag, .reveal--leave .reveal__banner, .reveal--leave .rain { opacity: 0; transition: opacity 0.2s; }
+.reveal__tag { position: relative; z-index: 2; }
+/* Legends and singularities rain their colour. */
+.rain { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.rain i { position: absolute; top: -6%; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--rar) 70%, #fff); box-shadow: 0 0 8px var(--rar); opacity: 0; animation: rain linear infinite; }
+@keyframes rain { 0% { opacity: 0; transform: translateY(0) rotate(12deg); } 10% { opacity: 0.95; } 100% { opacity: 0; transform: translateY(112vh) rotate(12deg); } }
+/* What is still in the crate: one pip per card. */
+.reveal__count { display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 2; }
+.reveal__left { display: flex; gap: 5px; }
+.reveal__left i { width: 12px; height: 17px; border-radius: 3px; border: 1.5px solid var(--ink-dim); background: rgba(150, 195, 255, 0.12); transition: opacity 0.3s, transform 0.3s; }
+.reveal__left i.is-out { opacity: 0.2; transform: translateY(-3px) scale(0.85); }
+.reveal__tell--bump { position: absolute; top: calc(var(--safe-t) + 14%); z-index: 3; }
+/* The summary deals the cards out. */
+.reveal__slot { animation: deal 0.5s var(--spring) both; }
+@keyframes deal { from { opacity: 0; transform: translateY(46vh) rotate(-16deg) scale(0.5); } }
+.reveal__slot.is-best { animation: deal 0.5s var(--spring) both, best 0.9s 0.6s var(--out) both; }
+@keyframes best { 0% { filter: drop-shadow(0 0 0 var(--rar)) brightness(1.8); } 100% { filter: drop-shadow(0 0 16px var(--rar)); } }
+@media (prefers-reduced-motion: reduce) {
+  .reveal__box { animation: none; }
+  .reveal--crate .reveal__crate, .cardback, .cardback__face, .reveal.is-epic .cardback { animation: none; }
+  .rain { display: none; }
+}
+/* The burst shakes the whole screen for a moment. */
+.reveal--crack { animation: quake 0.45s linear both; }
+@keyframes quake { 0% { transform: translate(0, 0); } 15% { transform: translate(-7px, 5px); } 30% { transform: translate(6px, -6px); } 45% { transform: translate(-5px, -3px); } 60% { transform: translate(4px, 4px); } 80% { transform: translate(-2px, 2px); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .reveal--crack { animation: none; } }
+.reveal__title { position: relative; z-index: 2; margin-bottom: 10px; }

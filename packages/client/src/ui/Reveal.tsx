@@ -1,6 +1,7 @@
 import { CARD_BY_ID, rarityRank, type Pull } from '@nova/core';
 import { useEffect, useMemo, useState } from 'react';
 import { audio, type Rank } from '../audio/engine.ts';
+import { haptic } from '../native/haptics.ts';
 import { stage } from '../stage/index.ts';
 import { useApp } from '../store.ts';
 import { art } from './art.ts';
@@ -9,21 +10,28 @@ import { HoloCard } from './HoloCard.tsx';
 import { num, RARITY_LABEL, RARITY_RGB } from './format.ts';
 import { Shard } from './icons.tsx';
 
-type Phase = 'crate' | 'crack' | 'charge' | 'tell' | 'bump' | 'show' | 'summary';
+type Phase = 'crate' | 'crack' | 'charge' | 'tell' | 'bump' | 'flip' | 'show' | 'leave' | 'summary';
 
-/** The crate shakes harder and harder, then breaks open. */
-const CRATE_MS = 1150;
-const CRACK_MS = 520;
+/** The crate takes three knocks. Left alone it knocks itself, so nobody is stuck in front of it. */
+const KNOCKS = 3;
+const KNOCK_MS = 1000;
+/** The lid blows off: flash, shock ring, light column. */
+const BURST_MS = 850;
+/** A card rises face down out of the crate. */
+const RISE_MS = 560;
+/** Higher rarities hold the tension longer before the card turns. */
+const TELL_MS = [420, 700, 1100, 1900, 2600];
+const FLIP_MS = 230;
+const LEAVE_MS = 240;
 
-const CHARGE_MS = 900;
-/** Higher rarities hold the tension longer before the card lands. */
-const TELL_MS = [450, 650, 950, 1400, 2000];
-
+const spray = (n: number, near: number, far: number): { angle: number; dist: number; delay: number }[] =>
+  Array.from({ length: n }, (_, i) => ({ angle: (i / n) * 360 + Math.random() * 20, dist: near + Math.random() * far, delay: Math.random() * 120 }));
 
 /**
  * Presentation only. The pulls were decided by the game service before this
  * component mounted. Nothing here can change or hint at a different outcome:
- * the rift shows the real rarity, then the real card.
+ * every crate takes the same knocks and bursts the same way, the light on a
+ * card's back is its real rarity, and then the real card turns over.
  */
 export function Reveal({ pulls }: { pulls: Pull[] }) {
   const close = useApp((s) => s.closeReveal);
@@ -36,70 +44,84 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
   const opened = tier ? art('crates', `${tier}-open`) ?? closed : undefined;
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>(closed ? 'crate' : 'charge');
+  const [knocks, setKnocks] = useState(0);
   const pull = pulls[index]!;
   const card = CARD_BY_ID.get(pull.cardId)!;
   const rank = rarityRank(pull.rarity) as Rank;
+  // What the light shows right now: with an upgrade moment first the rarity that was rolled, then the real one.
+  const hidden = phase === 'crate' || phase === 'crack' || phase === 'charge';
+  const shown = hidden ? null : phase === 'tell' && pull.upgradedFrom ? pull.upgradedFrom : pull.rarity;
+  const epic = rank >= 3;
 
-  const sparks = useMemo(
-    () => Array.from({ length: 10 + rank * 6 }, (_, i) => ({
-      angle: (i / (10 + rank * 6)) * 360 + Math.random() * 20,
-      dist: 90 + Math.random() * 150,
-      delay: Math.random() * 120,
-    })),
-    [index, rank],
-  );
+  const sparks = useMemo(() => spray(12 + rank * 8, 90, 150 + rank * 30), [index, rank]);
+  const debris = useMemo(() => spray(22, 60, 240), []);
+  const rain = useMemo(() => Array.from({ length: epic ? 28 : 0 }, () => ({ left: Math.random() * 100, delay: Math.random() * 1.6, dur: 1.4 + Math.random() * 1.4, size: 2 + Math.random() * 3 })), [index, epic]);
 
   useEffect(() => {
     audio.duck(true);
     return () => { audio.duck(false); stage.setRift(null, 0); };
   }, []);
 
+  const knock = (): void => {
+    if (knocks + 1 >= KNOCKS) { setPhase('crack'); return; }
+    // Same sound, same light for every crate: the knocks say nothing about what is inside.
+    audio.tell(knocks as Rank);
+    haptic(knocks === 0 ? 'reveal0' : 'reveal1');
+    stage.pulse(0.12 + knocks * 0.08);
+    setKnocks(knocks + 1);
+  };
+
   useEffect(() => {
     let timer = 0;
+    const after = (ms: number, next: Phase): void => { timer = window.setTimeout(() => setPhase(next), ms); };
     if (phase === 'crate') {
-      // Nothing about the contents shows yet: same light, same sound for every crate.
       stage.setRift(null, 0);
-      audio.riser(CRATE_MS / 1000);
-      timer = window.setTimeout(() => setPhase('crack'), CRATE_MS);
+      if (knocks === 0) { audio.riser(0.35); window.setTimeout(() => { stage.pulse(0.22); haptic('coins'); }, 330); }
+      timer = window.setTimeout(knock, knocks === 0 ? KNOCK_MS + 350 : KNOCK_MS);
     } else if (phase === 'crack') {
-      stage.pulse(0.3);
-      audio.warp(0.5);
-      timer = window.setTimeout(() => setPhase('charge'), CRACK_MS);
+      stage.pulse(0.7);
+      stage.setRift([0.75, 0.85, 1], 0.5);
+      audio.warp(0.55);
+      audio.reveal(1);
+      after(BURST_MS, 'charge');
     } else if (phase === 'charge') {
       stage.setRift([0.75, 0.85, 1], 0.4);
-      audio.riser(CHARGE_MS / 1000);
-      timer = window.setTimeout(() => setPhase('tell'), CHARGE_MS);
+      audio.riser((RISE_MS + TELL_MS[rank]!) / 1000);
+      after(RISE_MS, 'tell');
     } else if (phase === 'tell') {
-      // With an upgrade moment the rift first shows the rarity that was rolled, then rises.
-      const shown = pull.upgradedFrom ?? pull.rarity;
-      const shownRank = rarityRank(shown) as Rank;
-      stage.setRift(RARITY_RGB[shown], pull.upgradedFrom ? 0.8 : 1);
-      audio.tell(shownRank);
-      timer = window.setTimeout(() => setPhase(pull.upgradedFrom ? 'bump' : 'show'), pull.upgradedFrom ? 700 : TELL_MS[rank]);
+      const first = pull.upgradedFrom ?? pull.rarity;
+      stage.setRift(RARITY_RGB[first], pull.upgradedFrom ? 0.8 : 1);
+      audio.tell(rarityRank(first) as Rank);
+      if (epic && !pull.upgradedFrom) haptic('warn');
+      after(pull.upgradedFrom ? 750 : TELL_MS[rank]!, pull.upgradedFrom ? 'bump' : 'flip');
     } else if (phase === 'bump') {
       stage.setRift(RARITY_RGB[pull.rarity], 1);
       stage.pulse(0.3);
       audio.tell(rank);
-      timer = window.setTimeout(() => setPhase('show'), TELL_MS[rank]);
+      haptic('reveal1');
+      after(TELL_MS[rank]!, 'flip');
+    } else if (phase === 'flip') {
+      after(FLIP_MS, 'show');
     } else if (phase === 'show') {
       stage.setRift(RARITY_RGB[pull.rarity], 0.62);
-      stage.pulse(0.35 + rank * 0.14);
+      stage.pulse(0.35 + rank * 0.16);
       audio.reveal(rank);
+    } else if (phase === 'leave') {
+      timer = window.setTimeout(() => {
+        if (index + 1 < pulls.length) { setIndex(index + 1); setPhase('charge'); } else setPhase('summary');
+      }, LEAVE_MS);
     } else {
       stage.setRift(null, 0);
     }
     return () => window.clearTimeout(timer);
-  }, [phase, index, pull.rarity, rank]);
+  }, [phase, index, knocks, pull.rarity, rank]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const advance = (): void => {
-    if (phase === 'crate') { setPhase('crack'); return; }
-    if (phase === 'crack') { setPhase('charge'); return; }
-    if (phase === 'charge' || phase === 'tell' || phase === 'bump') { setPhase('show'); return; }
-    if (phase === 'show') {
-      audio.tap();
-      if (index + 1 < pulls.length) { setIndex(index + 1); setPhase('charge'); }
-      else setPhase('summary');
-    }
+    if (phase === 'crate') { knock(); return; }
+    // The burst is short and the same for everyone: it plays out.
+    if (phase === 'crack' || phase === 'leave') return;
+    if (phase === 'charge' || phase === 'tell' || phase === 'bump' || phase === 'flip') { setPhase('show'); return; }
+    if (phase === 'show') { audio.tap(); setPhase('leave'); }
   };
 
   if (phase === 'summary') {
@@ -129,30 +151,62 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
     );
   }
 
-  if (phase === 'crate' || phase === 'crack') {
-    return (
-      <div className={`overlay reveal reveal--${phase} reveal--${tier}`} onClick={advance}>
-        <img className="reveal__crate" src={phase === 'crate' ? closed : opened} alt="" draggable={false} />
-        {phase === 'crack' && <div className="reveal__flash" />}
-        <p className="overlay__hint">Tippen zum Öffnen</p>
-      </div>
-    );
-  }
+  const waiting = phase === 'charge' || phase === 'tell' || phase === 'bump' || phase === 'flip';
+  const faceUp = phase === 'show' || phase === 'leave';
+  const left = pulls.length - index - (faceUp ? 1 : 0);
 
   return (
-    <div className={`overlay reveal reveal--${phase} reveal--${phase === 'tell' && pull.upgradedFrom ? pull.upgradedFrom : pull.rarity}`} onClick={advance}>
-      <div className="reveal__count">{index + 1} / {pulls.length}</div>
-      {phase === 'tell' && <div className="reveal__tell">{RARITY_LABEL[pull.upgradedFrom ?? pull.rarity]}</div>}
+    <div
+      className={`overlay reveal reveal--${phase} reveal--${tier ?? 'none'}${shown ? ` reveal--${shown}` : ''}${epic && !hidden && !(phase === 'tell' && pull.upgradedFrom) ? ' is-epic' : ''}`}
+      style={{ ['--heat' as string]: knocks / (KNOCKS - 1) }}
+      onClick={advance}
+    >
+      {phase !== 'crate' && phase !== 'crack' && (
+        <div className="reveal__count" aria-label={`Karte ${index + 1} von ${pulls.length}`}>
+          <span className="reveal__left">{Array.from({ length: pulls.length }, (_, i) => <i key={i} className={i < pulls.length - left ? 'is-out' : ''} />)}</span>
+          {index + 1} / {pulls.length}
+        </div>
+      )}
+
+      {/* The crate: drops in, takes its knocks, bursts, then stays below as the source of the cards. */}
+      {closed && (
+        <div className="reveal__box">
+          <div className="reveal__leak" />
+          {phase !== 'crate' && <div className="reveal__beam" />}
+          <img key={phase === 'crate' ? `k${knocks}` : 'open'} className="reveal__crate" src={phase === 'crate' ? closed : opened} alt="" draggable={false} />
+          {phase === 'crate' && knocks === 0 && <div className="reveal__impact" />}
+        </div>
+      )}
+      {phase === 'crack' && (
+        <>
+          <div className="reveal__flash" />
+          <div className="reveal__ring" />
+          <div className="sparks sparks--debris">
+            {debris.map((s, i) => <i key={i} style={{ ['--a' as string]: `${s.angle}deg`, ['--d' as string]: `${s.dist}px`, animationDelay: `${s.delay}ms` }} />)}
+          </div>
+        </>
+      )}
+
+      {waiting && (
+        <div className={`cardback${phase === 'flip' ? ' is-turning' : ''}`} key={`back${index}`}>
+          <div className="cardback__face"><span className="cardback__mark" /></div>
+        </div>
+      )}
       {phase === 'bump' && <div className="reveal__tell reveal__tell--bump" key="bump"><small>Aufgewertet</small>{RARITY_LABEL[pull.rarity]}</div>}
-      {phase === 'show' && (
+
+      {faceUp && (
         <>
           <div className="reveal__rays" />
-          <div className="sparks">
-            {sparks.map((s, i) => (
-              <i key={i} style={{ ['--a' as string]: `${s.angle}deg`, ['--d' as string]: `${s.dist}px`, animationDelay: `${s.delay}ms` }} />
-            ))}
-          </div>
-          <div className="reveal__card" key={index}>
+          {rank >= 1 && <div className="reveal__banner" key={`banner${index}`}>{RARITY_LABEL[pull.rarity]}</div>}
+          {phase === 'show' && (
+            <div className="sparks">
+              {sparks.map((s, i) => (
+                <i key={i} style={{ ['--a' as string]: `${s.angle}deg`, ['--d' as string]: `${s.dist}px`, animationDelay: `${s.delay}ms` }} />
+              ))}
+            </div>
+          )}
+          {epic && <div className="rain">{rain.map((r, i) => <i key={i} style={{ left: `${r.left}%`, width: r.size, height: r.size * 3, animationDelay: `${r.delay}s`, animationDuration: `${r.dur}s` }} />)}</div>}
+          <div className={`reveal__card${phase === 'leave' ? ' is-leaving' : ''}`} key={index}>
             <HoloCard card={card} interactive />
           </div>
           <div className="reveal__tag">
@@ -160,7 +214,7 @@ export function Reveal({ pulls }: { pulls: Pull[] }) {
           </div>
         </>
       )}
-      <p className="overlay__hint">{phase === 'show' ? 'Tippen für weiter' : 'Tippen zum Überspringen'}</p>
+      <p className="overlay__hint">{phase === 'crate' ? 'Tippen zum Aufbrechen' : phase === 'show' ? 'Tippen für weiter' : phase === 'crack' || phase === 'leave' ? '' : 'Tippen zum Überspringen'}</p>
     </div>
   );
 }
