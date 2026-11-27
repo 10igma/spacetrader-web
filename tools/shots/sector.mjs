@@ -53,12 +53,13 @@ check('four lanes lead away from the hub station', await page.locator('.sector__
 await page.locator('.target--crisis', { hasText: 'Eisenfurt' }).tap(); await settle(900);
 await shot('212-course-set');
 check('the course is two jumps long', await page.locator('.sector__lane.is-course').count() === 2);
-check('the first jump of the course comes first', await page.locator('.route').first().evaluate((el) => el.classList.contains('route--course')));
+check('the jump button names the first leg of the course', await page.locator('.jump small').innerText().then((t) => /Lumen-Reede|Kessin Tief/.test(t)));
+check('there is one destination card, not a list', await page.locator('.dest').count() === 1 && await page.locator('.route').count() === 0);
 check('the course says what will be left on arrival', await page.locator('.course__crisis').innerText().then((t) => t.includes('Bedarf 28')));
 const demandBefore = await app(() => window.__nova.app.getState().view.events.find((e) => e.stationId === 'eisenfurt').demand);
 
 // Follow it.
-await page.locator('.route--course').tap();
+await page.locator('.jump').tap();
 await page.waitForFunction(() => { const s = window.__nova.app.getState(); return s.travel && s.view.encounter; }, null, { timeout: 4000 }).then(async () => {
   await page.locator('.opt').last().tap();
   await page.waitForSelector('.travel__tap', { timeout: 6000 }); await page.locator('.travel__tap').tap();
@@ -73,7 +74,7 @@ await shot('213-hub-on-course');
 check('the main button continues the course', await page.locator('.hub > .cta span').first().innerText().then((t) => t.toUpperCase().includes('EISENFURT')));
 await page.locator('.hub > .cta').tap(); await settle(900);
 await shot('214-chart-on-course');
-await page.locator('.route--course').tap();
+await page.locator('.jump').tap();
 await page.waitForFunction(() => { const s = window.__nova.app.getState(); return s.travel && s.view.encounter; }, null, { timeout: 4000 }).then(async () => {
   await page.locator('.opt').last().tap();
   await page.waitForSelector('.travel__tap', { timeout: 6000 }); await page.locator('.travel__tap').tap();

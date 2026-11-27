@@ -21,7 +21,7 @@ const start = async (query) => {
   await page.locator('.splash').tap(); await settle(1500);
 };
 const jump = async () => {
-  await page.locator('.route--course').tap();
+  await page.locator('.jump').tap();
   await page.waitForFunction(() => { const s = window.__nova.app.getState(); return s.travel && s.view.encounter; }, null, { timeout: 4000 }).then(async () => {
     await page.locator('.opt').last().tap();
     await page.waitForSelector('.travel__tap', { timeout: 6000 }); await page.locator('.travel__tap').tap();
@@ -94,7 +94,7 @@ check('the chart marks the destination', await page.locator('.sector__order').co
 check('express lanes are drawn', await page.locator('.sector__express').count() === 6);
 await page.locator('.target--order').tap(); await settle(900);
 await shot('226-chart-order-course');
-check('the course takes the way that burns less fuel', await page.locator('.course small').first().innerText().then((t) => t.includes('2 Sprünge') && t.includes('2 Treibstoff')));
+check('the course takes the way that burns less fuel', await page.locator('.dest__way').innerText().then((t) => t.includes('2 Sprünge') && t.includes('2 Treibstoff')));
 check('the course knows about the order', await page.locator('.course__order').count() === 1);
 await jump();
 const half = await state();
@@ -126,7 +126,7 @@ await shot('229-hub-order-lost');
 check('the hub warns that the order is out of reach', await page.locator('.rail__btn--lost').getAttribute('aria-label').then((t) => t.includes('Nicht mehr zu schaffen')));
 await page.locator('.hub > .cta, .hub__skip').last().tap(); await settle(900);
 await shot('230-chart-order-lost');
-await page.locator('.route').first().tap();
+await page.locator('.jump').tap();
 await page.waitForFunction(() => { const s = window.__nova.app.getState(); return s.travel && s.view.encounter; }, null, { timeout: 4000 }).then(async () => {
   await page.locator('.opt').last().tap();
   await page.waitForSelector('.travel__tap', { timeout: 6000 }); await page.locator('.travel__tap').tap();

@@ -24,7 +24,10 @@ await page.locator('.trade__actions .cta').first().tap(); await settle(700);
 await page.locator('.nav__item', { hasText: 'Station' }).tap(); await settle(800);
 await page.locator('.hub .cta').tap(); await settle(900);
 await shot('d-routes');
-await page.locator('.route').nth(Number(process.argv[5] ?? 0)).tap(); await settle(1300);
+// Pick the destination by its place in the list of lanes, then jump from the chart.
+await page.evaluate((i) => { const s = window.__nova.app.getState(); s.setCourse(s.view.routes[i].stationId); }, Number(process.argv[5] ?? 0)); await settle(500);
+await shot('d2-destination');
+await page.locator('.jump').tap(); await settle(1300);
 await shot('e-warp');
 const first = await Promise.race([
   page.waitForSelector('.enc', { timeout: 8000 }).then(() => 'enc'),

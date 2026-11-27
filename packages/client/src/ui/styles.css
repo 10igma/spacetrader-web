@@ -2223,3 +2223,23 @@ i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(-
 .tile--new { border-color: var(--cyan); box-shadow: 0 0 18px -8px var(--cyan); }
 .tile--new .tile__label { color: var(--cyan); }
 .moment__lines li.is-new { color: var(--cyan); font-weight: 600; }
+
+/* The jump happens on the chart: one destination card with the way, the risks and the jump itself. */
+.dest { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 12px 16px; border-radius: var(--radius-m); background: var(--glass-strong); border: 1px solid var(--stroke-strong); overflow: hidden; }
+.dest::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--faction); }
+.dest--course { border-color: var(--r-legend); }
+.dest__head { display: flex; align-items: center; gap: 2px; }
+.dest__title { flex: 1; min-width: 0; }
+.dest__title .eyebrow { display: block; font-size: 10px; color: var(--ink-dim); }
+.dest--course .dest__title .eyebrow { color: var(--r-legend); }
+.dest__title b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: 0.02em; line-height: 1.1; }
+.dest small { font-size: 11px; line-height: 1.35; color: var(--ink-dim); }
+.dest small.is-short { color: var(--amber); }
+.dest .course__crisis { color: var(--amber); }
+.dest .course__order { color: var(--ok); }
+.dest .course__order--tight { color: var(--amber); }
+.dest .course__order--lost { color: var(--danger); }
+.dest .link { color: var(--ink-dim); flex: none; }
+.dest .jump { margin-top: 2px; }
+.sector__proposed { fill: none; stroke: var(--cyan); stroke-width: 0.6; stroke-dasharray: 1.4 1.2; }
+.sector__node.is-proposed .sector__name { fill: var(--cyan); }

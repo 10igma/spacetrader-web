@@ -42,7 +42,7 @@ const pct = (x: number): string => `+${Math.round((x - 1) * 100)} %`;
  * The sector chart. Territories are tinted by faction, lanes are the jumps you can make,
  * and a crisis pulses where it happens. Tap a station to set a course for it.
  */
-export function SectorMap({ view, course, onPick }: { view: ClientView; course: StationId | null; onPick: (id: StationId) => void }) {
+export function SectorMap({ view, course, proposed = null, onPick }: { view: ClientView; course: StationId | null; /** The jump the chart suggests while no course is set. */ proposed?: StationId | null; onPick: (id: StationId) => void }) {
   const here = view.location;
   const near = new Set(neighbours(here));
   const path = course && course !== here ? [here, ...courseTo(here, course)] : [];
@@ -80,12 +80,13 @@ export function SectorMap({ view, course, onPick }: { view: ClientView; course: 
         return (
           <g
             key={s.id}
-            className={`sector__node${s.id === here ? ' is-here' : near.has(s.id) ? ' is-near' : ''}${s.id === course ? ' is-target' : ''}`}
+            className={`sector__node${s.id === here ? ' is-here' : near.has(s.id) ? ' is-near' : ''}${s.id === course ? ' is-target' : ''}${s.id === proposed ? ' is-proposed' : ''}`}
             style={{ ['--tone' as string]: FACTION_COLOR[s.faction] }}
             onClick={() => onPick(s.id)}
           >
             {crisis && <circle className="sector__crisis" cx={x} cy={y} r="5" />}
             {s.id === here && <circle className="sector__pulse" cx={x} cy={y} r="4.2" />}
+            {s.id === proposed && <circle className="sector__proposed" cx={x} cy={y} r="4.4" />}
             {order && <rect className={`sector__order sector__order--${orderState(order)}`} x={x - 3.4} y={y - 3.4} width="6.8" height="6.8" transform={`rotate(45 ${x} ${y})`} />}
             <circle className="sector__dot" cx={x} cy={y} r={s.id === here ? 2.6 : 2.1} />
             <text className="sector__name" x={tx} y={y + 6.4} textAnchor={anchor}>{s.name}</text>
