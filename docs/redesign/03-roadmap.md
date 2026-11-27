@@ -46,13 +46,16 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Sternkarte mit Fraktionsgebieten, Kurs über mehrere Stationen, Anzeige "bei Ankunft noch N". Der Hauptknopf folgt dem Kurs | fertig | Eigener Durchlauf mit 13 Prüfungen |
 | Expressrouten: sechs Bahnen durch die Mitte des Sektors sparen Sprünge und kosten zwei Einheiten Treibstoff statt einer. Der Kurs nimmt den Weg mit den wenigsten Sprüngen und bei Gleichstand den sparsameren. Neue Spieler starten am Ring (Lumen-Reede) | fertig | Tests: Kosten je Bahn, Kurs und Treibstoff, Sprung scheitert bei zu wenig Treibstoff |
 | Lieferaufträge mit Frist (Frachtbörse, ab Stufe 3): Eine Station bestellt eine feste Menge zu festem Preis über ihrem Markt, lieferbar innert einer Anzahl Sprünge. Pfand von 10 % beim Annehmen, zurück bei Lieferung, weg bei Fristablauf. Die bestellende Station verkauft die Ware selbst nicht. Höchstens zwei gleichzeitig, drei neue Angebote an jeder Station | fertig | 10 Tests: Preis über Markt, Frist, Pfand, letzter Sprung zählt, Ausverkauf am Ziel, alte Spielstände. Eigener Durchlauf mit 23 Prüfungen |
+| Schrittweise Freischaltung: Ein neuer Kapitän beginnt mit Station, Markt und Containern. Der Rest kommt bis Stufe 6 dazu, jeweils im Stufenaufstieg angekündigt und mit einer Marke versehen, bis man es geöffnet hat. Ändert keine Regel | fertig | 6 Tests, eigener Durchlauf mit 19 Prüfungen |
+| Sprung direkt auf der Sternkarte: eine Zielkarte mit Sprung-Knopf statt einer Liste von Sprungzielen | fertig | Durchläufe angepasst |
+| Einheitliche Gestaltung: sechs Textgrössen, vier Eckenradien, Leuchten nur für Hauptknopf, Abholbares und Seltenheit | fertig | Sichtprüfung aller Durchläufe |
 | Design-Runde 2: Tabs neu geordnet (Hangar: Container, Shop, Werft. Deck: Brücke, Sammlung, Konvois), Einstellungen an einem Ort, Glücksrad überarbeitet, Belohnungen fliegen zum Geldbeutel, Markt mit Waren-Symbolen, Hinweis auf bessere Crew | fertig | Durchläufe an die neue Struktur angepasst |
 | Begegnungen mit Spannungsmoment, kürzerer und überspringbarer Warp, Ankunft mit Kurierpost, Serie und Frachtwert. Währungen als Bilder im Charter | fertig | Durchlauf prüft, dass das Ergebnis erst nach dem Spannungsmoment erscheint |
 | Gemalte Kartenporträts mit Rückfall auf prozedurale Avatare | fertig, alle 10 Legenden und Singularitäten | Screenshots, siehe Dokument 04 |
 | Rote Punkte für alles Abholbare | fertig | Tests |
 | Bot-Simulation | fertig | Zwei Spielertypen, je 10 Spieler über 90 Tage, dazu Leitplanken-Test |
 | Autoritativer Server (Skelett) | fertig | 27 Betrugsversuche gegen die Befehle aus Phase 3 abgewiesen, dazu 7 gegen Charter, Liga, Event und Rückkehr-Bonus 16 gegen Werft und Konvois und 14 gegen Saison-Album, Titel, Lackierungen und Prestige, dazu 9 gegen Lieferaufträge |
-| Bühne, UI, Musik und Effekte | fertig | Dreizehn automatische Durchläufe ohne Konsolenfehler |
+| Bühne, UI, Musik und Effekte | fertig | Vierzehn automatische Durchläufe ohne Konsolenfehler |
 
 ### Balance nach Simulation
 
@@ -286,6 +289,6 @@ Hier kommt der grösste Teil des Katalogs.
 
 1. **Grafiken, Rest** (deine Seite, Dokument 06): Schiffe von hinten (Paket M), die vier neuen Stationen (Paket L) und die Ersatzkarte `g094`.
 2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
-3. **Design-Runde 2, Rest** (Dokument 07): Schriftgrössen und Radien vereinheitlichen, Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment.
+3. **Design, Rest** (Dokument 07): Tab "Aufträge" aufräumen, Kacheln der Station in die Symbolleiste, Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment.
 4. **Sektor weiter ausbauen:** Bots, die Aufträge und ferne Krisen anfahren, damit die Balance sie mitmisst. Aufträge für Schmuggelware. Sichtbare Konkurrenten auf der Karte.
 5. Danach zur Wahl: Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.

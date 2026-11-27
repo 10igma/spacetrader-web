@@ -61,8 +61,8 @@ function TradeSheet({ goodId, onClose }: { goodId: GoodId; onClose: () => void }
           <div className="trade__title">
             <span className="eyebrow">{CATEGORY_NAME[good.category]}{note ? ` · ${note}` : ''}</span>
             <h3>{good.name}</h3>
+            <small className={`trade__lvl ${row.level < 1 ? 'is-cheap' : 'is-dear'}`}>{pct(row.level - 1)} zum Mittel</small>
           </div>
-          <span className={`trade__level ${row.level < 1 ? 'is-cheap' : 'is-dear'}`}>{pct(row.level - 1)}<small>zum Mittel</small></span>
         </div>
         {fence && (
           <p className="trade__fence">

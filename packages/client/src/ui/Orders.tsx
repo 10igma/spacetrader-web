@@ -48,7 +48,7 @@ export function OrderCard({ order: o, active }: { order: OrderView; active: bool
         {picture && <img className="order__icon" src={picture} alt="" draggable={false} />}
         <span className="order__main">
           <b>{o.qty} × {good.name}</b>
-          <small>{station.name}{o.here ? '' : ` · ${jumps(o.hops)} entfernt`}</small>
+          <small>{station.name}{o.here ? '' : ` · ${jumps(o.hops)}`}</small>
         </span>
         <span className="order__pay">
           <b><Credits />{num(o.total)}</b>

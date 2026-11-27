@@ -98,17 +98,17 @@ Nichts davon nimmt eine Mechanik weg. Es ändert nur, wann und wie viel man davo
 | Frachtbörse | Drei Zeilen Fliesstext pro Angebot | Drei Werte: Frist, Pfand, Gewinn. Erklärung in einem Satz |
 | Vibration im Browser | Jeder Tipp vibrierte | Nur noch Ereignisse: Geld, Warnung, Verlust, Sprung, Karten. In der App bleibt der leichte Tipp |
 
-### Vorschlag für die nächste Runde
+### Runde 4: die vier Vorschläge aus Runde 3 (27.11.2026)
 
-Nach Wirkung geordnet.
-
-| # | Thema | Aufwand |
+| # | Thema | Stand |
 |---|---|---|
-| 1 | Schrittweise Freischaltung: Neue Spieler sehen zuerst nur Station, Markt und Hangar. Deck, Aufträge, Handelsposten, Frachtbörse, Auktionen, Liga und Konvois kommen über die ersten Stufen dazu, jedes mit einem kurzen Auftritt | M |
-| 2 | Sprung direkt auf der Sternkarte: Nachbarstation antippen, ein Feld zeigt Risiko und beste Ware, darunter der Sprung-Knopf. Die Liste der Sprungziele entfällt | M |
-| 3 | Tab "Aufträge" unter "Heute": Serie, Glücksrad und Kalender als Symbolreihe oben, darunter nur die Tagesaufträge | M |
-| 4 | Schriftgrössen und Leuchten vereinheitlichen (Punkte 7 und 15 aus Runde 2) | M |
-| 5 | Die drei Kacheln auf der Station (Posten, Tank, Container) in die Symbolleiste holen | S |
+| 1 | Schrittweise Freischaltung | Erledigt. Ein neuer Kapitän sieht Station, Markt und Hangar mit Containern. Das Deck kommt mit der ersten Crew, Aufträge ab Stufe 2, Handelsposten, Shop und Frachtbörse ab 3, Werft, Saison-Charter und Bergung ab 4, Auktionshaus und Liga ab 5, Konvois ab 6. Der Stufenaufstieg nennt, was neu ist. Neues trägt eine türkise Marke, bis man es einmal geöffnet hat. Wer schon spielt, bekommt keine Marken. Nach einem Prestige bleibt alles offen |
+| 2 | Sprung direkt auf der Sternkarte | Erledigt. Statt einer Liste von Sprungzielen gibt es eine einzige Zielkarte: Station antippen, die Karte zeigt Weg, Risiko des nächsten Sprungs, die zwei besten Waren und den Sprung-Knopf. Ohne Kurs schlägt die Karte das Ziel vor, das am besten verkauft. Das ganze Fenster passt ohne Scrollen auf einen Bildschirm |
+| 3 | Schrift, Ecken und Leuchten vereinheitlichen | Erledigt. Sechs Textgrössen statt 20 (10, 12, 14, 16, 20, 26 Pixel), vier Eckenradien statt 16. Leuchten gibt es nur noch für drei Dinge: den Hauptknopf, Abholbares und Seltenheit. 33 Leuchteffekte an Balken, Punkten und Chips sind weg. Punkte pulsieren nicht mehr. 67 Regeln für entfernte Elemente sind gelöscht |
+| 4 | Tab "Aufträge": Serie, Glücksrad und Kalender als Symbolreihe | Offen |
+| 5 | Kacheln der Station in die Symbolleiste | Offen |
+
+**Wichtig zur Freischaltung:** Sie ändert keine Regel. Jedes System läuft von der ersten Minute an, und was es einbringt, wartet. Gesperrt ist nur der Weg dorthin in der Oberfläche. Der Server prüft die Stufen nicht, mit Ausnahme der Frachtbörse, die schon vorher ab Stufe 3 galt.
 
 ## Bewusst nicht umgesetzt
 
