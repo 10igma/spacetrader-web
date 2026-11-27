@@ -51,8 +51,8 @@ export function RouteSheet() {
         <CloseX onClick={() => close(false)} />
         <header className="routes__head">
           <div>
-            <span className="eyebrow">Sternkarte</span>
-            <h3>Wohin, Kapitän?</h3>
+            <span className="eyebrow">Wohin, Kapitän?</span>
+            <h3>Sternkarte</h3>
           </div>
           <span className="pill"><IconFuel />{view.fuel.amount} / {view.fuel.max}</span>
         </header>

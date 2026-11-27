@@ -134,6 +134,18 @@ Anlass: Die Öffnung wirkte zu brav. Der Container stand im Leeren, wackelte kur
 | Konvoi-Rückkehr als Moment | Erledigt. Zuerst die Chance als Ring, dann nach einem immer gleich langen Augenblick das Ergebnis mit Belohnung. Kein Zeiger, der knapp daneben stehen bleibt |
 | Schiff im Sprung | Erledigt. Die Sprung-Szene zeigt das Schiff von hinten, in den Tunnel gedreht |
 
+### Sternkarte als ein Bildschirm (27.11.2026)
+
+Anlass: Die Sternkarte wirkte falsch zusammengesetzt. Titel, Karte und Zielkarte schwebten einzeln über dem abgedunkelten Hintergrund, und der Sektor lag als Oval in einem eckigen Rahmen mit toten Ecken.
+
+| Vorher | Nachher |
+|---|---|
+| Einzelne Teile ohne gemeinsame Fläche | Eine geschlossene Fläche hält Titel, Karte und Ziel zusammen |
+| Sektor als Oval im Rechteck | Die Gebiete füllen den Rahmen bis an den Rand, mit feinem Raster wie auf einer gedruckten Karte |
+| Auf hohen Bildschirmen blieb die Karte klein, auf kurzen rutschte der Sprung-Knopf aus dem Bild | Die Karte behält ihre Form und gibt auf kurzen Bildschirmen zuerst nach. Der Sprung-Knopf bleibt immer sichtbar |
+
+Geprüft bei 390 mal 844, 360 mal 640 und 731 mal 993 Pixeln.
+
 ## Bewusst nicht umgesetzt
 
 - **Prestige mit gedrückt halten:** Die Bestätigung in zwei Schritten mit Verlustliste reicht fürs Erste.

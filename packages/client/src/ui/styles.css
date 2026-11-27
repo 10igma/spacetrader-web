@@ -2335,3 +2335,20 @@ i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(-
 @keyframes shake-x { 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
 .moment--convoy .moment__title { animation: tell 0.4s var(--out) both; }
 @media (prefers-reduced-motion: reduce) { .moment--convoy.is-pending .dial, .moment--convoy.is-lost .dial { animation: none; } }
+
+/* ---------------------------------------------------------------------------
+   The star chart as one screen: a solid panel that holds the heading, the chart and the
+   destination. The chart is a rectangle filled to its edge with the territories, so it
+   has no dead corners, and it keeps its shape instead of being letterboxed.
+   --------------------------------------------------------------------------- */
+.routes { position: relative; gap: 10px; padding: 16px 14px 14px; border-radius: var(--radius-l); background: linear-gradient(180deg, #0b1324, #060a14 70%); border: 1px solid var(--stroke-strong); box-shadow: 0 -20px 60px -20px #000; animation: sheet-up 0.4s var(--out) both; }
+.routes .sheet__x { top: 12px; right: 10px; }
+.routes__head { padding: 0 44px 2px 2px; }
+.sector { display: block; width: min(100%, calc(min(52dvh, 100dvh - 392px) * 110 / 124)); height: auto; max-height: none; aspect-ratio: 110 / 124; margin-inline: auto; overflow: hidden; background: #070c18; border-color: var(--stroke-strong); }
+.sector__grid { fill: none; stroke: rgba(150, 195, 255, 0.07); stroke-width: 0.25; }
+.sector__cell { stroke: rgba(120, 200, 255, 0.32); }
+.routes .legend { justify-content: flex-start; padding-inline: 2px; }
+.routes .dest { background: rgba(255, 255, 255, 0.03); }
+/* On a short screen the chart gives way first, and the jump never leaves the screen. */
+.routes .dest { position: sticky; bottom: 0; z-index: 3; background: #0a1120; }
+.routes__head { align-items: center; }

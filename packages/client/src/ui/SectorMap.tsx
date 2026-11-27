@@ -4,11 +4,14 @@ import { FACTION_COLOR } from './format.ts';
 
 type Pt = [number, number];
 
-/** The edge of charted space: an ellipse around all stations, as a polygon. */
-const RIM: Pt[] = Array.from({ length: 28 }, (_, i) => {
-  const a = (i / 28) * Math.PI * 2;
-  return [50 + Math.cos(a) * 53, 55 + Math.sin(a) * 58];
-});
+/** The chart's frame in its own units. The territories fill it to the edge, so the map and its frame are one thing. */
+const BOX = { x: -5, y: -6, w: 110, h: 124 };
+const RIM: Pt[] = [[BOX.x, BOX.y], [BOX.x + BOX.w, BOX.y], [BOX.x + BOX.w, BOX.y + BOX.h], [BOX.x, BOX.y + BOX.h]];
+/** A faint grid, like on a printed chart. */
+const GRID = [
+  ...[17, 39, 61, 83].map((x) => `M${x} ${BOX.y}V${BOX.y + BOX.h}`),
+  ...[16, 38, 60, 82, 104].map((y) => `M${BOX.x} ${y}H${BOX.x + BOX.w}`),
+].join('');
 
 /** Keep the part of a polygon that is nearer to p than to q. */
 function clip(poly: Pt[], p: Pt, q: Pt): Pt[] {
@@ -58,7 +61,7 @@ export function SectorMap({ view, course, proposed = null, onPick }: { view: Cli
   }));
 
   return (
-    <svg className="sector" viewBox="-5 -6 110 124" role="img" aria-label="Sternkarte des Sektors">
+    <svg className="sector" viewBox={`${BOX.x} ${BOX.y} ${BOX.w} ${BOX.h}`} role="img" aria-label="Sternkarte des Sektors">
       {STATIONS.map((s) => (
         <polygon
           key={s.id} points={CELLS.get(s.id)}
@@ -66,6 +69,7 @@ export function SectorMap({ view, course, proposed = null, onPick }: { view: Cli
           style={{ ['--tone' as string]: FACTION_COLOR[s.faction] }}
         />
       ))}
+      <path className="sector__grid" d={GRID} />
       {LANES.map(([a, b]) => {
         const p = POS.get(a)!, q = POS.get(b)!;
         const cls = onPath(a, b) ? ' is-course' : a === here || b === here ? ' is-open' : '';
