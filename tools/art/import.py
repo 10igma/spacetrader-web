@@ -30,7 +30,7 @@ ROLES = ['pilot', 'trader', 'tech', 'gunner', 'smuggler']
 GOODS = ['water', 'hydro', 'ore', 'fuelcells', 'machines', 'reactor', 'drones', 'jammers', 'meds', 'stims', 'prosthetics',
          'neurolinks', 'boosters', 'implants', 'starcharts', 'secrets', 'blackcode', 'aicores', 'huntarms', 'plasma', 'emp',
          'lumen', 'neurostaub', 'schlaftau', 'spices', 'art', 'artifacts']
-STATIONS = ['meridian', 'kessin', 'helixtor', 'zenit', 'varn', 'lumen', 'corvus', 'aurel']
+STATIONS = ['meridian', 'kessin', 'helixtor', 'zenit', 'varn', 'lumen', 'corvus', 'aurel', 'kreuz', 'eisenfurt', 'nimbus', 'solace']
 
 # Delivered files that are held back, with the reason. They stay in art-inbox until replaced.
 HELD = {

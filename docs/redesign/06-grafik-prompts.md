@@ -15,7 +15,7 @@ Was das Spiel schon hat: gemalte Porträts für die zehn höchsten Karten (`c21`
 5. In Originalgrösse herunterladen und **exakt nach Tabelle benennen** (zum Beispiel `g008.png`, `leviathan.png`).
 6. Dateien in dieser Sitzung hochladen oder ins Repository nach `art-inbox/<Paket>/` legen. Zuschneiden, Umwandeln in WebP und Einbauen übernehme ich. Jedes Bild hat einen Rückfall: Fehlt eine Datei, zeigt das Spiel das bisherige Bild.
 
-**Stand der Lieferung (26.11.2026):** Alle Pakete A bis J sind geliefert und eingebaut, 112 von 113 Bildern. Offen ist nur die Ersatzkarte `g094`. Das Store-Bild liegt unter `docs/store/feature-1024x500.png`. Bei `drive.png` (Nachbrenner) ist die Flamme am Bildrand abgeschnitten: Im Spiel fällt das bei der kleinen Grösse nicht auf, ein neues Bild mit ganz sichtbarer Flamme wäre trotzdem schöner. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
+**Stand der Lieferung (27.11.2026):** Alle Pakete A bis K sind geliefert. Eingebaut sind 126 von 127 Bildern, darunter die acht Stationen und die sechs Karten der laufenden Saison (`s494`, sie endet am 29.11.). Offen sind die Ersatzkarte `g094` (die gelieferte Datei ist noch die zurückgehaltene erste Fassung) und die vier neuen Stationen aus Paket L am Ende von Abschnitt 4. Das Store-Bild liegt unter `docs/store/feature-1024x500.png`. Bei `drive.png` (Nachbrenner) ist die Flamme am Bildrand abgeschnitten: Im Spiel fällt das bei der kleinen Grösse nicht auf, ein neues Bild mit ganz sichtbarer Flamme wäre trotzdem schöner. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
 
 **Reihenfolge und Umfang**
 
@@ -509,6 +509,17 @@ No text, no letters, no numbers, no logo, no frame, no border, no watermark.
 | `lumen.png` | A wide floating anchorage of tethered trade ships and turquoise beacon lights |
 | `corvus.png` | A patched-together black market hideout built into a derelict hull, violet lights |
 | `aurel.png` | An elegant golden residential habitat with glass domes and warm lights |
+
+**Stand (27.11.2026):** Diese acht Stationen sind geliefert und eingebaut. Sie stehen auf der Stationsseite hinter dem eigenen Schiff und auf der Ankunftskarte.
+
+**Vier neue Stationen (Paket L):** Sie kamen mit der Sternkarte dazu und haben noch kein Bild. Gleicher Prompt, gleiches Format, gleicher Ordner. Ohne Bild zeigt das Spiel dort nur das Schiff.
+
+| Datei | Station |
+|---|---|
+| `kreuz.png` | A compact cross-shaped cargo transfer hub, four long arms stacked with containers, cranes and teal guide lights (Tessera-Kreuz, Umschlagplatz) |
+| `eisenfurt.png` | A heavy armoured military fleet base, angular grey plating, gun turrets, a row of warships moored along one side, orange running lights (Eisenfurt, Flottenbasis) |
+| `nimbus.png` | A smugglers' den hidden in a cluster of drifting rocks and wreckage, linked by cables and gangways, dim magenta lanterns (Nimbus-Riff, Schmugglernest) |
+| `solace.png` | A pristine white research station of glass rings and laboratory spheres around a slender central axis, cool blue-white light (Solace-Labor, Forschungswelt) |
 
 ---
 

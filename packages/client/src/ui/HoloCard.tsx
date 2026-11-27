@@ -4,27 +4,18 @@ import { Avatar } from './Avatar.tsx';
 import { cardArt } from './art.ts';
 import { Emblem } from './Emblem.tsx';
 import { FACTION_COLOR, hashString, RARITY_LABEL } from './format.ts';
+import { gyro } from './tilt.ts';
 
 interface Props {
   card: CardDef;
   size?: 'lg' | 'sm';
-  /** Tilt and foil follow pointer or device orientation. */
+  /** The card itself tilts and follows the finger. The foil of every card follows the device, see tilt.ts. */
   interactive?: boolean;
   locked?: boolean;
   count?: number;
   /** Upgrade level, shown as pips from level 2. */
   level?: number;
   onClick?: () => void;
-}
-
-const gyro = { x: 0, y: 0, active: false };
-if (typeof window !== 'undefined') {
-  window.addEventListener('deviceorientation', (e) => {
-    if (e.gamma == null || e.beta == null) return;
-    gyro.active = true;
-    gyro.x = Math.max(-1, Math.min(1, e.gamma / 25));
-    gyro.y = Math.max(-1, Math.min(1, (e.beta - 45) / 25));
-  });
 }
 
 export function HoloCard({ card, size = 'lg', interactive = false, locked = false, count, level = 1, onClick }: Props) {

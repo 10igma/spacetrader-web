@@ -5,6 +5,7 @@ import { useApp } from '../store.ts';
 import { countdown, FACTION_COLOR, num } from './format.ts';
 import { useServerNow } from './hooks.ts';
 import { IconAlert, IconFuel, IconHangar, IconMarket, IconOrder } from './icons.tsx';
+import { art } from './art.ts';
 import { Emblem } from './Emblem.tsx';
 import { jumps, orderState, orderStatus } from './Orders.tsx';
 import { crisisLine } from './RouteSheet.tsx';
@@ -62,6 +63,7 @@ export function Hub() {
   // One status at a time next to the customs level: the most pressing wins.
   const streakAtRisk = view.streak.count > 0 && view.streak.status === 'atRisk';
 
+  const stationArt = art('stations', view.location);
   const paint = view.captain.paints.find((p) => p.id === view.captain.paint)?.tone ?? null;
   const empty = view.cargo.used === 0;
   // The best thing on board and where it sells: the answer to "where should I go".
@@ -100,8 +102,9 @@ export function Hub() {
         </div>
       </header>
 
-      <div className="hub__stage">
-        {/* Your ship, docked: the most expensive thing you own is the centre of the home screen. */}
+      <div className={`hub__stage${stationArt ? ' has-station' : ''}`}>
+        {/* The place you are at, and your ship docked in front of it. */}
+        {stationArt && <img key={view.location} className="hub__station" src={stationArt} alt="" draggable={false} />}
         <button className="hub__dock" aria-label="Zur Werft" onClick={() => { audio.tap(); setHangarMode('yard'); setTab('hangar'); }}>
           <ShipArt id={view.fleet.active} paint={paint} />
         </button>

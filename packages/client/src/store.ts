@@ -284,7 +284,11 @@ export const useApp = create<AppState>((set, get) => ({
     audio.start();
     set({ started: true });
   },
-  setTab(tab) { set({ tab }); },
+  setTab(tab) {
+    // Cards shimmer when the device tilts. iOS only allows that after asking, and only from a tap like this one.
+    if (tab === 'deck' || tab === 'hangar') askForMotion();
+    set({ tab });
+  },
   setHangarMode(hangarMode) { set({ hangarMode }); },
   setDeckMode(deckMode) { set({ deckMode }); },
   toggleMute() {

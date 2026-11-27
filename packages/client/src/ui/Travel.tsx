@@ -215,7 +215,9 @@ export function Travel({ travel }: { travel: TravelState }) {
 
       {phase === 'arrive' && (
         <div className="arrive" onClick={end}>
-          <Emblem faction={dest.faction} className="emblem--arrive" />
+          {art('stations', dest.id)
+            ? <img className="arrive__station" src={art('stations', dest.id)} alt="" draggable={false} />
+            : <Emblem faction={dest.faction} className="emblem--arrive" />}
           <span className="eyebrow">{FACTIONS[dest.faction].name} · {dest.tagline}</span>
           <h2>{dest.name}</h2>
           <div className="arrive__line" />
