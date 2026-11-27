@@ -33,9 +33,7 @@ GOODS = ['water', 'hydro', 'ore', 'fuelcells', 'machines', 'reactor', 'drones', 
 STATIONS = ['meridian', 'kessin', 'helixtor', 'zenit', 'varn', 'lumen', 'corvus', 'aurel', 'kreuz', 'eisenfurt', 'nimbus', 'solace']
 
 # Delivered files that are held back, with the reason. They stay in art-inbox until replaced.
-HELD = {
-    'cards/g094': 'Rüstung erinnert stark an eine bekannte Film-Rüstung: mit dem neuen Prompt aus Dokument 06 neu erzeugen',
-}
+HELD: dict[str, str] = {}
 
 # group -> list of (names or None for any, treatment, settings)
 GROUPS = {

@@ -15,7 +15,7 @@ Was das Spiel schon hat: gemalte Porträts für die zehn höchsten Karten (`c21`
 5. In Originalgrösse herunterladen und **exakt nach Tabelle benennen** (zum Beispiel `g008.png`, `leviathan.png`).
 6. Dateien in dieser Sitzung hochladen oder ins Repository nach `art-inbox/<Paket>/` legen. Zuschneiden, Umwandeln in WebP und Einbauen übernehme ich. Jedes Bild hat einen Rückfall: Fehlt eine Datei, zeigt das Spiel das bisherige Bild.
 
-**Stand der Lieferung (27.11.2026):** Alle Pakete A bis K sind geliefert. Eingebaut sind 126 von 127 Bildern, darunter die acht Stationen und die sechs Karten der laufenden Saison (`s494`, sie endet am 29.11.). Dazu kommt Paket M mit sechs Schiffen von hinten, ebenfalls eingebaut. Offen sind die Ersatzkarte `g094` (die gelieferte Datei ist noch die zurückgehaltene erste Fassung) und die vier neuen Stationen aus Paket L am Ende von Abschnitt 4. Das Store-Bild liegt unter `docs/store/feature-1024x500.png`. Bei `drive.png` (Nachbrenner) ist die Flamme am Bildrand abgeschnitten: Im Spiel fällt das bei der kleinen Grösse nicht auf, ein neues Bild mit ganz sichtbarer Flamme wäre trotzdem schöner. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
+**Stand der Lieferung (27.11.2026):** Alle Pakete A bis M sind geliefert und eingebaut: 137 Bilder, darunter alle zwölf Stationen, die sechs Schiffe von hinten und die Ersatzkarte `g094`. Offen ist nichts. Das Store-Bild liegt unter `docs/store/feature-1024x500.png`. Bei `drive.png` (Nachbrenner) ist die Flamme am Bildrand abgeschnitten: Im Spiel fällt das bei der kleinen Grösse nicht auf, ein neues Bild mit ganz sichtbarer Flamme wäre trotzdem schöner. Zurückgehalten: `g094.png`, weil die weisse Rüstung stark an eine bekannte Film-Rüstung erinnert. Der Prompt in Paket D ist angepasst, bitte dieses eine Bild neu erzeugen.
 
 **Reihenfolge und Umfang**
 
@@ -541,7 +541,7 @@ No text, no letters, no numbers, no logo, no frame, no border, no watermark.
 
 **Stand (27.11.2026):** Diese acht Stationen sind geliefert und eingebaut. Sie stehen auf der Stationsseite hinter dem eigenen Schiff und auf der Ankunftskarte.
 
-**Vier neue Stationen (Paket L):** Sie kamen mit der Sternkarte dazu und haben noch kein Bild. Gleicher Prompt, gleiches Format, gleicher Ordner. Ohne Bild zeigt das Spiel dort nur das Schiff.
+**Vier neue Stationen (Paket L):** Sie kamen mit der Sternkarte dazu. Gleicher Prompt, gleiches Format, gleicher Ordner. Geliefert und eingebaut am 27.11.2026.
 
 | Datei | Station |
 |---|---|

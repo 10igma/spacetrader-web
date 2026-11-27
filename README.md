@@ -230,7 +230,7 @@ Die Bühne ist prozedural: Planeten, Nebel, Warp-Tunnel und Kartenfolien sind Sh
 | A | Schiffe | 6 | im Spiel |
 | B | Container | 4 | im Spiel |
 | C | Saison-Karten «Glut über Varn» | 6 | im Spiel |
-| D | Elite-Karten | 20 | 19 im Spiel, `g094` wird neu erzeugt |
+| D | Elite-Karten | 20 | im Spiel |
 | E | Begegnungen | 4 | im Spiel |
 | F | Waren | 27 | im Spiel |
 | G | Module | 6 | im Spiel |
@@ -238,7 +238,7 @@ Die Bühne ist prozedural: Planeten, Nebel, Warp-Tunnel und Kartenfolien sind Sh
 | I | Saison-Banner, Event, Titelbild, Store-Bild | 7 | im Spiel, Store-Bild unter `docs/store` |
 | J | Archetypen und Währungen | 23 | im Spiel |
 | K | Saison-Karten «Zenit unter Verdacht», Stationen | 14 | im Spiel: Die Station steht hinter dem eigenen Schiff und auf der Ankunftskarte |
-| L | Die vier neuen Stationen der Sternkarte | 4 | offen, Prompts in Dokument 06 |
+| L | Die vier neuen Stationen der Sternkarte | 4 | im Spiel |
 | M | Schiffe von hinten | 6 | im Spiel: vor der Station |
 
 Dazu kommen die zehn Legenden und Singularitäten (`c21` bis `c30`), die als Erste entstanden sind. Die 100 seltenen und Standard-Karten teilen sich 20 Archetypen, einen pro Fraktion und Rolle. Fehlt ein Bild, zeichnet das Spiel einen prozeduralen Avatar.
@@ -438,7 +438,7 @@ Hintergrund und Einordnung jeder Mechanik stehen im [Mechanik-Katalog](docs/rede
 | 5 | Mobile-Hülle | gebaut, Gerätetest steht aus |
 | 6 | Monetarisierung | nicht begonnen, nur nach bewusstem Entscheid und Rechtsprüfung |
 
-**Zuletzt dazugekommen:** der Sektor mit Sternkarte, Sprungbahnen, Krisen und Lieferaufträgen, Design-Runde 2, eine Entschlackung der meistgenutzten Bildschirme, die schrittweise Freischaltung für neue Spieler, der Sprung direkt auf der Sternkarte, eine einheitliche Gestaltung mit sechs Textgrössen, alle Grafik-Pakete A bis K und der Kippeffekt auf allen Karten.
+**Zuletzt dazugekommen:** der Sektor mit Sternkarte, Sprungbahnen, Krisen und Lieferaufträgen, Design-Runde 2, eine Entschlackung der meistgenutzten Bildschirme, die schrittweise Freischaltung für neue Spieler, der Sprung direkt auf der Sternkarte, eine einheitliche Gestaltung mit sechs Textgrössen, alle Grafik-Pakete A bis M und der Kippeffekt auf allen Karten.
 
 **Als Nächstes:** Gerätetest auf Android und iOS, Rest der Design-Arbeit (Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment), Sektor ausbauen (Aufträge für Schmuggelware, sichtbare Konkurrenten, Bots, die Aufträge und Krisen anfahren).
 

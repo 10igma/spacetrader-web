@@ -39,7 +39,7 @@ Arbeitstitel: **PROJEKT NOVA**. Grundlage: Architektur (Dokument 01) und Mechani
 | Mobile-Hülle (Phase 5): Android-Projekt baut zu einer installierbaren App, iOS-Projekt angelegt, Icon und Startbild, Haptik, lokale Erinnerungen mit Opt-in und Nachtruhe, Zurück-Taste, installierbare Web-App. Details in Dokument 05 | fertig bis auf Gerätetest | App hier gebaut und ihr Inhalt geprüft, 7 Tests, Durchlauf im Browser. Nicht auf einem Gerät gestartet |
 | Spielstand übersteht Regeländerungen: Ältere Stände werden übernommen, neue Systeme starten leer | fertig | Tests und Durchlauf mit einem alten Spielstand |
 | Design-Runde 1 nach zwei unabhängigen Prüfungen (Art Direction, UX und Fairness): Lesbarkeit, Farbrollen, Vollbild-Momente, gestufte Verkaufs-Rückmeldung, Zwei-Tipp-Bestätigung für Quanten, Schliessen-Knopf in jedem Fenster, Einstieg für neue Spieler. Details in Dokument 07 | fertig | Eigener Durchlauf mit 12 Prüfungen, dabei einen Fehler gefunden und behoben |
-| Grafik-Auftrag: Stil, Formate, Dateinamen und Prompts für 127 Bilder in 11 Paketen. Dokument 06 | Pakete A bis K geliefert und eingebaut (126 Bilder): 6 Schiffe, 4 Container, 12 Saison-Karten, 19 Elite-Karten, 4 Begegnungen, 27 Waren, 6 Module, 10 Embleme und Abzeichen, 6 Banner und Titelbild, 20 Archetypen, 3 Währungen, 8 Stationen. Dazu Paket M: 6 Schiffe von hinten. Offen: `g094` und die vier neuen Stationen (Paket L) | Import-Werkzeug prüft Name, Format und Hintergrund. Sichtprüfung jedes Bilds im Spiel |
+| Grafik-Auftrag: Stil, Formate, Dateinamen und Prompts für 127 Bilder in 11 Paketen. Dokument 06 | Pakete A bis M geliefert und eingebaut: 6 Schiffe, 4 Container, 12 Saison-Karten, 20 Elite-Karten, 4 Begegnungen, 27 Waren, 6 Module, 10 Embleme und Abzeichen, 6 Banner und Titelbild, 20 Archetypen, 3 Währungen, 8 Stationen. Dazu Paket L (4 Stationen), Paket M (6 Schiffe von hinten) und die Ersatzkarte `g094`: 137 Bilder, nichts offen | Import-Werkzeug prüft Name, Format und Hintergrund. Sichtprüfung jedes Bilds im Spiel |
 | Container in der Enthüllung: erscheint, wackelt, bricht auf. Schiffe als Bilder mit Lackierung als Farbschicht | fertig | Durchläufe mit Screenshots |
 | Sektor mit Raum: zwölf Stationen auf einer Sternkarte, verbunden durch Sprungbahnen. Ein Sprung folgt einer Bahn, ferne Ziele brauchen bis zu vier Sprünge. Ersetzt die drei zufälligen Routen | fertig | Tests: Karte ist zusammenhängend, Kurs ist eine Kette von Bahnen, Sprung nur entlang einer Bahn |
 | Krisen (Krieg, Seuche, Versorgungskrise und weitere): bis zu zwei gleichzeitig, mindestens zwei Sprünge entfernt. Der Bedarf sinkt mit jedem Sprung um eine angezeigte Menge, weil andere liefern, und um jede Einheit, die man selbst dort verkauft | fertig | Tests: Bedarf sinkt genau wie angezeigt, direkte Fahrt kommt rechtzeitig an, eigene Lieferung beendet die Krise |
@@ -128,9 +128,8 @@ Schmuggler springen seltener, weil ihre Wege öfter über die teuren Expressrout
 - **Sammeltempo.** Die Grundsammlung ist nach 60 Tagen komplett. Danach tragen nur die Saison-Edition (zwölf neue Karten alle sechs Wochen) und das Aufwerten.
 - **Geld im Spätspiel.** Die Werft bindet das Geld bis etwa Tag 50, Prestige setzt es zurück. Nach Rang 5 (rund 230 Tage) fehlt wieder ein Ziel.
 - **Vermögen der Bots täuscht.** Sie sparen stur auf das nächste Schiff und kaufen dann nur zwei Container pro Tag. Echte Spieler verteilen ihr Geld anders.
-- **Kartenkunst.** 41 Karten haben ein eigenes Porträt (10 Legenden, 19 Elite, je 6 Karten der laufenden und der nächsten Saison), die 100 seltenen und Standard-Karten teilen sich 20 Archetypen. Es fehlt eine Elite-Karte (`g094`).
+- **Kartenkunst.** 42 Karten haben ein eigenes Porträt (10 Legenden, 20 Elite, je 6 Karten der laufenden und der nächsten Saison), die 100 seltenen und Standard-Karten teilen sich 20 Archetypen. Alle zwölf Stationen haben ein Bild.
 - **Schiff im Sprung.** Vor der Station zeigt das Spiel die neuen Rückansichten (Paket M). Die Sprung-Szene nutzt noch die Draufsicht.
-- **Stationsbilder.** Acht von zwölf Stationen haben ein Bild. Die vier neuen (Tessera-Kreuz, Eisenfurt, Nimbus-Riff, Solace-Labor) zeigen nur das Schiff, bis Paket L geliefert ist.
 - **Kippeffekt nicht auf einem Gerät geprüft.** Die Folie aller Karten folgt dem Lagesensor. Geprüft ist das nur mit nachgestellten Sensordaten im Browser. Auf dem iPhone fragt das System beim ersten Öffnen von Deck oder Hangar um Erlaubnis.
 - **Tages- und Wochengrenze.** Mitternacht und Montag nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
 - **Erinnerungen sind lokal.** Sie werden auf dem Gerät geplant, wenn die App in den Hintergrund geht. Was erst danach passiert (zum Beispiel ein überbotenes Gebot), kann die App nicht melden. Dafür braucht es einen Server.
@@ -287,7 +286,7 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-1. **Grafiken, Rest** (deine Seite, Dokument 06): die vier neuen Stationen (Paket L) und die Ersatzkarte `g094`.
+1. **Grafiken:** Alle Pakete A bis M sind eingebaut. Die nächste Lieferung sind sechs Porträts für die übernächste Saison.
 2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
 3. **Design, Rest** (Dokument 07): Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment.
 4. **Sektor weiter ausbauen:** Bots, die Aufträge und ferne Krisen anfahren, damit die Balance sie mitmisst. Aufträge für Schmuggelware. Sichtbare Konkurrenten auf der Karte.
