@@ -145,6 +145,33 @@ No text, no letters, no numbers, no logo, no frame, no border, no watermark.
 
 **Abnahme:** exakt von oben, Bug zeigt nach oben, ganz im Bild, Hintergrund reines Schwarz, Rumpf neutral grau und weiss, sechs Schiffe wirken wie eine Familie, die Grösse steigt sichtbar von Sperling bis Leviathan.
 
+### Paket M: Schiffe von hinten (6 Bilder)
+
+**Warum:** Die Draufsicht aus Paket A passt in die Werft, aber nicht in den Raum. Vor einer Station in Schrägansicht liegt sie flach auf dem Bildschirm. Das Spiel legt sie dort vorläufig perspektivisch nach hinten. Ein eigenes Bild von hinten ersetzt das, sobald es da ist.
+
+**Wo:** Stationsseite (Schiff vor der Station), später Sprung-Szene. **Ordner:** `art-inbox/ships-rear/`. Gleiche Dateinamen wie in Paket A, quadratisch.
+
+**Wichtig:** Es muss dasselbe Schiff sein wie in der Draufsicht. Gib der Bild-KI das fertige Bild aus `art-inbox/ships/` als Vorlage mit und verlange dieselbe Form, dieselben Flügel und dieselbe Zahl Triebwerke.
+
+**Vorlage**
+
+```
+The same spaceship as in the attached reference image, now seen from behind and slightly
+above in a three-quarter rear view, flying away from the viewer towards the upper left,
+perfectly centred, the whole ship visible with a clear margin on all sides.
+[SCHIFF].
+Same hull shape, same wings and same number of engines as the reference. Hull in neutral
+gunmetal grey and off-white armour panels with fine panel lines, small pale cyan running
+lights, bright pale cyan engine glow facing the viewer. Premium game asset render,
+painterly digital illustration with crisp edges, subtle rim light, highly detailed.
+Pure black background, nothing else in the image, no stars, no shadow, no ground.
+No text, no letters, no numbers, no logo, no frame, no border, no watermark.
+```
+
+Der Mittelteil `[SCHIFF]` ist derselbe wie in der Tabelle von Paket A.
+
+**Abnahme:** von hinten und leicht von oben, Bug zeigt nach links oben, Triebwerke leuchten zum Betrachter, dasselbe Schiff wie in der Draufsicht, Hintergrund reines Schwarz, Rumpf neutral grau und weiss.
+
 ---
 
 ## Paket B: Container (4 Bilder)

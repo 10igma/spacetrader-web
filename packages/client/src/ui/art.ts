@@ -7,7 +7,7 @@ import { CARD_ART } from './cardArt.ts';
  * Files come from tools/art/import.py and are named after what they show.
  */
 const files = import.meta.glob<string>(
-  '../assets/{ships,crates,goods,modules,currency,stations,emblems,archetypes,encounters,banners}/*.webp',
+  '../assets/{ships,ships-rear,crates,goods,modules,currency,stations,emblems,archetypes,encounters,banners}/*.webp',
   { eager: true, query: '?url', import: 'default' },
 );
 

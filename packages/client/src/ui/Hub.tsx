@@ -106,7 +106,7 @@ export function Hub() {
         {/* The place you are at, and your ship docked in front of it. */}
         {stationArt && <img key={view.location} className="hub__station" src={stationArt} alt="" draggable={false} />}
         <button className="hub__dock" aria-label="Zur Werft" onClick={() => { audio.tap(); setHangarMode('yard'); setTab('hangar'); }}>
-          <ShipArt id={view.fleet.active} paint={paint} />
+          <ShipArt id={view.fleet.active} paint={paint} view={stationArt ? 'rear' : 'top'} />
         </button>
         {rail.length > 0 && (
           <div className="rail">

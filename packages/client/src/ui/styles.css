@@ -1669,7 +1669,7 @@ button.lot:active { transform: scale(0.98); }
 .shipart.is-locked { filter: grayscale(1) brightness(0.55); }
 /* Rendered hulls: the image carries the detail, the glow stays subtle, paint is a colour layer in the hull's shape. */
 .shipart--img { position: relative; display: grid; place-items: center; isolation: isolate; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tone) 35%, transparent)); }
-.shipart--img img, .shipart__paint { transform: scale(var(--size, 1)); }
+.shipart--img img, .shipart__paint { transform: var(--pose, ) scale(var(--size, 1)); }
 .shipart--img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .shipart__paint { position: absolute; inset: 0; background: var(--tone); mix-blend-mode: color; opacity: 0.75; -webkit-mask: var(--img) center / contain no-repeat; mask: var(--img) center / contain no-repeat; }
 .shipart--prisma .shipart__paint { background: conic-gradient(#ff5468, #ffc24a, #4dffb5, #3be3ff, #b06cff, #ff5468); }
@@ -2207,6 +2207,11 @@ i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(-
 /* Station art: the place itself on the home screen and on arrival. Stations without a picture keep the old layout. */
 .hub__station { position: absolute; left: -1%; top: 0; width: 80%; height: 100%; object-fit: contain; object-position: center 30%; pointer-events: none; filter: brightness(0.9) drop-shadow(0 12px 30px rgba(0, 0, 0, 0.7)); animation: station-in 0.9s var(--out) both, float 11s 0.9s ease-in-out infinite; }
 @keyframes station-in { from { opacity: 0; transform: scale(0.94) translateY(8px); } }
-.hub__stage.has-station .hub__dock .shipart { inset: 46% 4% 2% 46%; max-height: 132px; }
+.hub__stage.has-station .hub__dock .shipart { inset: 44% 3% 2% 44%; max-height: 150px; }
 .arrive__station { width: min(78vw, 320px); aspect-ratio: 1; margin: -30px 0 -18px; object-fit: contain; filter: drop-shadow(0 0 40px color-mix(in srgb, var(--faction) 45%, transparent)); animation: station-in 1s var(--out) both; }
 @media (prefers-reduced-motion: reduce) { .hub__station { animation: none; } }
+
+/* In space the ship is seen from behind. Until a ship has its own render for that, its plan is laid back
+   in perspective and turned towards the station, so it reads as flying in rather than lying on the screen. */
+.shipart--laidback { --pose: perspective(360px) rotateX(54deg) rotateZ(-24deg) scale(1.45); }
+.shipart--laidback img { filter: drop-shadow(0 26px 14px rgba(0, 0, 0, 0.55)); }

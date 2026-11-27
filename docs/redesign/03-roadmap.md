@@ -126,6 +126,7 @@ Schmuggler springen seltener, weil ihre Wege öfter über die teuren Expressrout
 - **Geld im Spätspiel.** Die Werft bindet das Geld bis etwa Tag 50, Prestige setzt es zurück. Nach Rang 5 (rund 230 Tage) fehlt wieder ein Ziel.
 - **Vermögen der Bots täuscht.** Sie sparen stur auf das nächste Schiff und kaufen dann nur zwei Container pro Tag. Echte Spieler verteilen ihr Geld anders.
 - **Kartenkunst.** 41 Karten haben ein eigenes Porträt (10 Legenden, 19 Elite, je 6 Karten der laufenden und der nächsten Saison), die 100 seltenen und Standard-Karten teilen sich 20 Archetypen. Es fehlt eine Elite-Karte (`g094`).
+- **Schiff vor der Station.** Die Schiffsbilder sind Draufsichten. Vor einer Station legt das Spiel sie perspektivisch nach hinten. Das ist eine Übergangslösung, bis Paket M (Schiffe von hinten) geliefert ist.
 - **Stationsbilder.** Acht von zwölf Stationen haben ein Bild. Die vier neuen (Tessera-Kreuz, Eisenfurt, Nimbus-Riff, Solace-Labor) zeigen nur das Schiff, bis Paket L geliefert ist.
 - **Kippeffekt nicht auf einem Gerät geprüft.** Die Folie aller Karten folgt dem Lagesensor. Geprüft ist das nur mit nachgestellten Sensordaten im Browser. Auf dem iPhone fragt das System beim ersten Öffnen von Deck oder Hangar um Erlaubnis.
 - **Tages- und Wochengrenze.** Mitternacht und Montag nach mitteleuropäischer Winterzeit, ohne Sommerzeit und ohne Zeitzone des Spielers.
@@ -283,7 +284,7 @@ Hier kommt der grösste Teil des Katalogs.
 
 ## Nächster Schritt
 
-1. **Grafiken, Rest** (deine Seite, Dokument 06): Ersatzkarte `g094` und die vier neuen Stationen aus Paket L.
+1. **Grafiken, Rest** (deine Seite, Dokument 06): Schiffe von hinten (Paket M), die vier neuen Stationen (Paket L) und die Ersatzkarte `g094`.
 2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
 3. **Design-Runde 2, Rest** (Dokument 07): Schriftgrössen und Radien vereinheitlichen, Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment.
 4. **Sektor weiter ausbauen:** Bots, die Aufträge und ferne Krisen anfahren, damit die Balance sie mitmisst. Aufträge für Schmuggelware. Sichtbare Konkurrenten auf der Karte.

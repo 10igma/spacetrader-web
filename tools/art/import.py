@@ -40,6 +40,7 @@ HELD = {
 # group -> list of (names or None for any, treatment, settings)
 GROUPS = {
     'ships': [(SHIPS, 'key', dict(size=640))],
+    'ships-rear': [(SHIPS, 'key', dict(size=640))],
     'crates': [(['standard', 'premium', 'standard-open', 'premium-open'], 'key', dict(size=512))],
     'goods': [(GOODS, 'key', dict(size=192))],
     'modules': [(['shield', 'drive', 'jammer', 'pods', 'charger', 'stash'], 'key', dict(size=192))],

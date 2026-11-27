@@ -18,14 +18,19 @@ const HULL: Record<ShipId, { d: string; engines: number[]; tone: string }> = {
 /** Renders are trimmed to the hull, so all arrive the same size. This puts the fleet back in proportion. */
 const SIZE: Record<ShipId, number> = { sperling: 0.72, kormoran: 0.82, lanze: 0.84, nachtfalter: 0.88, basilisk: 0.94, leviathan: 1 };
 
-export function ShipArt({ id, locked = false, paint = null }: { id: ShipId; locked?: boolean; paint?: string | null }) {
+/**
+ * A ship. `view`: the yard shows the plan from above. In space the ship is seen from behind,
+ * with its own render if there is one, otherwise the plan laid back in perspective.
+ */
+export function ShipArt({ id, locked = false, paint = null, view = 'top' }: { id: ShipId; locked?: boolean; paint?: string | null; view?: 'top' | 'rear' }) {
   const prisma = paint === 'prisma';
-  const render = art('ships', id);
+  const rear = view === 'rear' ? art('ships-rear', id) : undefined;
+  const render = rear ?? art('ships', id);
   if (render) {
     // A rendered hull is neutral grey. Paint is laid over it and follows its shape.
     return (
       <div
-        className={`shipart shipart--img${locked ? ' is-locked' : ''}${prisma ? ' shipart--prisma' : ''}`}
+        className={`shipart shipart--img${locked ? ' is-locked' : ''}${prisma ? ' shipart--prisma' : ''}${view === 'rear' ? (rear ? ' shipart--rear' : ' shipart--laidback') : ''}`}
         style={{ ['--tone' as string]: paint && !prisma ? paint : HULL[id].tone, ['--img' as string]: `url("${render}")`, ['--size' as string]: SIZE[id] }}
         aria-hidden="true"
       >
