@@ -42,7 +42,7 @@ await page.evaluate(() => {
 await start('');
 await shot('120-hub-ticker');
 await tab('Deck');
-await page.locator('.deck .link', { hasText: 'Automatisch' }).tap(); await settle(700);
+await page.locator('.deck .pill--auto').tap(); await settle(700);
 await page.locator('.segment button', { hasText: 'Sammlung' }).tap(); await settle(800);
 await page.locator('.album--season').tap(); await settle(900);
 await shot('121-season-album');

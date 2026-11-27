@@ -67,6 +67,12 @@ export function SectorMap({ view, course, proposed = null, onPick }: { view: Cli
   const hits = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   const dots: (Box & { id: StationId })[] = STATIONS.map((s) => ({ id: s.id, x: s.pos[0] - 3.6, y: s.pos[1] - 3.6, w: 7.2, h: 7.2 }));
   dots.push({ id: here, x: hereAt[0] - 10, y: hereAt[1] - 9.6, w: 20, h: 5 });
+  // Fuel badges sit on the lanes that leave from here. A name plate must not cover one.
+  const fuelAt = view.routes.map((r) => {
+    const q = POS.get(r.stationId)!;
+    return { id: r.stationId, fuel: r.fuel, x: hereAt[0] + (q[0] - hereAt[0]) * 0.6, y: hereAt[1] + (q[1] - hereAt[1]) * 0.6 };
+  });
+  const badges: Box[] = fuelAt.map((f) => ({ x: f.x - 3.2, y: f.y - 3.2, w: 6.4, h: 6.4 }));
   const plates = new Map<StationId, Box & { side: 'below' | 'above' | 'right' | 'left' }>();
   for (const s of [...STATIONS].sort((a, b) => Number(bright(b.id)) - Number(bright(a.id)))) {
     const [x, y] = s.pos;
@@ -80,7 +86,7 @@ export function SectorMap({ view, course, proposed = null, onPick }: { view: Cli
     ];
     const free = options.find((o) => {
       const box = { x: o.x, y: o.y, w, h };
-      return ![...plates.values()].some((p) => hits(box, p)) && !dots.some((d) => d.id !== s.id && hits(box, d));
+      return ![...plates.values()].some((p) => hits(box, p)) && !dots.some((d) => d.id !== s.id && hits(box, d)) && !badges.some((f) => hits(box, f));
     }) ?? options[0]!;
     plates.set(s.id, { ...free, w, h });
   }
@@ -101,16 +107,12 @@ export function SectorMap({ view, course, proposed = null, onPick }: { view: Cli
           </g>
         );
       })}
-      {view.routes.map((r) => {
-        const q = POS.get(r.stationId)!;
-        const x = hereAt[0] + (q[0] - hereAt[0]) * 0.6, y = hereAt[1] + (q[1] - hereAt[1]) * 0.6;
-        return (
-          <g key={r.stationId} className={`sector__fuel${view.fuel.amount < r.fuel ? ' is-short' : ''}`}>
-            <circle cx={x} cy={y} r="3" />
-            <text x={x} y={y + 1.25} textAnchor="middle">{r.fuel}</text>
-          </g>
-        );
-      })}
+      {fuelAt.map((f) => (
+        <g key={f.id} className={`sector__fuel${view.fuel.amount < f.fuel ? ' is-short' : ''}`}>
+          <circle cx={f.x} cy={f.y} r="3" />
+          <text x={f.x} y={f.y + 1.25} textAnchor="middle">{f.fuel}</text>
+        </g>
+      ))}
       {rivals.map((r) => (
         <g key={r.key} className="sector__rival" transform={`translate(${r.x.toFixed(1)} ${r.y.toFixed(1)}) rotate(${r.angle.toFixed(0)})`}>
           <line className="sector__rival-trail" x1="-5.2" y1="0" x2="-1.2" y2="0" />

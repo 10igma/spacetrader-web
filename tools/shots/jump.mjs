@@ -22,7 +22,9 @@ await page.locator('.good', { hasText: process.argv[6] ?? 'Wasser' }).tap(); awa
 await settle(300); await shot('c-trade');
 await page.locator('.trade__actions .cta').first().tap(); await settle(700);
 await page.locator('.nav__item', { hasText: 'Station' }).tap(); await settle(800);
-await page.locator('.hub .cta').tap(); await settle(900);
+// A captain who has not opened the first container is sent to the hangar by the main button.
+// This run is about the jump, so it opens the chart directly.
+await page.evaluate(() => window.__nova.app.getState().setRoutesOpen(true)); await settle(900);
 await shot('d-routes');
 // Pick the destination by its place in the list of lanes, then jump from the chart.
 await page.evaluate((i) => { const s = window.__nova.app.getState(); s.setCourse(s.view.routes[i].stationId); }, Number(process.argv[5] ?? 0)); await settle(500);

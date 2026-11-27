@@ -142,7 +142,8 @@ export function VfxCanvas() {
 
     const loop = (now: number): void => {
       raf = 0;
-      const dt = Math.min((now - last) / 1000, 0.05);
+      // The frame's own timestamp can lie a little before the moment the loop was woken: never step backwards.
+      const dt = Math.max(0, Math.min((now - last) / 1000, 0.05));
       last = now;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -161,7 +162,7 @@ export function VfxCanvas() {
         ctx.strokeStyle = rg.color;
         ctx.lineWidth = Math.max(1, (1 - p) * 4.5);
         ctx.beginPath();
-        ctx.arc(rg.x, rg.y, rg.r, 0, Math.PI * 2);
+        ctx.arc(rg.x, rg.y, Math.max(0, rg.r), 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
       }
@@ -186,6 +187,7 @@ export function VfxCanvas() {
         const alpha = pt.kind === 'ember' ? Math.sin(ratio * Math.PI) * 0.8 : Math.min(1, ratio * 1.4);
         const r = pt.size * (pt.kind === 'spark' ? 0.4 + ratio * 0.8 : 1);
 
+        if (r <= 0) continue;
         ctx.save();
         ctx.globalAlpha = alpha;
         const grad = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, r * 2.4);

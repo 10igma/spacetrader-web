@@ -49,7 +49,7 @@ await page.locator('.hangar').evaluate((el) => el.scrollTo(0, 0)); await settle(
 await shot('104-new-ship');
 
 await tab('Deck');
-await page.locator('.deck .link', { hasText: 'Automatisch' }).tap(); await settle(700);
+await page.locator('.deck .pill--auto').tap(); await settle(700);
 await mode('Konvois');
 await shot('105-convoys');
 await page.locator('.convoy--offer').last().tap(); await settle(800);

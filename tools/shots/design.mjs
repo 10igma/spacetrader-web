@@ -26,8 +26,8 @@ const start = async (query) => {
 await start('&seed=design');
 await shot('150-first-steps');
 check('first step points at the free crate', await page.locator('.coach b').innerText().then((t) => t.includes('Gratis-Container')));
-check('main button sends an empty ship to the market', await page.locator('.hub > .cta span').first().innerText().then((t) => t.toUpperCase().includes('FRACHT KAUFEN')));
-await page.locator('.hub > .cta').tap(); await settle(1000);
+check('the main button is that first step: the free container', await page.locator('.hub > .cta span').first().innerText().then((t) => t.toUpperCase().includes('GRATIS-CONTAINER')));
+await tab('Markt');
 await page.locator('.good', { hasText: 'Wasser' }).tap(); await settle(600);
 check('first purchase suggests a full hold', await page.locator('.stepper output').innerText().then((t) => Number(t) >= 20));
 check('every sheet has a close button', await page.locator('.sheet__x').count() === 1);
