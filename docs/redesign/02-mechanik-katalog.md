@@ -133,7 +133,7 @@ Jede Mechanik hat eine Ampel. Sie sagt nichts über die Wirksamkeit, sondern üb
 
 | # | Mechanik | Psychologischer Hebel | Umsetzung bei uns | Ampel | Phase |
 |---|---|---|---|---|---|
-| C1 | **Energie: Treibstoff** | Künstliche Knappheit, begrenzt Sessions und macht sie wertvoll | Tank für 5 Sprünge, 1 Einheit pro 20 Minuten. Level-Aufstieg füllt den Tank | 🟡 | 2 |
+| C1 | **Energie: Treibstoff** | Künstliche Knappheit, begrenzt Sessions und macht sie wertvoll | Tank für 5 Sprünge, 1 Einheit pro 20 Minuten. Level-Aufstieg füllt den Tank. Bis Stufe 4 kostet ein Sprung nichts, damit die erste Session bis zu Shop, Posten und Werft reicht | 🟡 | 2 |
 | C2 | **Bauzeiten** | Investition über Zeit, Vorfreude | Schiffs-Upgrades, Reparaturen und Forschung dauern Minuten bis Stunden | 🟡 | 3 |
 | C3 | **Beschleunigen** | Ungeduld wird zur Ware | Timer mit Premium-Währung überspringen. Preis sinkt linear mit Restzeit, die letzten 3 Minuten gratis | 🟡 | 3 |
 | C4 | **Konvoi-Missionen** | Mehrere parallele Timer, Rückkehr-Anlässe | Reserve-Crew auf Missionen von 1 bis 12 Stunden schicken. Bindet Karten und gibt dem ganzen Kader Sinn | 🟢 | 3 |

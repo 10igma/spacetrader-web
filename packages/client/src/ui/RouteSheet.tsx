@@ -54,7 +54,7 @@ export function RouteSheet() {
             <span className="eyebrow">Sternkarte</span>
             <h3>Wohin, Kapitän?</h3>
           </div>
-          <span className="pill"><IconFuel />{view.fuel.amount} / {view.fuel.max}</span>
+          <span className="pill"><IconFuel />{view.fuel.freeUntil ? `Frei bis Stufe ${view.fuel.freeUntil}` : `${view.fuel.amount} / ${view.fuel.max}`}</span>
         </header>
         <SectorMap view={view} course={chosen} proposed={chosen ? null : targetId} onPick={pick} />
         <div className="legend" aria-hidden="true">
@@ -90,7 +90,7 @@ export function RouteSheet() {
             </div>
             {path.length > 1 && (
               <small className={`dest__way${need > view.fuel.amount ? ' is-short' : ''}`}>
-                {jumps(path.length)} · {need} Treibstoff{need > view.fuel.amount ? `, im Tank ${view.fuel.amount}` : ''}
+                {jumps(path.length)} · {view.fuel.freeUntil ? 'Treibstoff frei' : `${need} Treibstoff`}{need > view.fuel.amount ? `, im Tank ${view.fuel.amount}` : ''}
               </small>
             )}
             {targetCrisis && <small className="course__crisis">{targetCrisis.name}: {CATEGORY_NAME[targetCrisis.category]} +{Math.round((targetCrisis.mult - 1) * 100)} % · bei Ankunft Bedarf {targetCrisis.onArrival}</small>}
@@ -125,7 +125,7 @@ export function RouteSheet() {
               <small>
                 {short
                   ? (view.fuel.nextAt ? `Braucht ${hop.fuel} Treibstoff · nächste Einheit in ${countdown(view.fuel.nextAt - now)}` : `Braucht ${hop.fuel} Treibstoff`)
-                  : `${path.length > 1 ? `nach ${hopStation.name} · ` : ''}${hop.fuel > 1 ? 'Express · ' : ''}${hop.fuel} Treibstoff`}
+                  : `${path.length > 1 ? `nach ${hopStation.name} · ` : ''}${hop.fuel > 1 ? 'Express · ' : ''}${view.fuel.freeUntil ? 'Treibstoff frei' : `${hop.fuel} Treibstoff`}`}
               </small>
             </button>
           </div>

@@ -145,11 +145,32 @@ describe('crates', () => {
 describe('fuel and view', () => {
   it('fuel regenerates with supplied time and caps at max', () => {
     const s = createInitialState('fuel', T0);
+    s.profile.level = CONFIG.fuel.freeBelowLevel;
     s.fuel.amount = 1;
     const { regenMs, max } = CONFIG.fuel;
     expect(toClientView(s, T0 + regenMs - 1).fuel.amount).toBe(1);
     expect(toClientView(s, T0 + regenMs * 2.5).fuel).toMatchObject({ amount: 3, max, nextAt: T0 + regenMs * 3 });
     expect(toClientView(s, T0 + regenMs * 99).fuel).toMatchObject({ amount: max, max, nextAt: null });
+  });
+
+  it('a new captain flies for free until shop, posts and yard are open', () => {
+    let s = createInitialState('rookie', T0);
+    expect(toClientView(s, T0).fuel).toMatchObject({ amount: CONFIG.fuel.max, nextAt: null, freeUntil: CONFIG.fuel.freeBelowLevel });
+    // Far more jumps than a tank holds, and it stays full.
+    for (let i = 0; i < CONFIG.fuel.max * 2 && s.profile.level < CONFIG.fuel.freeBelowLevel; i++) {
+      s = applyCommand(s, { type: 'Jump', to: s.routes[0]! }, T0).state;
+      if (s.pending) s = applyCommand(s, { type: 'Encounter', choice: s.pending.kind === 'pirates' ? 'pay' : 'submit' }, T0).state;
+      if (s.profile.level < CONFIG.fuel.freeBelowLevel) expect(s.fuel.amount).toBe(CONFIG.fuel.max);
+    }
+    expect(s.stats.jumps).toBeGreaterThan(CONFIG.fuel.max);
+    // From that level on the tank counts, and whoever starts over after prestige pays from the first jump.
+    s.profile.level = CONFIG.fuel.freeBelowLevel;
+    expect(toClientView(s, T0).fuel.freeUntil).toBeNull();
+    const paid = applyCommand(s, { type: 'Jump', to: s.routes[0]! }, T0).state;
+    expect(paid.fuel.amount).toBeLessThan(CONFIG.fuel.max);
+    const veteran = createInitialState('veteran', T0);
+    veteran.prestige = 1;
+    expect(toClientView(veteran, T0).fuel.freeUntil).toBeNull();
   });
 
   it('client view never contains RNG state', () => {

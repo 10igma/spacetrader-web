@@ -237,7 +237,7 @@ export interface ClientView {
   serverTime: number;
   profile: { level: number; xp: number };
   wallet: { credits: number; quanta: number; shards: number };
-  fuel: { amount: number; max: number; nextAt: number | null; /** When the tank is full, or null if it is. */ fullAt: number | null };
+  fuel: { amount: number; max: number; nextAt: number | null; /** When the tank is full, or null if it is. */ fullAt: number | null; /** Jumps cost nothing until this level, or null once they do. */ freeUntil: number | null };
   crates: {
     free: { stock: number; max: number; intervalMs: number; nextAt: number | null };
     tiers: Record<CrateTier, { currency: 'credits' | 'quanta'; price: number; nextPrice: number; cards: number; floor: Rarity; odds: Record<Rarity, number>; unlockMs: number; dailyLimit: number; leftToday: number }>;
@@ -549,8 +549,12 @@ export const xpForLevel = (level: number): number => 80 * level + 30 * level * l
 const fuelMax = (state: GameState): number => CONFIG.fuel.max + rigOf(state.fleet).fuel;
 const fuelRegen = (state: GameState): number => Math.round(CONFIG.fuel.regenMs * (1 - rigOf(state.fleet).charge));
 
+/** Flying costs nothing yet. Prestige sets the level back but not this: it is for the very first hours only. */
+const fuelFree = (state: GameState): boolean => state.prestige === 0 && state.profile.level < CONFIG.fuel.freeBelowLevel;
+
 function settleFuel(state: GameState, now: number): void {
   const max = fuelMax(state);
+  if (fuelFree(state)) state.fuel.amount = max;
   const regenMs = fuelRegen(state);
   if (state.fuel.amount >= max) {
     state.fuel.updatedAt = now;
@@ -1737,7 +1741,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
       if (!state.routes.includes(cmd.to)) return reject('no_such_route');
       const fuel = laneFuel(state.location, cmd.to);
       if (state.fuel.amount < fuel) return reject('no_fuel');
-      state.fuel.amount -= fuel;
+      if (!fuelFree(state)) state.fuel.amount -= fuel;
       events.push({ type: 'JumpStarted', from: state.location, to: cmd.to });
       touchStreak(state, events);
       const chance = encounterChances(state, cmd.to);
@@ -2082,6 +2086,7 @@ export function toClientView(state: GameState, now: number): ClientView {
       amount: s.fuel.amount, max,
       nextAt: s.fuel.amount >= max ? null : s.fuel.updatedAt + regenMs,
       fullAt: s.fuel.amount >= max ? null : s.fuel.updatedAt + (max - s.fuel.amount) * regenMs,
+      freeUntil: fuelFree(s) ? CONFIG.fuel.freeBelowLevel : null,
     },
     crates: {
       free: { stock: s.crates.freeStock, max: CONFIG.crate.freeMax, intervalMs: CONFIG.crate.freeIntervalMs, nextAt: s.crates.freeStock >= CONFIG.crate.freeMax ? null : s.crates.freeAt },

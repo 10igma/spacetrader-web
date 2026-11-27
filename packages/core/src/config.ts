@@ -11,7 +11,11 @@ export const CONFIG = {
   hold: { base: 20, perLevel: 5, maxLevel: 6, costBase: 6_000, costGrowth: 2.2 },
   routesOffered: 3,
   startQuanta: 50,
-  fuel: { max: 5, regenMs: 20 * MINUTE },
+  /**
+   * A new captain flies for free until this level: the first session lasts until shop, posts and yard are open,
+   * and only then does the tank start to pace the day.
+   */
+  fuel: { max: 5, regenMs: 20 * MINUTE, freeBelowLevel: 4 },
   crate: {
     freeIntervalMs: 12 * HOUR,
     /** Free crates wait for you, but only this many: come back or lose the next one. */

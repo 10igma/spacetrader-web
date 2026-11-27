@@ -117,6 +117,7 @@ describe('travel', () => {
 
   it('a jump costs fuel and ends at the destination or in an encounter', () => {
     const s = fresh();
+    s.profile.level = CONFIG.fuel.freeBelowLevel;
     const to = s.routes[0]!;
     const res = applyCommand(s, { type: 'Jump', to }, T0);
     const from = CONFIG.startStation;
@@ -138,6 +139,7 @@ describe('travel', () => {
     expect(courseFuel('lumen', courseTo('lumen', 'kessin'))).toBe(2);
     // The view says what each lane costs, and one unit is not enough for an express lane.
     const s = fresh();
+    s.profile.level = CONFIG.fuel.freeBelowLevel;
     const view = toClientView(s, T0);
     for (const r of view.routes) expect(r.fuel).toBe(laneFuel(s.location, r.stationId));
     const express = view.routes.find((r) => r.fuel === 2)!.stationId;
@@ -151,6 +153,7 @@ describe('travel', () => {
     const s = fresh();
     const elsewhere = STATIONS.find((x) => x.id !== s.location && !s.routes.includes(x.id))!.id;
     expect(applyCommand(s, { type: 'Jump', to: elsewhere }, T0).events[0]).toEqual({ type: 'CommandRejected', reason: 'no_such_route' });
+    s.profile.level = CONFIG.fuel.freeBelowLevel;
     s.fuel.amount = 0;
     expect(applyCommand(s, { type: 'Jump', to: s.routes[0]! }, T0).events[0]).toEqual({ type: 'CommandRejected', reason: 'no_fuel' });
   });

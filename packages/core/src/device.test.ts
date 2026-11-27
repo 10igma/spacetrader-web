@@ -121,6 +121,7 @@ describe('reminders', () => {
     const seated = new Set(SEATS.map((seat) => s.deck[seat]));
     const team = Object.keys(s.collection).filter((id) => !seated.has(id)).slice(0, 3);
     s = applyCommand(s, { type: 'SendConvoy', offer: 3, cards: team }, NOON).state;
+    s.profile.level = Math.max(s.profile.level, CONFIG.fuel.freeBelowLevel);
     s.fuel = { amount: 1, updatedAt: NOON };
     s.crates.freeStock = 0;
     s.crates.freeAt = NOON + HOUR;

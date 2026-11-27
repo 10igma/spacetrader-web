@@ -164,7 +164,7 @@ export function Hub() {
       <div className="fuelline" aria-label={`Tank ${view.fuel.amount} von ${view.fuel.max}`}>
         <IconFuel />
         <span className="pips">{Array.from({ length: view.fuel.max }, (_, i) => <i key={i} className={i < view.fuel.amount ? 'on' : ''} />)}</span>
-        <small>{view.fuel.nextAt ? `+1 in ${countdown(view.fuel.nextAt - now)}` : 'Tank voll'}</small>
+        <small>{view.fuel.freeUntil ? `Frei bis Stufe ${view.fuel.freeUntil}` : view.fuel.nextAt ? `+1 in ${countdown(view.fuel.nextAt - now)}` : 'Tank voll'}</small>
       </div>
 
       {ready ? (
@@ -184,7 +184,7 @@ export function Hub() {
         <button className="cta" onClick={() => { audio.tap(); openRoutes(true); }}>
           <span>{way.length > 0 ? `Weiter nach ${STATION_BY_ID.get(way[0]!)!.name}` : 'Sternkarte'}</span>
           <small>
-            {way.length > 1 ? `Kurs ${STATION_BY_ID.get(course!)!.name} · ${jumps(way.length)}, ${courseFuel(view.location, way)} Treibstoff`
+            {way.length > 1 ? `Kurs ${STATION_BY_ID.get(course!)!.name} · ${jumps(way.length)}, ${view.fuel.freeUntil ? 'Treibstoff frei' : `${courseFuel(view.location, way)} Treibstoff`}`
               : best ? `${GOOD_BY_ID.get(best.goodId)!.name} +${best.pct} % auf ${STATION_BY_ID.get(best.stationId)!.name}` : `${view.routes.length} Ziele in Reichweite`}
           </small>
         </button>
