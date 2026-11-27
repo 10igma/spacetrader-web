@@ -11,11 +11,14 @@ import { jumps, orderState, orderStatus } from './Orders.tsx';
 import { crisisLine } from './RouteSheet.tsx';
 import { ShipArt } from './Shipyard.tsx';
 import { SpendButton } from './Spend.tsx';
+import { useFresh, useUnlocks } from './unlocks.ts';
 
 const CUSTOMS = ['Kein Zoll', 'Zoll lax', 'Zoll wachsam', 'Zoll streng'];
 
 export function Hub() {
   const view = useApp((s) => s.view)!;
+  const unlocks = useUnlocks();
+  const fresh = useFresh();
   const setTab = useApp((s) => s.setTab);
   const setHangarMode = useApp((s) => s.setHangarMode);
   const openRoutes = useApp((s) => s.setRoutesOpen);
@@ -59,7 +62,7 @@ export function Hub() {
       go: () => { if (far.length === 1 && !course) setCourse(far[0]!.stationId); openRoutes(true); },
     });
   }
-  if (view.salvage) rail.push({ key: 'salvage', tone: 'salvage', icon: <IconHangar />, label: 'Bergung', mark: '', say: `Bergungs-Auktion am Dock für ${num(view.salvage.price)} Credits`, go: () => setSheet('salvage') });
+  if (view.salvage && unlocks.salvage) rail.push({ key: 'salvage', tone: 'salvage', icon: <IconHangar />, label: 'Bergung', mark: '', say: `Bergungs-Auktion am Dock für ${num(view.salvage.price)} Credits`, go: () => setSheet('salvage') });
   // One status at a time next to the customs level: the most pressing wins.
   const streakAtRisk = view.streak.count > 0 && view.streak.status === 'atRisk';
 
@@ -90,11 +93,11 @@ export function Hub() {
             <SpendButton className="chip chip--wanted" onSpend={() => void send({ type: 'PayOff' })} confirm={<>{num(view.payOff)} Credits zahlen? Tippe noch einmal</>}>
               Fahndung {'★'.repeat(stars)} · Freikaufen {num(view.payOff)}
             </SpendButton>
-          ) : streakAtRisk ? (
+          ) : streakAtRisk && unlocks.daily ? (
             <button className={`chip chip--streak chip--${view.streak.endsAt - now >= 3 * 3_600_000 ? 'open' : 'atRisk'}`} onClick={() => { audio.tap(); setTab('daily'); }}>
               Serie {view.streak.count} · endet in {countdown(view.streak.endsAt - now)}
             </button>
-          ) : view.weekend.active ? (
+          ) : view.weekend.active && unlocks.daily ? (
             <button className="chip chip--event" onClick={() => { audio.tap(); setTab('daily'); }}>
               Blockade-Lauf · {view.weekend.points} Punkte
             </button>
@@ -105,7 +108,7 @@ export function Hub() {
       <div className={`hub__stage${stationArt ? ' has-station' : ''}`}>
         {/* The place you are at, and your ship docked in front of it. */}
         {stationArt && <img key={view.location} className="hub__station" src={stationArt} alt="" draggable={false} />}
-        <button className="hub__dock" aria-label="Zur Werft" onClick={() => { audio.tap(); setHangarMode('yard'); setTab('hangar'); }}>
+        <button className="hub__dock" aria-label={unlocks.yard ? 'Zur Werft' : 'Dein Schiff'} onClick={() => { if (!unlocks.yard) return; audio.tap(); setHangarMode('yard'); setTab('hangar'); }}>
           <ShipArt id={view.fleet.active} paint={paint} view={stationArt ? 'rear' : 'top'} />
         </button>
         {rail.length > 0 && (
@@ -128,12 +131,14 @@ export function Hub() {
         </button>
       )}
 
-      <div className="tiles">
-        <button className={`tile${view.badges.station > 0 ? ' tile--ready' : ''}`} onClick={() => { audio.tap(); setSheet('posts'); }}>
-          <span className="tile__icon"><IconMarket /></span>
-          <span className="tile__label">{view.posts.list.length > 0 ? (view.badges.station > 0 ? 'Posten voll' : 'Handelsposten') : 'Posten bauen'}</span>
-          <span className="tile__value">{view.posts.list.length > 0 ? num(view.posts.stored) : 'Bauen'}</span>
-        </button>
+      <div className={`tiles${unlocks.posts ? '' : ' tiles--2'}`}>
+        {unlocks.posts && (
+          <button className={`tile${view.badges.station > 0 ? ' tile--ready' : fresh('posts') ? ' tile--new' : ''}`} onClick={() => { audio.tap(); setSheet('posts'); }}>
+            <span className="tile__icon"><IconMarket /></span>
+            <span className="tile__label">{view.posts.list.length > 0 ? (view.badges.station > 0 ? 'Posten voll' : 'Handelsposten') : fresh('posts') ? 'Neu: Posten' : 'Posten bauen'}</span>
+            <span className="tile__value">{view.posts.list.length > 0 ? num(view.posts.stored) : 'Bauen'}</span>
+          </button>
+        )}
         <div className="tile">
           <span className="tile__icon"><IconFuel /></span>
           <span className="tile__label">{view.fuel.nextAt ? `+1 in ${countdown(view.fuel.nextAt - now)}` : 'Tank voll'}</span>

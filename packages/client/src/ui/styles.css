@@ -2215,3 +2215,11 @@ i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(-
    in perspective and turned towards the station, so it reads as flying in rather than lying on the screen. */
 .shipart--laidback { --pose: perspective(360px) rotateX(54deg) rotateZ(-24deg) scale(1.45); }
 .shipart--laidback img { filter: drop-shadow(0 26px 14px rgba(0, 0, 0, 0.55)); }
+
+/* Staged unlocks: a part that has just opened carries a cyan mark until it has been looked at once. */
+.dot--new { background: var(--cyan); }
+.segment--1 { grid-template-columns: 1fr; }
+.tiles--2 { grid-template-columns: repeat(2, 1fr); }
+.tile--new { border-color: var(--cyan); box-shadow: 0 0 18px -8px var(--cyan); }
+.tile--new .tile__label { color: var(--cyan); }
+.moment__lines li.is-new { color: var(--cyan); font-weight: 600; }

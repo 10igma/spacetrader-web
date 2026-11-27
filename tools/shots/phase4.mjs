@@ -19,7 +19,7 @@ async function open(offsetMs) {
 }
 const settle = (page, ms) => page.waitForTimeout(ms);
 const start = async (page, query) => {
-  await page.goto(`http://localhost:5173/?q=high&calm=1${query}`);
+  await page.goto(`http://localhost:5173/?q=high&calm=1&open=1${query}`);
   await settle(page, 2000);
   await page.locator('.splash').tap(); await settle(page, 1500);
 };

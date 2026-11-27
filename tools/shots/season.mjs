@@ -14,7 +14,7 @@ const shot = (n) => page.screenshot({ path: `${out}/${n}.png` });
 const settle = (ms) => page.waitForTimeout(ms);
 const tab = async (name) => { await page.locator('.nav__item', { hasText: name }).tap(); await settle(1200); };
 const start = async (query) => {
-  await page.goto(`http://localhost:5173/?q=high&calm=1${query}`);
+  await page.goto(`http://localhost:5173/?q=high&calm=1&open=1${query}`);
   await settle(2000);
   await page.locator('.splash').tap(); await settle(1500);
 };

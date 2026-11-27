@@ -15,7 +15,7 @@ const settle = (ms) => page.waitForTimeout(ms);
 const check = (name, ok) => { if (!ok) problems.push(`CHECK FAILED: ${name}`); else console.log(`ok: ${name}`); };
 const app = (fn, arg) => page.evaluate(fn, arg);
 const start = async (query) => {
-  await page.goto(`http://localhost:5173/?q=high&calm=1${query}`);
+  await page.goto(`http://localhost:5173/?q=high&calm=1&open=1${query}`);
   await settle(2000);
   await page.locator('.splash').tap(); await settle(1500);
 };

@@ -333,6 +333,12 @@ export const CONFIG = {
     slackRange: 2,
   },
   /**
+   * What a new captain is shown when, by level. Nothing here changes a rule: every system runs from the
+   * first minute and what it earns waits. The client only opens the way in once the level is reached,
+   * so the first hour has three things on screen instead of fifteen. The freight board follows `order.level`.
+   */
+  unlock: { daily: 2, posts: 3, shop: 3, yard: 4, season: 4, salvage: 4, auction: 5, league: 5, convoys: 6 },
+  /**
    * Delivery orders: a station wants a fixed amount of a good within a number of jumps and pays a fixed
    * price per unit, above its market. You leave a deposit and get it back on delivery. While the order
    * is open the station has none of the good to sell, so the cargo has to come from somewhere else.

@@ -2,6 +2,7 @@ import { CATEGORY_NAME, CONFIG, GOOD_BY_ID, GOODS, quote, STATION_BY_ID, type Go
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
 import { Auction } from './Auction.tsx';
+import { useFresh, useSeenNow, useUnlocks } from './unlocks.ts';
 import { useApp } from '../store.ts';
 import { art } from './art.ts';
 import { num, pct } from './format.ts';
@@ -165,7 +166,11 @@ export function Market() {
   const busy = useApp((s) => s.busy);
   const [open, setOpen] = useState<GoodId | null>(null);
   const [hold, setHold] = useState(false);
-  const [mode, setMode] = useState<'goods' | 'auction'>('goods');
+  const unlocks = useUnlocks();
+  const fresh = useFresh();
+  const [wanted, setMode] = useState<'goods' | 'auction'>('goods');
+  const mode = wanted === 'auction' && !unlocks.auction ? 'goods' : wanted;
+  useSeenNow(mode === 'auction' ? 'auction' : null);
   const station = STATION_BY_ID.get(view.location)!;
   const byId = new Map(view.market.map((m) => [m.goodId, m]));
   const aboard = GOODS.filter((g) => view.cargo.items[g.id]);
@@ -186,12 +191,14 @@ export function Market() {
           </button>
         )}
       </header>
+      {unlocks.auction && (
       <div className="segment" role="tablist">
         <button role="tab" aria-selected={mode === 'goods'} className={mode === 'goods' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('goods'); }}>Waren</button>
         <button role="tab" aria-selected={mode === 'auction'} className={mode === 'auction' ? 'is-active' : ''} onClick={() => { audio.tap(); setMode('auction'); }}>
-          Auktionen{view.badges.market > 0 && <i className="dot" />}
+          Auktionen{view.badges.market > 0 ? <i className="dot" /> : fresh('auction') ? <i className="dot dot--new" /> : null}
         </button>
       </div>
+      )}
       {mode === 'auction' ? <Auction /> : (
         <div className="market__list">
           {view.events.filter((e) => e.stationId === view.location).map((e) => (

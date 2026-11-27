@@ -15,7 +15,7 @@ const settle = (ms) => page.waitForTimeout(ms);
 const tab = async (name) => { await page.locator('.nav__item', { hasText: name }).tap(); await settle(1300); };
 const dismiss = async () => { await page.locator('.overlay').last().tap({ position: { x: 12, y: 12 } }); await settle(350); };
 
-await page.goto('http://localhost:5173/?q=high&calm=1&seed=p3');
+await page.goto('http://localhost:5173/?q=high&calm=1&open=1&seed=p3');
 await settle(2000);
 await page.locator('.splash').tap(); await settle(700);
 // One buy and one jump so the offline save exists and the streak has started.
@@ -44,7 +44,7 @@ await page.evaluate(() => {
   ] };
   localStorage.setItem('nova.save', JSON.stringify(s));
 });
-await page.goto('http://localhost:5173/?q=high&calm=1');
+await page.goto('http://localhost:5173/?q=high&calm=1&open=1');
 await settle(2000);
 await page.locator('.splash').tap(); await settle(1800);
 await shot('30-hub-streak');
@@ -60,7 +60,7 @@ await page.locator('.holo.is-locked').first().tap(); await settle(900); await sh
 await dismiss();
 
 if (bumpSeed) {
-  await page.goto(`http://localhost:5173/?q=high&calm=1&seed=${bumpSeed}`);
+  await page.goto(`http://localhost:5173/?q=high&calm=1&open=1&seed=${bumpSeed}`);
   await settle(2000);
   await page.locator('.splash').tap(); await settle(700);
   await tab('Hangar');

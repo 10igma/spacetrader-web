@@ -1,6 +1,7 @@
 import { CARD_BY_ID, CARDS, FACTIONS, rarityRank, ROLES, seasonCards, seatStat, SEATS, type BonusKey, type FactionId, type RoleId } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
+import { useFresh, useSeenNow, useUnlocks } from './unlocks.ts';
 import { useApp } from '../store.ts';
 import { Convoys } from './Convoys.tsx';
 import { seatUpgrades } from './crew.ts';
@@ -102,16 +103,22 @@ export function Deck() {
   const owned = cards.filter((c) => view.collection[c.id]);
   const missing = cards.filter((c) => !view.collection[c.id]);
   const need = album.next ? Math.ceil(album.total * album.next.pct) : album.total;
-  const mode = useApp((s) => s.deckMode);
+  const unlocks = useUnlocks();
+  const fresh = useFresh();
+  const wanted = useApp((s) => s.deckMode);
+  const mode = wanted === 'convoys' && !unlocks.convoys ? 'bridge' : wanted;
   const setMode = useApp((s) => s.setDeckMode);
+  useSeenNow('deck');
+  useSeenNow(mode === 'convoys' ? 'convoys' : null);
+  const parts = ([['bridge', 'Brücke'], ['collection', 'Sammlung'], ['convoys', 'Konvois']] as const).filter(([id]) => id !== 'convoys' || unlocks.convoys);
   const back = view.convoys.running.filter((c) => c.done).length;
   const collectable = view.seasonAlbum.claimable || FACTION_ORDER.some((f) => view.albums[f].claimable) || view.daily.manifests.some((m) => !m.done && m.have >= m.need);
   const upgrades = seatUpgrades(view);
   const segment = (
-    <div className="segment segment--3" role="tablist">
-      {([['bridge', 'Brücke'], ['collection', 'Sammlung'], ['convoys', 'Konvois']] as const).map(([id, label]) => (
+    <div className={`segment segment--${parts.length}`} role="tablist">
+      {parts.map(([id, label]) => (
         <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? 'is-active' : ''} onClick={() => { audio.tap(); setMode(id); }}>
-          {label}{((id === 'convoys' && back > 0) || (id === 'collection' && collectable)) && <i className="dot" />}
+          {label}{(id === 'convoys' && back > 0) || (id === 'collection' && collectable) ? <i className="dot" /> : id === 'convoys' && fresh('convoys') ? <i className="dot dot--new" /> : null}
         </button>
       ))}
     </div>

@@ -1,6 +1,7 @@
 import { CARD_BY_ID, FACTIONS, RARITIES, ROLES, type CrateTier, type SlotView } from '@nova/core';
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
+import { useFresh, useSeenNow, useUnlocks } from './unlocks.ts';
 import { useApp } from '../store.ts';
 import { art } from './art.ts';
 import { Shipyard } from './Shipyard.tsx';
@@ -81,13 +82,20 @@ export function Hangar() {
   const { free, tiers, pityElite, pityLegend } = view.crates;
   const anyUnlocking = view.slots.some((s) => s.state === 'unlocking' && (s.readyAt ?? 0) > now);
   const full = view.slots.length >= view.slotCap;
-  const mode = useApp((s) => s.hangarMode);
+  const unlocks = useUnlocks();
+  const fresh = useFresh();
+  const wanted = useApp((s) => s.hangarMode);
+  // A part that is not open yet cannot be the one on screen.
+  const mode = (wanted === 'shop' && !unlocks.shop) || (wanted === 'yard' && !unlocks.yard) ? 'crates' : wanted;
   const setMode = useApp((s) => s.setHangarMode);
-  const segment = (
-    <div className="segment segment--3" role="tablist">
-      {([['crates', 'Container'], ['shop', 'Shop'], ['yard', 'Werft']] as const).map(([id, label]) => (
+  useSeenNow(mode === 'shop' ? 'shop' : mode === 'yard' ? 'yard' : null);
+  const parts = ([['crates', 'Container'], ['shop', 'Shop'], ['yard', 'Werft']] as const).filter(([id]) => id === 'crates' || unlocks[id]);
+  // With only the containers open there is nothing to switch between.
+  const segment = parts.length < 2 ? null : (
+    <div className={`segment segment--${parts.length}`} role="tablist">
+      {parts.map(([id, label]) => (
         <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? 'is-active' : ''} onClick={() => { audio.tap(); setMode(id); }}>
-          {label}{id === 'crates' && mode !== 'crates' && view.badges.hangar > 0 && <i className="dot" />}
+          {label}{id === 'crates' && mode !== 'crates' && view.badges.hangar > 0 ? <i className="dot" /> : id !== 'crates' && fresh(id) ? <i className="dot dot--new" /> : null}
         </button>
       ))}
     </div>

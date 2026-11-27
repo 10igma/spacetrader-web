@@ -1,6 +1,7 @@
 import { CONFIG, FACTIONS, STATION_BY_ID, type Reward, type SalvageKind } from '@nova/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { audio } from '../audio/engine.ts';
+import { useSeenNow } from './unlocks.ts';
 import { useApp } from '../store.ts';
 import { countdown, duration, FACTION_COLOR, num, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
@@ -12,6 +13,7 @@ import { CloseX, SpendButton } from './Spend.tsx';
 // ---------------------------------------------------------------------------
 
 export function PostSheet() {
+  useSeenNow('posts');
   const view = useApp((s) => s.view)!;
   const send = useApp((s) => s.send);
   const busy = useApp((s) => s.busy);

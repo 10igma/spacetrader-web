@@ -16,7 +16,7 @@ const check = (name, ok) => { if (!ok) problems.push(`CHECK FAILED: ${name}`); e
 const app = (fn, arg) => page.evaluate(fn, arg);
 const state = () => app(() => { const s = window.__nova.app.getState(); return { at: s.view.location, credits: s.view.wallet.credits, orders: s.view.orders, course: s.course, fuel: s.view.fuel.amount }; });
 const start = async (query) => {
-  await page.goto(`http://localhost:5173/?q=high&calm=1${query}`);
+  await page.goto(`http://localhost:5173/?q=high&calm=1&open=1${query}`);
   await settle(2000);
   await page.locator('.splash').tap(); await settle(1500);
 };

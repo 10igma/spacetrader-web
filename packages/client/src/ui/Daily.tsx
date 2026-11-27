@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { audio } from '../audio/engine.ts';
+import { useFresh, useSeenNow, useUnlocks } from './unlocks.ts';
 import { useApp } from '../store.ts';
 import { countdown, missionText, num, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
@@ -119,12 +120,17 @@ export function Daily() {
   const view = useApp((s) => s.view)!;
   const now = useServerNow();
   const seasonBadge = view.season.claimable > 0 || view.weekend.claimable > 0;
-  const [mode, setMode] = useState<Mode>(() => (view.league.last ? 'league' : 'today'));
-  const tabs: { id: Mode; label: string; dot: boolean }[] = [
-    { id: 'today', label: 'Heute', dot: false },
-    { id: 'season', label: 'Saison', dot: seasonBadge },
-    { id: 'league', label: 'Liga', dot: view.league.last !== null },
-  ];
+  const unlocks = useUnlocks();
+  const fresh = useFresh();
+  const [wanted, setMode] = useState<Mode>(() => (view.league.last && unlocks.league ? 'league' : 'today'));
+  const mode = (wanted === 'season' && !unlocks.season) || (wanted === 'league' && !unlocks.league) ? 'today' : wanted;
+  useSeenNow('daily');
+  useSeenNow(mode === 'season' ? 'season' : mode === 'league' ? 'league' : null);
+  const tabs = ([
+    { id: 'today', label: 'Heute', dot: false, open: true, isNew: false },
+    { id: 'season', label: 'Saison', dot: seasonBadge, open: unlocks.season, isNew: fresh('season') },
+    { id: 'league', label: 'Liga', dot: view.league.last !== null, open: unlocks.league, isNew: fresh('league') },
+  ] as { id: Mode; label: string; dot: boolean; open: boolean; isNew: boolean }[]).filter((t) => t.open);
   return (
     <section className="daily">
       <header className="screenhead">
@@ -133,13 +139,15 @@ export function Daily() {
         </span>
         <h2>{mode === 'today' ? 'Aufträge' : mode === 'season' ? 'Charter' : 'Liga'}</h2>
       </header>
-      <div className="segment segment--3" role="tablist">
-        {tabs.map((t) => (
-          <button key={t.id} role="tab" aria-selected={mode === t.id} className={mode === t.id ? 'is-active' : ''} onClick={() => { audio.tap(); setMode(t.id); }}>
-            {t.label}{t.dot && <i className="dot" />}
-          </button>
-        ))}
-      </div>
+      {tabs.length > 1 && (
+        <div className={`segment segment--${tabs.length}`} role="tablist">
+          {tabs.map((t) => (
+            <button key={t.id} role="tab" aria-selected={mode === t.id} className={mode === t.id ? 'is-active' : ''} onClick={() => { audio.tap(); setMode(t.id); }}>
+              {t.label}{t.dot ? <i className="dot" /> : t.isNew ? <i className="dot dot--new" /> : null}
+            </button>
+          ))}
+        </div>
+      )}
       {mode === 'today' && <Today />}
       {mode === 'season' && <Season />}
       {mode === 'league' && <League />}

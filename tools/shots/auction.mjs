@@ -14,7 +14,7 @@ const shot = (n) => page.screenshot({ path: `${out}/${n}.png` });
 const settle = (ms) => page.waitForTimeout(ms);
 const tab = async (name) => { await page.locator('.nav__item', { hasText: name }).tap(); await settle(1200); };
 
-await page.goto('http://localhost:5173/?q=high&calm=1&seed=auc');
+await page.goto('http://localhost:5173/?q=high&calm=1&open=1&seed=auc');
 await settle(2000);
 await page.locator('.splash').tap(); await settle(700);
 await tab('Markt');
@@ -28,7 +28,7 @@ await page.evaluate(() => {
   s.auction.results = [{ kind: 'won', cardId: 'c19', price: 26400 }, { kind: 'sold', cardId: 'c14', price: 5130 }, { kind: 'lost', cardId: 'c22', price: 231000 }];
   localStorage.setItem('nova.save', JSON.stringify(s));
 });
-await page.goto('http://localhost:5173/?q=high&calm=1');
+await page.goto('http://localhost:5173/?q=high&calm=1&open=1');
 await settle(2000);
 await page.locator('.splash').tap(); await settle(1500);
 await tab('Markt');

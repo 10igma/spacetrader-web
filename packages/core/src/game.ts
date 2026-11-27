@@ -3,6 +3,7 @@ import {
   type AuctionResult, type Listing,
 } from './auction.ts';
 import { CONFIG } from './config.ts';
+import { unlocksOf, type Feature } from './features.ts';
 import {
   CARD_BY_ID, CARDS_BY_RARITY, EDITION_SIZE, RARITIES, rarityRank, seasonCards, seasonOf,
   type CardDef, type FactionId, type Rarity, type RoleId,
@@ -309,6 +310,8 @@ export interface ClientView {
   saleBonus: { streak: number; album: number; prestige: number };
   /** Things waiting to be collected, per tab. Drives the red dots. */
   badges: { station: number; market: number; hangar: number; daily: number; deck: number };
+  /** Which parts of the game the client shows a way into. See features.ts. */
+  unlocks: Record<Feature, boolean>;
   deck: { seats: Record<RoleId, SeatView | null>; chem: number };
   crew: CrewBonus;
   location: StationId;
@@ -1922,6 +1925,7 @@ export function applyCommand(prev: GameState, cmd: Command, now: number): Result
 
 export function toClientView(state: GameState, now: number): ClientView {
   const s = clone(state);
+  const unlocks = unlocksOf(s.profile.level, s.crates.opened, s.prestige);
   settleFuel(s, now);
   settleFree(s, now);
   settleDaily(s, now);
@@ -2135,14 +2139,16 @@ export function toClientView(state: GameState, now: number): ClientView {
     },
     albums,
     saleBonus: saleBonus(s),
+    unlocks,
     badges: {
       hangar: s.crates.freeStock + slots.filter((x) => x.state === 'ready').length,
       station: postList.filter((p) => p.readyAt === null && p.stored >= p.cap * 0.9).length,
       market: s.auction.results.length + lots.filter((l) => l.yourMax !== null && !l.leading).length,
       daily: s.daily.missions.filter((m) => !m.claimed && m.progress >= m.target).length + (chestClaimable ? 1 : 0) + (calendarClaimable ? 1 : 0)
         + (s.daily.wheelSpun ? 0 : 1)
-        + (charterClaimable > 0 ? 1 : 0) + (s.league.last ? 1 : 0) + (weekendClaimable > 0 ? 1 : 0) + (s.comeback ? 1 : 0),
-      deck: FACTION_IDS.filter((f) => albums[f].claimable).length + s.convoys.filter((c) => c.endsAt <= now).length + (album.claimable ? 1 : 0)
+        // A dot only for what the captain can already get to.
+        + (unlocks.season && charterClaimable > 0 ? 1 : 0) + (unlocks.league && s.league.last ? 1 : 0) + (weekendClaimable > 0 ? 1 : 0) + (s.comeback ? 1 : 0),
+      deck: FACTION_IDS.filter((f) => albums[f].claimable).length + (unlocks.convoys ? s.convoys.filter((c) => c.endsAt <= now).length : 0) + (album.claimable ? 1 : 0)
         // Manifests are handed in where the spare copies are: with the collection.
         + manifests.filter((m) => !m.done && m.have >= m.need).length,
     },

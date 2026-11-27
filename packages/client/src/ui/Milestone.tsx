@@ -1,10 +1,11 @@
-import { SHIP_BY_ID, SHIPS, type ShipId } from '@nova/core';
+import { featuresAt, SHIP_BY_ID, SHIPS, type ShipId } from '@nova/core';
 import { useEffect } from 'react';
 import { audio } from '../audio/engine.ts';
 import { useApp, type MilestoneMoment } from '../store.ts';
 import { art } from './art.ts';
 import { leagueBadge } from './Emblem.tsx';
 import { ShipArt } from './Shipyard.tsx';
+import { FEATURE_TEXT } from './unlocks.ts';
 
 /** What the big moments say. Everything here is a fact about the game as it stands. */
 function content(m: MilestoneMoment, level: number): { eyebrow: string; title: string; hero: React.ReactNode; lines: string[]; rank: 3 | 4 } {
@@ -14,7 +15,13 @@ function content(m: MilestoneMoment, level: number): { eyebrow: string; title: s
       return {
         eyebrow: 'Aufstieg', title: `Stufe ${m.level}`, rank: 3,
         hero: <b className="moment__number">{m.level}</b>,
-        lines: ['Tank aufgefüllt', '+5 Quanten', ...SHIPS.filter((s) => s.level === m.level).map((s) => `Neu in der Werft: ${s.name}`), ...(next ? [`Nächstes Schiff: ${next.name} ab Stufe ${next.level}`] : [])],
+        // What opens at this level comes first: it is the news of this moment.
+        lines: [
+          ...featuresAt(m.level).map((f) => `Neu: ${FEATURE_TEXT[f].name} · ${FEATURE_TEXT[f].where}`),
+          'Tank aufgefüllt · +5 Quanten',
+          ...SHIPS.filter((s) => s.level === m.level).map((s) => `Neu in der Werft: ${s.name}`),
+          ...(next && m.level >= 4 ? [`Nächstes Schiff: ${next.name} ab Stufe ${next.level}`] : []),
+        ],
       };
     }
     case 'ship': {
@@ -51,7 +58,7 @@ export function Milestone() {
       <div className="moment__hero">{c.hero}</div>
       <h2 className="moment__title">{c.title}</h2>
       <ul className="moment__lines">
-        {c.lines.map((line, i) => <li key={line} style={{ animationDelay: `${0.55 + i * 0.09}s` }}>{line}</li>)}
+        {c.lines.map((line, i) => <li key={line} className={line.startsWith('Neu: ') ? 'is-new' : ''} style={{ animationDelay: `${0.55 + i * 0.09}s` }}>{line}</li>)}
       </ul>
       <button className="cta moment__cta"><span>Weiter</span></button>
     </div>
