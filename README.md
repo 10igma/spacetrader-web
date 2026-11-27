@@ -239,6 +239,7 @@ Die Bühne ist prozedural: Planeten, Nebel, Warp-Tunnel und Kartenfolien sind Sh
 | J | Archetypen und Währungen | 23 | im Spiel |
 | K | Saison-Karten «Zenit unter Verdacht», Stationen | 14 | im Spiel: Die Station steht hinter dem eigenen Schiff und auf der Ankunftskarte |
 | L | Die vier neuen Stationen der Sternkarte | 4 | offen, Prompts in Dokument 06 |
+| M | Schiffe von hinten | 6 | im Spiel: vor der Station |
 
 Dazu kommen die zehn Legenden und Singularitäten (`c21` bis `c30`), die als Erste entstanden sind. Die 100 seltenen und Standard-Karten teilen sich 20 Archetypen, einen pro Fraktion und Rolle. Fehlt ein Bild, zeichnet das Spiel einen prozeduralen Avatar.
 
