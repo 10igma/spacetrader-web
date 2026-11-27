@@ -30,7 +30,6 @@ export function Hub() {
   const way = course && course !== view.location ? courseTo(view.location, course) : [];
   const now = useServerNow();
   const station = STATION_BY_ID.get(view.location)!;
-  const go = (tab: 'hangar') => (): void => { audio.tap(); setTab(tab); };
 
   // What needs attention sits at the edge as a symbol with a mark. The details come after a tap.
   const { orders } = view;
@@ -63,6 +62,27 @@ export function Hub() {
     });
   }
   if (view.salvage && unlocks.salvage) rail.push({ key: 'salvage', tone: 'salvage', icon: <IconHangar />, label: 'Bergung', mark: '', say: `Bergungs-Auktion am Dock für ${num(view.salvage.price)} Credits`, go: () => setSheet('salvage') });
+  const own: typeof rail = [{
+    key: 'crates',
+    tone: view.badges.hangar > 0 ? 'ready' : 'idle',
+    icon: <IconHangar />,
+    label: view.badges.hangar > 0 ? 'Container' : view.crates.free.nextAt ? countdown(view.crates.free.nextAt - now) : 'Container',
+    mark: view.badges.hangar > 0 ? String(view.badges.hangar) : '',
+    say: view.badges.hangar > 0 ? `${view.badges.hangar} Container bereit` : 'Zum Hangar',
+    go: () => { setHangarMode('crates'); setTab('hangar'); },
+  }];
+  if (unlocks.posts) {
+    const full = view.badges.station > 0;
+    own.push({
+      key: 'posts',
+      tone: full ? 'ready' : fresh('posts') ? 'new' : 'idle',
+      icon: <IconMarket />,
+      label: view.posts.list.length > 0 ? num(view.posts.stored) : fresh('posts') ? 'Neu' : 'Posten',
+      mark: full ? '!' : '',
+      say: view.posts.list.length > 0 ? `Handelsposten: ${num(view.posts.stored)} Credits im Lager${full ? ', Lager voll' : ''}` : 'Handelsposten bauen',
+      go: () => setSheet('posts'),
+    });
+  }
   // One status at a time next to the customs level: the most pressing wins.
   const streakAtRisk = view.streak.count > 0 && view.streak.status === 'atRisk';
 
@@ -111,6 +131,15 @@ export function Hub() {
         <button className="hub__dock" aria-label={unlocks.yard ? 'Zur Werft' : 'Dein Schiff'} onClick={() => { if (!unlocks.yard) return; audio.tap(); setHangarMode('yard'); setTab('hangar'); }}>
           <ShipArt id={view.fleet.active} paint={paint} view={stationArt ? 'rear' : 'top'} />
         </button>
+        {/* Left: what you own and collect. Right: what the sector asks of you. */}
+        <div className="rail rail--left">
+          {own.map((r) => (
+            <button key={r.key} className={`rail__btn rail__btn--${r.key} rail__btn--${r.tone}`} aria-label={r.say} onClick={() => { audio.tap(); r.go(); }}>
+              <span className="rail__icon">{r.icon}{r.mark && <i>{r.mark}</i>}</span>
+              <small>{r.label}</small>
+            </button>
+          ))}
+        </div>
         {rail.length > 0 && (
           <div className="rail">
             {rail.map((r) => (
@@ -131,27 +160,11 @@ export function Hub() {
         </button>
       )}
 
-      <div className={`tiles${unlocks.posts ? '' : ' tiles--2'}`}>
-        {unlocks.posts && (
-          <button className={`tile${view.badges.station > 0 ? ' tile--ready' : fresh('posts') ? ' tile--new' : ''}`} onClick={() => { audio.tap(); setSheet('posts'); }}>
-            <span className="tile__icon"><IconMarket /></span>
-            <span className="tile__label">{view.posts.list.length > 0 ? (view.badges.station > 0 ? 'Posten voll' : 'Handelsposten') : fresh('posts') ? 'Neu: Posten' : 'Posten bauen'}</span>
-            <span className="tile__value">{view.posts.list.length > 0 ? num(view.posts.stored) : 'Bauen'}</span>
-          </button>
-        )}
-        <div className="tile">
-          <span className="tile__icon"><IconFuel /></span>
-          <span className="tile__label">{view.fuel.nextAt ? `+1 in ${countdown(view.fuel.nextAt - now)}` : 'Tank voll'}</span>
-          <span className="tile__value">{view.fuel.amount}<small> / {view.fuel.max}</small></span>
-          <span className="pips">
-            {Array.from({ length: view.fuel.max }, (_, i) => <i key={i} className={i < view.fuel.amount ? 'on' : ''} />)}
-          </span>
-        </div>
-        <button className={`tile${view.badges.hangar > 0 ? ' tile--ready' : ''}`} onClick={go('hangar')}>
-          <span className="tile__icon"><IconHangar /></span>
-          <span className="tile__label">{view.badges.hangar > 0 ? 'Container bereit' : 'Gratis-Container'}</span>
-          <span className="tile__value">{view.badges.hangar > 0 ? view.badges.hangar : view.crates.free.nextAt ? countdown(view.crates.free.nextAt - now) : '0'}</span>
-        </button>
+      {/* The tank in one line: how far you can go, and when the next unit comes. */}
+      <div className="fuelline" aria-label={`Tank ${view.fuel.amount} von ${view.fuel.max}`}>
+        <IconFuel />
+        <span className="pips">{Array.from({ length: view.fuel.max }, (_, i) => <i key={i} className={i < view.fuel.amount ? 'on' : ''} />)}</span>
+        <small>{view.fuel.nextAt ? `+1 in ${countdown(view.fuel.nextAt - now)}` : 'Tank voll'}</small>
       </div>
 
       {ready ? (

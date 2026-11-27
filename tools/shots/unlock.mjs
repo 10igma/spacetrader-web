@@ -32,7 +32,7 @@ const level = (n) => patch('s.profile = { level: a, xp: 0 }; s.wallet.credits = 
 await start('&seed=unlock');
 await shot('250-rookie-hub');
 check('a new captain has three tabs', JSON.stringify(await tabs()) === JSON.stringify(['STATION', 'MARKT', 'HANGAR']));
-check('the home screen has two tiles: tank and container', await page.locator('.tile').count() === 2);
+check('the home screen has one symbol: the container bay', await page.locator('.rail--left .rail__btn').count() === 1 && await page.locator('.rail__btn--posts').count() === 0);
 await tab('Markt');
 check('the market has no auction house yet', await page.locator('.market .segment').count() === 0);
 // Make a save, so the following steps can set the level.
@@ -65,7 +65,7 @@ check('the level-up names what is new', await page.locator('.moment__lines .is-n
 await page.locator('.moment').tap(); await settle(500);
 
 await level(3);
-check('level 3 brings the trading post to the home screen', await page.locator('.tile').count() === 3 && await page.locator('.tile--new').count() === 1);
+check('level 3 brings the trading post to the home screen, marked as new', await page.locator('.rail__btn--posts.rail__btn--new').count() === 1);
 await shot('255-level3-hub');
 await tab('Hangar');
 check('and the shop to the hangar', await page.locator('.hangar .segment button').allInnerTexts().then((all) => all.map((t) => t.toUpperCase()).join() === 'CONTAINER,SHOP'));
@@ -90,7 +90,7 @@ check('level 6 brings the convoys', await page.locator('.deck .segment button').
 // --- Someone who was already playing gets no marks ----------------------------------
 await page.evaluate(() => localStorage.removeItem('nova.seen'));
 await level(12);
-check('an existing captain sees everything and nothing is marked as new', (await tabs()).length === 5 && await page.locator('.dot--new').count() === 0 && await page.locator('.tile--new').count() === 0);
+check('an existing captain sees everything and nothing is marked as new', (await tabs()).length === 5 && await page.locator('.dot--new').count() === 0 && await page.locator('.rail__btn--new').count() === 0);
 await shot('257-existing-captain');
 await browser.close();
 console.log(problems.length ? `PROBLEMS:\n${problems.join('\n')}` : 'no console errors');

@@ -4,10 +4,14 @@ import { useFresh, useSeenNow, useUnlocks } from './unlocks.ts';
 import { useApp } from '../store.ts';
 import { countdown, missionText, num, rewardText } from './format.ts';
 import { useServerNow } from './hooks.ts';
-import { IconFlame, Quanta } from './icons.tsx';
+import { IconDaily, IconFlame, Quanta } from './icons.tsx';
 import { League } from './League.tsx';
 import { Season, WeekendCard } from './Season.tsx';
 import { SpendButton } from './Spend.tsx';
+
+/** A calendar reward in two words, for the symbol. */
+const rewardShort = (r: { credits?: number; shards?: number; quanta?: number; freeze?: number; crate?: unknown }): string =>
+  r.credits ? `${num(r.credits)} Credits` : r.shards ? `${r.shards} Splitter` : r.quanta ? `${r.quanta} Quanten` : r.freeze ? 'Urlaubsschein' : 'Container';
 
 const STREAK_TEXT = {
   none: 'Spring heute einmal, um eine Serie zu starten.',
@@ -29,6 +33,10 @@ function Today() {
   // Steps already collected in the current seven-day round.
   const doneCount = calendar.claimable ? calendar.step % calendar.rewards.length : ((calendar.step - 1) % calendar.rewards.length) + 1;
   const tap = (fn: () => void) => (): void => { audio.tap(); fn(); };
+  const [detail, setDetail] = useState<'streak' | 'calendar' | null>(null);
+  const today = calendar.rewards[doneCount % calendar.rewards.length];
+  const urgent = streak.status === 'atRisk' && streak.endsAt - now < 3 * 3_600_000;
+  const streakTone = urgent ? 'urgent' : streak.status;
 
   return (
     <>
@@ -41,42 +49,58 @@ function Today() {
         </button>
       )}
 
-      <div className={`streak streak--${streak.status}${streak.status === 'atRisk' && streak.endsAt - now < 3 * 3_600_000 ? ' is-urgent' : ''}`}>
-        <div className="streak__flame"><IconFlame /><b>{streak.count}</b></div>
-        <div className="streak__main">
-          <b>Handelsserie{streak.count > 0 ? ` · +${Math.round(streak.bonus * 100)} % Verkaufspreis` : ''}</b>
-          <span>{STREAK_TEXT[streak.status]}</span>
-          {streak.status === 'atRisk' && <span className="streak__clock">Noch {countdown(streak.endsAt - now)}</span>}
-        </div>
-        <SpendButton className="streak__freeze" disabled={busy || streak.freezes >= streak.maxFreezes || view.wallet.quanta < streak.freezePrice} onSpend={() => void send({ type: 'BuyFreeze' })} confirm={<><span>Kaufen?</span><small><Quanta />{streak.freezePrice}</small></>}>
-          <b>{streak.freezes}<small> / {streak.maxFreezes}</small></b>
-          <span>Urlaubsschein</span>
-          <small><Quanta />{streak.freezePrice}</small>
-        </SpendButton>
-      </div>
-
-      <button className={`wheelcard${daily.wheel.available ? ' wheelcard--ready' : ''}`} onClick={tap(() => setSheet('wheel'))}>
-        <span className="wheelcard__icon" />
-        <span className="wheelcard__main">
+      {/* Three things that come back every day, as symbols. Details open on a tap. */}
+      <div className="trio">
+        <button className={`trio__btn trio__btn--streak trio__btn--${streakTone}${detail === 'streak' ? ' is-open' : ''}`} onClick={tap(() => setDetail(detail === 'streak' ? null : 'streak'))}>
+          <span className="trio__icon"><IconFlame /><b>{streak.count}</b></span>
+          <b>Serie</b>
+          <small>{streak.status === 'atRisk' ? countdown(streak.endsAt - now) : streak.status === 'safe' ? `+${Math.round(streak.bonus * 100)} %` : streak.status === 'frozen' ? 'Schein hält' : streak.status === 'broken' ? 'gerissen' : 'starten'}</small>
+        </button>
+        <button className={`trio__btn trio__btn--wheel${daily.wheel.available ? ' trio__btn--ready' : ''}`} onClick={tap(() => setSheet('wheel'))}>
+          <span className="trio__icon"><i className="wheelcard__icon" /></span>
           <b>Glücksrad</b>
-          <small>{daily.wheel.available ? 'Dein Gratis-Dreh für heute wartet' : 'Heute gedreht. Morgen gibt es den nächsten'}</small>
-        </span>
-        <span className="mission__btn" aria-hidden="true">{daily.wheel.available ? 'Drehen' : 'Quoten'}</span>
-      </button>
-
-      <h4 className="market__section">Login-Kalender<span>{calendar.claimable ? 'Heute abholbar' : 'Morgen wieder'}</span></h4>
-      <div className="calendar" ref={(el) => { el?.querySelector('.cal--today, .cal--next')?.scrollIntoView({ inline: 'center', block: 'nearest' }); }}>
-        {calendar.rewards.map((r, i) => {
-          const state = i < doneCount ? 'done' : i === doneCount ? (calendar.claimable ? 'today' : 'next') : 'future';
-          return (
-            <button key={i} className={`cal cal--${state}${r.crate ? ' cal--big' : ''}`} disabled={busy || state !== 'today'} onClick={tap(() => void send({ type: 'ClaimCalendar' }))}>
-              <small>Tag {i + 1}</small>
-              <b>{r.credits ? num(r.credits) : r.shards ?? r.quanta ?? (r.freeze ? '1' : '★')}</b>
-              <span>{r.credits ? 'Credits' : r.shards ? 'Splitter' : r.quanta ? 'Quanten' : r.freeze ? 'Schein' : 'Premium'}</span>
-            </button>
-          );
-        })}
+          <small>{daily.wheel.available ? 'Gratis-Dreh' : 'morgen'}</small>
+        </button>
+        <button
+          className={`trio__btn trio__btn--calendar${calendar.claimable ? ' trio__btn--ready' : ''}${detail === 'calendar' ? ' is-open' : ''}`}
+          disabled={busy}
+          onClick={tap(() => { if (calendar.claimable) void send({ type: 'ClaimCalendar' }); else setDetail(detail === 'calendar' ? null : 'calendar'); })}
+        >
+          <span className="trio__icon"><IconDaily /></span>
+          <b>Tag {(doneCount % calendar.rewards.length) + 1}</b>
+          <small>{calendar.claimable && today ? rewardShort(today) : 'morgen'}</small>
+        </button>
       </div>
+
+      {detail === 'streak' && (
+        <div className={`streak streak--${streak.status}${streak.status === 'atRisk' && streak.endsAt - now < 3 * 3_600_000 ? ' is-urgent' : ''}`}>
+          <div className="streak__flame"><IconFlame /><b>{streak.count}</b></div>
+          <div className="streak__main">
+            <b>Handelsserie{streak.count > 0 ? ` · +${Math.round(streak.bonus * 100)} % Verkaufspreis` : ''}</b>
+            <span>{STREAK_TEXT[streak.status]}</span>
+            {streak.status === 'atRisk' && <span className="streak__clock">Noch {countdown(streak.endsAt - now)}</span>}
+          </div>
+          <SpendButton className="streak__freeze" disabled={busy || streak.freezes >= streak.maxFreezes || view.wallet.quanta < streak.freezePrice} onSpend={() => void send({ type: 'BuyFreeze' })} confirm={<><span>Kaufen?</span><small><Quanta />{streak.freezePrice}</small></>}>
+            <b>{streak.freezes}<small> / {streak.maxFreezes}</small></b>
+            <span>Urlaubsschein</span>
+            <small><Quanta />{streak.freezePrice}</small>
+          </SpendButton>
+        </div>
+      )}
+      {detail === 'calendar' && (
+        <div className="calendar" ref={(el) => { el?.querySelector('.cal--today, .cal--next')?.scrollIntoView({ inline: 'center', block: 'nearest' }); }}>
+          {calendar.rewards.map((r, i) => {
+            const state = i < doneCount ? 'done' : i === doneCount ? (calendar.claimable ? 'today' : 'next') : 'future';
+            return (
+              <button key={i} className={`cal cal--${state}${r.crate ? ' cal--big' : ''}`} disabled={busy || state !== 'today'} onClick={tap(() => void send({ type: 'ClaimCalendar' }))}>
+                <small>Tag {i + 1}</small>
+                <b>{r.credits ? num(r.credits) : r.shards ?? r.quanta ?? (r.freeze ? '1' : '★')}</b>
+                <span>{r.credits ? 'Credits' : r.shards ? 'Splitter' : r.quanta ? 'Quanten' : r.freeze ? 'Schein' : 'Premium'}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <h4 className="market__section">
         Tagesaufträge
@@ -84,6 +108,17 @@ function Today() {
           ? <button className="link link--gold" disabled={busy} onClick={tap(() => { void (async () => { for (const index of claimable) await send({ type: 'ClaimMission', index }); })(); })}>Alle {claimable.length} abholen</button>
           : <span>{daily.chest.done} von {daily.chest.total} erledigt</span>}
       </h4>
+      <button
+        className={`chest${daily.chest.done === daily.chest.total && !daily.chest.claimed ? ' chest--ready' : ''}${daily.chest.claimed ? ' is-claimed' : ''}`}
+        disabled={busy || daily.chest.claimed || daily.chest.done < daily.chest.total}
+        onClick={tap(() => void send({ type: 'ClaimChest' }))}
+      >
+        <span className="chest__pips">{Array.from({ length: daily.chest.total }, (_, i) => <i key={i} className={i < daily.chest.done ? 'on' : ''} />)}</span>
+        <span className="chest__text">
+          <b>{daily.chest.claimed ? 'Tagesbonus erhalten' : daily.chest.done === daily.chest.total ? 'Tagesbonus abholen' : 'Tagesbonus für alle drei'}</b>
+          <small>{rewardText(daily.chest.reward)}</small>
+        </span>
+      </button>
       <div className="missions">
         {daily.missions.map((m, i) => {
           const done = m.progress >= m.target;
@@ -100,15 +135,6 @@ function Today() {
             </div>
           );
         })}
-        <button
-          className={`chest${daily.chest.done === daily.chest.total && !daily.chest.claimed ? ' chest--ready' : ''}`}
-          disabled={busy || daily.chest.claimed || daily.chest.done < daily.chest.total}
-          onClick={tap(() => void send({ type: 'ClaimChest' }))}
-        >
-          <span className="chest__pips">{Array.from({ length: daily.chest.total }, (_, i) => <i key={i} className={i < daily.chest.done ? 'on' : ''} />)}</span>
-          <b>{daily.chest.claimed ? 'Tagesbonus erhalten' : 'Tagesbonus für alle drei'}</b>
-          <small>{rewardText(daily.chest.reward)}</small>
-        </button>
       </div>
     </>
   );

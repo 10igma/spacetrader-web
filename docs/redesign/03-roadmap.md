@@ -289,6 +289,6 @@ Hier kommt der grösste Teil des Katalogs.
 
 1. **Grafiken, Rest** (deine Seite, Dokument 06): die vier neuen Stationen (Paket L) und die Ersatzkarte `g094`.
 2. **Gerätetest** (deine Seite): die Android-App installieren und spielen.
-3. **Design, Rest** (Dokument 07): Tab "Aufträge" aufräumen, Kacheln der Station in die Symbolleiste, Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment.
+3. **Design, Rest** (Dokument 07): Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment.
 4. **Sektor weiter ausbauen:** Bots, die Aufträge und ferne Krisen anfahren, damit die Balance sie mitmisst. Aufträge für Schmuggelware. Sichtbare Konkurrenten auf der Karte.
 5. Danach zur Wahl: Backend für echte Mitspieler mit Konten und Cloud-Speicher, oder der Rest aus Phase 2.

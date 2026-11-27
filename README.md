@@ -440,7 +440,7 @@ Hintergrund und Einordnung jeder Mechanik stehen im [Mechanik-Katalog](docs/rede
 
 **Zuletzt dazugekommen:** der Sektor mit Sternkarte, Sprungbahnen, Krisen und Lieferaufträgen, Design-Runde 2, eine Entschlackung der meistgenutzten Bildschirme, die schrittweise Freischaltung für neue Spieler, der Sprung direkt auf der Sternkarte, eine einheitliche Gestaltung mit sechs Textgrössen, alle Grafik-Pakete A bis K und der Kippeffekt auf allen Karten.
 
-**Als Nächstes:** Gerätetest auf Android und iOS, Rest der Design-Arbeit (Tab «Aufträge» aufräumen, Kartenrahmen nach Seltenheit), Sektor ausbauen (Aufträge für Schmuggelware, sichtbare Konkurrenten, Bots, die Aufträge und Krisen anfahren).
+**Als Nächstes:** Gerätetest auf Android und iOS, Rest der Design-Arbeit (Kartenrahmen nach Seltenheit, Konvoi-Rückkehr als Moment), Sektor ausbauen (Aufträge für Schmuggelware, sichtbare Konkurrenten, Bots, die Aufträge und Krisen anfahren).
 
 **Bekannte Grenzen:** Sektor und Lieferaufträge sind neu und kaum gespielt, ihre Balance ist nur teilweise von Bots gemessen. Der Spielstand liegt lokal auf dem Gerät, ein Konto mit Cloud-Speicher fehlt. Tages- und Wochengrenzen folgen mitteleuropäischer Winterzeit. Der Server hält Sitzungen nur im Arbeitsspeicher.
 

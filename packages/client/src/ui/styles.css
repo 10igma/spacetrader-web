@@ -2151,3 +2151,41 @@ i.flyglyph { width: 12px; height: 12px; left: -6px; top: -6px; background: var(-
 .trade__lvl { font-family: var(--font-display); font-size: var(--fs-body); font-weight: 700; }
 .trade__lvl.is-cheap { color: var(--ok); }
 .trade__lvl.is-dear { color: var(--amber); }
+
+/* The home screen without tiles: what you own sits on the left edge, the tank is one line above the main button. */
+.rail--left { right: auto; left: 0; }
+.rail__btn--idle { --tone: var(--ink-dim); }
+.rail__btn--idle small { color: var(--ink-dim); }
+.rail__btn--new { --tone: var(--cyan); }
+.fuelline { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; color: var(--ink-dim); }
+.fuelline svg { width: 14px; height: 14px; color: var(--cyan); }
+.fuelline .pips { margin-top: 0; }
+.fuelline .pips i { width: 16px; height: 6px; }
+.fuelline small { font-size: var(--fs-small); font-variant-numeric: tabular-nums; }
+
+/* Daily goals: streak, wheel and calendar as three symbols. The missions are the list. */
+.trio { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 2px; }
+.trio__btn { --tone: var(--ink-dim); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px 9px; border-radius: var(--radius-m); background: var(--glass-strong); border: 1px solid var(--stroke); }
+.trio__btn:active { transform: scale(0.96); }
+.trio__btn.is-open { border-color: var(--stroke-strong); }
+.trio__icon { position: relative; display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 2px; color: var(--tone); }
+.trio__icon svg { position: absolute; width: 44px; height: 44px; opacity: 0.6; }
+.trio__icon b { position: relative; top: 5px; font-family: var(--font-display); font-size: var(--fs-title); font-weight: 800; color: var(--ink); }
+.trio__btn--calendar .trio__icon b { top: 6px; font-size: var(--fs-body); }
+.trio__icon .wheelcard__icon { width: 40px; height: 40px; }
+.trio__btn > b { font-family: var(--font-display); font-size: var(--fs-body); font-weight: 700; }
+.trio__btn > small { font-size: var(--fs-small); color: var(--tone); font-variant-numeric: tabular-nums; }
+.trio__btn--safe { --tone: var(--ok); }
+.trio__btn--atRisk { --tone: var(--amber); }
+.trio__btn--urgent { --tone: var(--danger); border-color: rgba(255, 84, 104, 0.6); }
+.trio__btn--frozen { --tone: var(--cyan); }
+.trio__btn--ready { --tone: var(--r-legend); border-color: var(--r-legend); box-shadow: 0 0 20px -10px var(--r-legend); }
+.trio__btn--ready .wheelcard__icon { animation: rays 6s linear infinite; }
+.chest { flex-direction: row; align-items: center; gap: 12px; text-align: left; padding: 10px 12px; }
+.chest .chest__pips { flex: none; margin: 0; }
+.chest__text { min-width: 0; }
+.chest__text b, .chest__text small { display: block; }
+.chest.is-claimed { opacity: 0.5 !important; }
+.trio__icon b { font-size: var(--fs-head); text-shadow: 0 0 2px #000, 0 0 8px #000; }
+.trio__btn--streak .trio__icon svg { opacity: 0.45; }
+.trio__btn--calendar .trio__icon svg { width: 34px; height: 34px; opacity: 0.9; }
